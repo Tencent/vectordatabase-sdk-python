@@ -1,4 +1,9 @@
+import platform
 import requests
+import socket
+from urllib3.connection import HTTPConnection
+from requests.adapters import HTTPAdapter
+from requests.adapters import PoolManager
 from urllib import parse
 import json
 
@@ -26,7 +31,7 @@ class Response():
             Debug(json.dumps(response, indent=2))
         except Exception as e:
             raise exceptions.ConnectError(
-                code=-1, message=res.content+' ' + str(e))
+                code=-1, message=str(res.content)+' ' + str(e))
 
     @property
     def code(self) -> int:
@@ -42,7 +47,8 @@ class Response():
 
 
 class HTTPClient:
-    def __init__(self, url: str, username: str, key: str, timeout: int = None):
+    def __init__(self, url: str, username: str, key: str,
+                 timeout: int = None, adapter: HTTPAdapter = None):
         """
         Create a httpclient session.
         Args:
@@ -63,6 +69,22 @@ class HTTPClient:
             'Authorization': 'Bearer {}'.format(self._authorization()),
         }
         self.session = requests.Session()
+        self._set_adapter(adapter)
+
+    def _set_adapter(self, adapter: HTTPAdapter = None):
+        if not adapter:
+            if 'linux' not in platform.platform().lower():
+                return
+            options = HTTPConnection.default_socket_options + [
+                (socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1),
+                (socket.IPPROTO_TCP, socket.TCP_KEEPIDLE, 120),
+                (socket.IPPROTO_TCP, socket.TCP_KEEPINTVL, 10),
+                (socket.IPPROTO_TCP, socket.TCP_KEEPCNT, 3),
+            ]
+            adapter = _SockOpsAdapter(pool_connections=10,
+                                      pool_maxsize=10, max_retries=3, options=options)
+        self.session.mount('http://', adapter)
+        self.session.mount('https://', adapter)
 
     def _authorization(self):
         if not self.username or not self.key:
@@ -117,3 +139,15 @@ class HTTPClient:
 
     def close(self):
         self.session.close()
+
+
+class _SockOpsAdapter(HTTPAdapter):
+    def __init__(self, options, **kwargs):
+        self.options = options
+        super(_SockOpsAdapter, self).__init__(**kwargs)
+
+    def init_poolmanager(self, connections, maxsize, block=False, **pool_kwargs):
+        self.poolmanager = PoolManager(num_pools=connections,
+                                       maxsize=maxsize,
+                                       block=block,
+                                       socket_options=self.options)

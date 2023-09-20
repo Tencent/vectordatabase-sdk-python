@@ -1,16 +1,22 @@
-from typing import List, Optional, Union
+from typing import List, Optional, Union, Dict, Any
+
+from tcvectordb.model.enum import ReadConsistency
 
 from tcvectordb.client.httpclient import HTTPClient
 from tcvectordb import exceptions
 
-from .collection import Collection
+from .collection import Collection, Embedding
 from .index import Index
 
 
 class Database:
-    def __init__(self, conn: Union[HTTPClient, None], name: str = '') -> None:
+    def __init__(self,
+                 conn: Union[HTTPClient, None],
+                 name: str = '',
+                 read_consistency: ReadConsistency = ReadConsistency.EVENTUAL_CONSISTENCY) -> None:
         self._dbname = name
         self._conn = conn
+        self._read_consistency = read_consistency
 
     @property
     def conn(self):
@@ -86,17 +92,18 @@ class Database:
         databases = res.body.get('databases', [])
         res = []
         for db in databases:
-            res.append(Database(conn=self.conn, name=db))
+            res.append(Database(conn=self.conn, name=db, read_consistency=self._read_consistency))
         return res
 
     def create_collection(
-        self,
-        name: str,
-        shard: int,
-        replicas: int,
-        description: str,
-        index: Index,
-        timeout: Optional[float] = None,
+            self,
+            name: str,
+            shard: int,
+            replicas: int,
+            description: str,
+            index: Index,
+            embedding: Embedding = None,
+            timeout: Optional[float] = None,
     ) -> Collection:
         """Create a collection.
 
@@ -117,6 +124,9 @@ class Database:
 
         :param index: A list of the index properties for the documents in a collection.
         :type index: Index class
+
+        :param embedding: An optional embedding for embedding text when upsert documents.
+        :type embedding: Embedding class
 
         :param timeout: An optional duration of time in seconds to allow for the request. When timeout
                         is set to None, will use the connect timeout.
@@ -139,11 +149,13 @@ class Database:
             'shardNum': shard,
             'replicaNum': replicas,
             'description': description,
+            'embedding': vars(embedding) if embedding else {},
             'indexes': index.list()
         }
         self._conn.post('/collection/create', body, timeout)
 
-        return Collection(self, name, shard, replicas, description, index)
+        return Collection(self, name, shard, replicas, description, index, embedding=embedding,
+                          read_consistency=self._read_consistency)
 
     def list_collections(self, timeout: Optional[float] = None) -> List[Collection]:
         """Get collection list.
@@ -160,12 +172,17 @@ class Database:
         body = {
             'database': self.database_name
         }
-        res = self._conn.post('/collection/list', body)
+        res = self._conn.post('/collection/list', body, timeout)
         collections = []
         for col in res.body['collections']:
             index = Index()
             for elem in col.get('indexes', []):
                 index.add(**elem)
+
+            ebd = Embedding()
+            if "embedding" in col:
+                ebd.set_fields(**col.get("embedding"))
+
             collection = Collection(
                 self,
                 col['collection'],
@@ -173,8 +190,13 @@ class Database:
                 replicas=col['replicaNum'],
                 description=col['description'],
                 index=index,
+                embedding=ebd,
                 create_time=col['createTime'],
+                read_consistency=self._read_consistency
             )
+
+            collection.set_fields(**col)
+
             collections.append(collection)
 
         return collections
@@ -200,7 +222,7 @@ class Database:
             'database': self.database_name,
             'collection': name,
         }
-        res = self._conn.post('/collection/describe', body)
+        res = self._conn.post('/collection/describe', body, timeout)
         if not res.body['collection']:
             raise exceptions.DescribeCollectionException(
                 code=-1, message=str(res.body))
@@ -209,6 +231,10 @@ class Database:
         for elem in col.get('indexes', []):
             index.add(**elem)
 
+        ebd = Embedding()
+        if "embedding" in col:
+            ebd.set_fields(**col.get("embedding"))
+
         collection = Collection(
             self,
             col['collection'],
@@ -216,8 +242,12 @@ class Database:
             replicas=col['replicaNum'],
             description=col['description'],
             index=index,
+            embedding=ebd,
             create_time=col['createTime'],
+            read_consistency=self._read_consistency
         )
+        collection.set_fields(**col)
+
         return collection
 
     def drop_collection(self, name: str, timeout: Optional[float] = None):
@@ -240,6 +270,76 @@ class Database:
         }
         try:
             self._conn.post('/collection/drop', body)
+        except exceptions.VectorDBException as e:
+            if e.message.find('not exist') == -1:
+                raise e
+
+    def truncate_collection(self, collection_name: str) -> Dict[str, Any]:
+        if not self.database_name:
+            raise exceptions.ParamError(message='param database is blank')
+        if not collection_name:
+            raise exceptions.ParamError(
+                message='collection name param not found')
+        body = {
+            'database': self.database_name,
+            'collection': collection_name,
+        }
+        try:
+            postRes = self._conn.post('/collection/truncate', body)
+
+            if 'affectedCount' in postRes.body:
+                return {'affectedCount': postRes.body.get('affectedCount')}
+
+            raise exceptions.ServerInternalError(message='response content is not as expected')
+
+        except exceptions.VectorDBException as e:
+            if e.message.find('not exist') == -1:
+                raise e
+
+    def set_alias(self, collection_name: str, collection_alias: str) -> Dict[str, Any]:
+        if not self.database_name:
+            raise exceptions.ParamError(message='database not found')
+
+        if not collection_name:
+            raise exceptions.ParamError(
+                message='collection name param not found')
+
+        if not collection_alias:
+            raise exceptions.ParamError(message="collection_alias is blank")
+
+        body = {
+            'database': self.database_name,
+            'collection': collection_name,
+            'alias': collection_alias
+        }
+
+        try:
+            postRes = self._conn.post('/alias/set', body)
+
+            if 'affectedCount' in postRes.body:
+                return {'affectedCount': postRes.body.get('affectedCount')}
+
+            raise exceptions.ServerInternalError(message='response content is not as expected')
+        except exceptions.VectorDBException as e:
+            if e.message.find('not exist') == -1:
+                raise e
+
+    def delete_alias(self, alias: str) -> Dict[str, Any]:
+        if not self.database_name or not alias:
+            raise exceptions.ParamError(message='database and alias required')
+
+        body = {
+            'database': self.database_name,
+            'alias': alias
+        }
+
+        try:
+            postRes = self._conn.post('/alias/delete', body)
+
+            if 'affectedCount' in postRes.body:
+                return {'affectedCount': postRes.body.get('affectedCount')}
+
+            raise exceptions.ServerInternalError(message='response content is not as expected')
         except exceptions.VectorDBException as e:
             if e.message.find('not exist') == -1:
                 raise e

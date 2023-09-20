@@ -21,7 +21,7 @@ from .client.stub import VectorDBClient
 from .exceptions import VectorDBException
 
 
-__version__ = "0.0.2"
+__version__ = "0.0.3"
 
 __all__ = [
     "VectorDBClient",
