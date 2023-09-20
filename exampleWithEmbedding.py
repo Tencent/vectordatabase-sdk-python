@@ -7,9 +7,10 @@ import json
 import time
 
 import tcvectordb
-from tcvectordb.model.document import Document, HNSWSearchParams, Filter
-from tcvectordb.model.enum import FieldType, IndexType, MetricType, ReadConsistency
-from tcvectordb.model.index import Index, VectorIndex, FilterIndex, HNSWParams
+from tcvectordb.model.collection import Embedding
+from tcvectordb.model.document import Document, Filter, SearchParams, HNSWSearchParams
+from tcvectordb.model.enum import FieldType, IndexType, MetricType, EmbeddingModel, ReadConsistency
+from tcvectordb.model.index import Index, VectorIndex, FilterIndex, HNSWParams, IVFFLATParams
 
 # disable/enable http request log print
 tcvectordb.debug.DebugEnable = False
@@ -48,7 +49,7 @@ class TestVDB:
 
     def create_db_and_collection(self):
         database = 'book'
-        coll_name = 'book_segments'
+        coll_embedding_name = 'book_segments'
         coll_alias = 'book_segments_alias'
 
         # 创建DB--'book'
@@ -58,31 +59,41 @@ class TestVDB:
         for db_item in database_list:
             print(db_item.database_name)
 
-        # 创建 Collection
-
-        # 第一步，设计索引（不是设计 Collection 的结构）
+        # 新建 Collection
+        # 第一步，设计索引（不是设计表格的结构）
         # 1. 【重要的事】向量对应的文本字段不要建立索引，会浪费较大的内存，并且没有任何作用。
-        # 2. 【必须的索引】：主键id、向量字段 vector 这两个字段目前是固定且必须的，参考下面的例子；
-        # 3. 【其他索引】：检索时需作为条件查询的字段，比如要按书籍的作者进行过滤，这个时候 author 字段就需要建立索引，
+        # 2. 【必须的索引】：主键 id、向量字段 vector 这两个字段目前是固定且必须的，参考下面的例子；
+        # 3. 【其他索引】：检索时需作为条件查询的字段，比如要按书籍的作者进行过滤，这个时候author字段就需要建立索引，
         #     否则无法在查询的时候对 author 字段进行过滤，不需要过滤的字段无需加索引，会浪费内存；
         # 4.  向量数据库支持动态 Schema，写入数据时可以写入任何字段，无需提前定义，类似 MongoDB.
-        # 5.  例子中创建一个书籍片段的索引，例如书籍片段的信息包括 {id, vector, segment, bookName, author, page},
-        #     id 为主键需要全局唯一，segment 为文本片段, vector 字段需要建立向量索引，假如我们在查询的时候要查询指定书籍
-        #     名称的内容，这个时候需要对 bookName 建立索引，其他字段没有条件查询的需要，无需建立索引。
+        # 5.  例子中创建一个书籍片段的索引，例如书籍片段的信息包括 {id, vector, segment, bookName, page},
+        #     id 为主键需要全局唯一，segment 为文本片段, vector 为 segment 的向量，vector 字段需要建立向量索引，假如我们在查询的时候要查询指定书籍
+        #     名称的内容，这个时候需要对bookName建立索引，其他字段没有条件查询的需要，无需建立索引。
+        # 6.  创建带 Embedding 的 collection 需要保证设置的 vector 索引的维度和 Embedding 所用模型生成向量维度一致，模型及维度关系：
+        #     -----------------------------------------------------
+        #             bge-base-zh                 ｜ 768
+        #             m3e-base                    ｜ 768
+        #             text2vec-large-chinese      ｜ 1024
+        #             e5-large-v2                 ｜ 1024
+        #             multilingual-e5-base        ｜ 768
+        #     -----------------------------------------------------
         index = Index()
-        index.add(VectorIndex('vector', 3, IndexType.HNSW, MetricType.COSINE, HNSWParams(m=16, efconstruction=200)))
+        index.add(VectorIndex('vector', 768, IndexType.HNSW, MetricType.COSINE, HNSWParams(m=16, efconstruction=200)))
         index.add(FilterIndex('id', FieldType.String, IndexType.PRIMARY_KEY))
         index.add(FilterIndex('bookName', FieldType.String, IndexType.FILTER))
-        index.add(FilterIndex('page', FieldType.Uint64, IndexType.FILTER))
+        index.add(FilterIndex('author', FieldType.String, IndexType.FILTER))
+
+        ebd = Embedding(vector_field='vector', field='text', model=EmbeddingModel.BGE_BASE_ZH)
 
         # 第二步：创建 Collection
+        # 创建支持 Embedding 的 Collection
         db.create_collection(
-            name=coll_name,
+            name=coll_embedding_name,
             shard=3,
             replicas=2,
-            description='test collection',
+            description='test embedding collection',
             index=index,
-            embedding=None,
+            embedding=ebd,
             timeout=20
         )
 
@@ -91,10 +102,10 @@ class TestVDB:
         print_object(coll_list)
 
         # 设置 Collection 的 alias
-        db.set_alias(coll_name, coll_alias)
+        db.set_alias(coll_embedding_name, coll_alias)
 
         # 查看 Collection 信息
-        coll_res = db.describe_collection(coll_name)
+        coll_res = db.describe_collection(coll_embedding_name)
         print(vars(coll_res))
 
         # 删除 Collection 的 alias
@@ -107,35 +118,35 @@ class TestVDB:
 
         # upsert 写入数据，可能会有一定延迟
         # 1. 支持动态 Schema，除了 id、vector 字段必须写入，可以写入其他任意字段；
-        # 2. upsert 会执行覆盖写，若文档id已存在，则新数据会直接覆盖原有数据(删除原有数据，再插入新数据)
+        # 2. upsert 会执行覆盖写，若文档 id 已存在，则新数据会直接覆盖原有数据(删除原有数据，再插入新数据)
 
         document_list = [
             Document(id='0001',
-                     vector=[0.2123, 0.21, 0.213],
+                     text='富贵功名，前缘分定，为人切莫欺心。',
                      bookName='西游记',
                      author='吴承恩',
                      page=21,
                      segment='富贵功名，前缘分定，为人切莫欺心。'),
             Document(id='0002',
-                     vector=[0.2123, 0.22, 0.213],
+                     text='正大光明，忠良善果弥深。些些狂妄天加谴，眼前不遇待时临。',
                      bookName='西游记',
                      author='吴承恩',
                      page=22,
                      segment='正大光明，忠良善果弥深。些些狂妄天加谴，眼前不遇待时临。'),
             Document(id='0003',
-                     vector=[0.2123, 0.23, 0.213],
+                     text='细作探知这个消息，飞报吕布。',
                      bookName='三国演义',
                      author='罗贯中',
                      page=23,
                      segment='细作探知这个消息，飞报吕布。'),
             Document(id='0004',
-                     vector=[0.2123, 0.24, 0.213],
+                     text='布大惊，与陈宫商议。宫曰：“闻刘玄德新领徐州，可往投之。”布从其言，竟投徐州来。有人报知玄德。',
                      bookName='三国演义',
                      author='罗贯中',
                      page=24,
                      segment='布大惊，与陈宫商议。宫曰：“闻刘玄德新领徐州，可往投之。”布从其言，竟投徐州来。有人报知玄德。'),
             Document(id='0005',
-                     vector=[0.2123, 0.25, 0.213],
+                     text='玄德曰：“布乃当今英勇之士，可出迎之。”糜竺曰：“吕布乃虎狼之徒，不可收留；收则伤人矣。',
                      bookName='三国演义',
                      author='罗贯中',
                      page=25,
@@ -159,7 +170,7 @@ class TestVDB:
         document_ids = ["0001", "0002", "0003", "0004", "0005"]
         filter_param = Filter('bookName="三国演义"')
         output_fields_param = ["id", "bookName"]
-        res = coll.query(document_ids=document_ids, retrieve_vector=True, limit=2, offset=1,
+        res = coll.query(document_ids=document_ids, retrieve_vector=False, limit=2, offset=1,
                          filter=filter_param, output_fields=output_fields_param)
         print_object(res)
 
@@ -185,14 +196,28 @@ class TestVDB:
         # 其他选项类似 search 接口
 
         # 批量相似性查询，根据指定的多个向量查找多个 Top K 个相似性结果
+        query_all = coll.query(document_ids=document_ids, retrieve_vector=True, limit=2)
+        query_document_vector = [x.get("vector") for x in query_all]
         res = coll.search(
-            vectors=[[0.3123, 0.43, 0.213], [0.233, 0.12, 0.97]],  # 指定检索向量，最多指定20个
+            vectors=query_document_vector,  # 指定检索向量，最多指定20个
             params=HNSWSearchParams(ef=200),  # 若使用HNSW索引，则需要指定参数ef，ef越大，召回率越高，但也会影响检索速度
             retrieve_vector=False,  # 是否需要返回向量字段，False：不返回，True：返回
-            limit=10  # 指定 Top K 的 K 值
+            limit=2,  # 指定 Top K 的 K 值
+            filter=filter_param  # 对搜索结果进行过滤
         )
         # 输出相似性检索结果，检索结果为二维数组，每一位为一组返回结果，分别对应search时指定的多个向量
         print_object(res)
+
+        # 通过 embedding 文本搜索
+        # 1. searchByText 提供基于 embedding 文本的搜索能力，会先将 embedding 内容做 Embedding 然后进行按向量搜索
+        # 其他选项类似 search 接口
+
+        # searchByText 返回类型为 Dict，接口查询过程中 embedding 可能会出现截断，如发生截断将会返回响应 warn 信息，如需确认是否截断可以
+        # 使用 "warning" 作为 key 从 Dict 结果中获取警告信息，查询结果可以通过 "documents" 作为 key 从 Dict 结果中获取
+        embeddingItems = ['细作探知这个消息，飞报吕布。']
+        search_by_text_res = coll.searchByText(embeddingItems=embeddingItems,
+                                               params=SearchParams(ef=100))
+        print_object(search_by_text_res.get('documents'))
 
     def update_and_delete(self):
         # 获取 Collection 对象
@@ -205,7 +230,7 @@ class TestVDB:
         # filter 限制仅会更新 id = "0003"
         document_ids = ["0001", "0003"]
         filter_param = Filter('bookName="三国演义"')
-        update_doc = Document(page=24)
+        update_doc = Document(page=28)
         coll.update(data=update_doc, document_ids=document_ids, filter=filter_param)
 
         # delete

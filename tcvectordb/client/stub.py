@@ -1,16 +1,22 @@
 from typing import Dict, List, Optional, Union
+from requests.adapters import HTTPAdapter
+from tcvectordb.model.enum import ReadConsistency
 
 from .httpclient import HTTPClient
 from tcvectordb.model.database import Database
 
 
-class VectorDBClient():
+class VectorDBClient:
     """
     VectorDBClient create a http client session for database operate.
     """
 
-    def __init__(self, url=None, username='', key='', timeout=5):
-        self._conn = HTTPClient(url, username, key, timeout)
+    def __init__(self, url=None, username='', key='',
+                 read_consistency: ReadConsistency = ReadConsistency.EVENTUAL_CONSISTENCY,
+                 timeout=5,
+                 adapter: HTTPAdapter = None):
+        self._conn = HTTPClient(url, username, key, timeout, adapter)
+        self._read_consistency = read_consistency
 
     def create_database(self, database_name: str, timeout: Optional[float] = None) -> Database:
         """Creates a database.
@@ -27,7 +33,7 @@ class VectorDBClient():
         :return Database object
         :rtype Database 
         """
-        db = Database(self._conn, database_name)
+        db = Database(conn=self._conn, name=database_name, read_consistency=self._read_consistency)
         db.create_database(timeout=timeout)
         return db
 
@@ -41,7 +47,7 @@ class VectorDBClient():
                         is set to None, will use the connect timeout.
         :type  timeout: float
         """
-        db = Database(self._conn, database_name)
+        db = Database(conn=self._conn, name=database_name, read_consistency=self._read_consistency)
         db.drop_database(timeout=timeout)
 
     def list_databases(self, timeout: Optional[float] = None) -> List[Database]:
@@ -54,7 +60,7 @@ class VectorDBClient():
         :return: The database name list
         :rtype: list[str]
         """
-        db = Database(self._conn)
+        db = Database(conn=self._conn, read_consistency=self._read_consistency)
         return db.list_databases(timeout=timeout)
 
     def database(self, database: str) -> Database:
@@ -66,7 +72,7 @@ class VectorDBClient():
         :return Database object
         :rtype Database 
         """
-        db = Database(self._conn, database)
+        db = Database(conn=self._conn, name=database, read_consistency=self._read_consistency)
         return db
 
     def close(self):

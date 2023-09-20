@@ -5,7 +5,7 @@ from .enum import FieldType, MetricType, IndexType
 from enum import Enum
 
 
-class HNSWParams():
+class HNSWParams:
     """
     The hnsw vector index params.
     """
@@ -13,6 +13,42 @@ class HNSWParams():
     def __init__(self, m: int, efconstruction: int) -> None:
         self.M = m
         self.efConstruction = efconstruction
+
+
+class IVFFLATParams:
+    def __init__(self, nlist: int):
+        self._nlist = nlist
+
+    @property
+    def __dict__(self):
+        return {
+            'nlist': self._nlist
+        }
+
+
+class IVFPQParams:
+
+    def __init__(self, nlist: int, m: int) -> None:
+        self._M = m
+        self._nlist = nlist
+
+    @property
+    def __dict__(self):
+        return {
+            'M': self._M,
+            'nlist': self._nlist
+        }
+
+
+class IVFSQ8Params:
+    def __init__(self, nlist: int):
+        self._nlist = nlist
+
+    @property
+    def __dict__(self):
+        return {
+            'nlist': self._nlist
+        }
 
 
 class IndexField:
@@ -61,7 +97,8 @@ class VectorIndex(IndexField):
         dimension: int,
         index_type: IndexType,
         metric_type: MetricType,
-        params=None, **kwargs
+        params=None,
+        **kwargs
     ):
         super().__init__(name=name, field_type=FieldType.Vector)
         self._dimension = dimension
