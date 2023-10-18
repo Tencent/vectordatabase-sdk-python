@@ -27,7 +27,7 @@ class Filter:
 
     @classmethod
     def In(self, key: str, value: List):
-        value = map(lambda x: '"' + x + '"' if type(x) is str else '"' + str(x) + '"', value)
+        value = map(lambda x: '"' + x + '"' if type(x) is str else str(x), value)
         return '{} in ({})'.format(key, ','.join(list(value)))
 
     @property

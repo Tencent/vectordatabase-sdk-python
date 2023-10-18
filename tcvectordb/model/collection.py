@@ -292,6 +292,7 @@ class Collection():
             documents: List[Document],
             timeout: Optional[float] = None,
             build_index: bool = True,
+            **kwargs
     ):
         """Upsert a document.
 
@@ -299,17 +300,25 @@ class Collection():
         :type  documents: list[Document]
 
         :param build_index: An option for build index time when upsert, if build_index is true, will build index
-                            immediately, it will affect performance of upsert.
+                            immediately, it will affect performance of upsert. And param buildIndex has same
+                            semantics with build_index, any of them false will be false
         :type  build_index: bool
 
         :param timeout: An optional duration of time in seconds to allow for the request. When timeout
                         is set to None, will use the connect timeout.
         :type  timeout: float
+
+        :param buildIndex:  An option for build index time when upsert, if build_index is buildIndex, will build index
+                            immediately, it will affect performance of upsert. And param build_index has same
+                            semantics with build_index, any of them false will be false
+        :type buildIndex: bool
         """
+        buildIndex = bool(kwargs.get("buildIndex", True))
+        res_build_index = buildIndex and build_index
         body = {
             'database': self.database_name,
             'collection': self.collection_name,
-            'buildIndex': build_index,
+            'buildIndex': res_build_index,
             'documents': []
         }
         for doc in documents:
@@ -345,10 +354,6 @@ class Collection():
         :return Documents, the list of the document
         :rtype: list[Dict]
         """
-        if not isinstance(document_ids, list):
-            raise exceptions.ParamError(
-                code=-1, message='document_ids parameter must be set as list')
-
         query_param = Query(limit=limit, offset=offset, retrieve_vector=retrieve_vector, filter=filter,
                             document_ids=document_ids, output_fields=output_fields)
         return self.__base_query(query=query_param, read_consistency=self._read_consistency, timeout=timeout)
@@ -545,9 +550,9 @@ class Collection():
 
     def delete(
             self,
-            document_ids: Optional[List[str]] = None,
-            filter: Optional[Filter] = None,
-            timeout: Optional[float] = None,
+            document_ids: List[str] = None,
+            filter: Filter = None,
+            timeout: float = None,
     ):
         """Delete document by document id list.
 
@@ -558,9 +563,6 @@ class Collection():
                         is set to None, will use the connect timeout.
         :type  timeout: float
         """
-        if not isinstance(document_ids, list):
-            raise exceptions.ParamError(
-                code=-1, message='document_ids parameter must be set as list')
 
         delete_query_param = DeleteQuery(document_ids=document_ids, filter=filter)
         self.__base_delete(delete_query=delete_query_param, timeout=timeout)
@@ -583,9 +585,9 @@ class Collection():
         if not self.database_name or not self.collection_name:
             raise exceptions.ParamError(message="database_name or collection_name is blank")
 
-        if delete_query is not None and not delete_query.valid():
-            raise exceptions.ParamError(code=-1,
-                                        message='base_query both field document_ids and filter are None')
+        # if delete_query is not None and not delete_query.valid():
+        #     raise exceptions.ParamError(code=-1,
+        #                                 message='base_query both field document_ids and filter are None')
 
         body = {
             "database": self.database_name,
@@ -596,9 +598,6 @@ class Collection():
 
     def update(self, data: Document, filter: Optional[Filter] = None, document_ids: Optional[List[str]] = None,
                timeout: Optional[float] = None):
-        if filter is None and document_ids is None:
-            raise exceptions.ParamError(code=-1, message='both field document_ids and filter are None')
-
         if data is None:
             raise exceptions.ParamError(code=-1, message='data is None')
 
