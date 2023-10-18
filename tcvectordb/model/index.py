@@ -51,6 +51,14 @@ class IVFSQ8Params:
         }
 
 
+class IVFSQ4Params(IVFSQ8Params):
+    """IVF_SQ4 params"""
+
+
+class IVFSQ16Params(IVFSQ8Params):
+    """IVF_SQ16 params"""
+
+
 class IndexField:
     def __init__(self, name: str, field_type: FieldType, index_type: Enum = None):
         self._name = name
