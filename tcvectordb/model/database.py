@@ -103,7 +103,7 @@ class Database:
             description: str,
             index: Index,
             embedding: Embedding = None,
-            timeout: Optional[float] = None,
+            timeout: float = None,
     ) -> Collection:
         """Create a collection.
 

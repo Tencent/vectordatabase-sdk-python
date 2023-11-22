@@ -71,6 +71,7 @@ class TestVDB:
         #     名称的内容，这个时候需要对bookName建立索引，其他字段没有条件查询的需要，无需建立索引。
         # 6.  创建带 Embedding 的 collection 需要保证设置的 vector 索引的维度和 Embedding 所用模型生成向量维度一致，模型及维度关系：
         #     -----------------------------------------------------
+        #             bge-large-zh                ｜ 1024
         #             bge-base-zh                 ｜ 768
         #             m3e-base                    ｜ 768
         #             text2vec-large-chinese      ｜ 1024
@@ -83,6 +84,9 @@ class TestVDB:
         index.add(FilterIndex('bookName', FieldType.String, IndexType.FILTER))
         index.add(FilterIndex('author', FieldType.String, IndexType.FILTER))
 
+        # 支持手动指定 EmbeddingModel 枚举类以外的 embedding 模型，可以通过设置 model_name 入参指定 vectordb 支持的枚举值以外的模型，
+        # 如 model_name=bge-large-zh, 如果同时传了 model 和 model_name 参数，sdk 将会优先使用用户指定的 model_name 作为创建
+        # collection 的 embedding 模型
         ebd = Embedding(vector_field='vector', field='text', model=EmbeddingModel.BGE_BASE_ZH)
 
         # 第二步：创建 Collection

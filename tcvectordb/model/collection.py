@@ -8,13 +8,34 @@ from .index import Index
 
 
 class Embedding:
+    """init Embedding"""
+
     def __init__(self, vector_field: str = None, status: str = 'disabled', field: str = None,
-                 model: EmbeddingModel = None):
+                 model: EmbeddingModel = None, model_name: str = None):
+        """
+        init Embedding when create embedding collection
+
+        Args:
+            vector_field (str): vector field name
+            status (str): status of embedding, enable is available, disabled is unavailable, status is invalid when
+                create collection
+            field (str): field name of embedding content
+            model (EmbeddingModel): [Deprecated] embedding model enum, this is a deprecated parameter, it will be
+                instead of arg model_name, if model and model_name both are not None, model_name is used first.
+            model_name (str): model_name specify embedding model wher upsert documents
+
+        Examples:
+            >>> Embedding(vector_field="vector", field="text", model=EmbeddingModel.BGE_BASE_ZH)
+            >>> Embedding(vector_field="vector", field="text", model_name="bge-large-zh")
+        """
         self._status = status
 
-        if field is not None and model is not None and vector_field is not None:
+        if field is not None and vector_field is not None:
             self._field = field
-            self._model = model.model_name
+            if model_name is not None:
+                self._model = model_name
+            elif model is not None:
+                self._model = model.model_name
             self._vector_field = vector_field
 
     @property
@@ -619,16 +640,7 @@ class Collection():
             'collection': self.collection_name,
             'query': vars(update_query)
         }
-
-        doc_dict = vars(document)
-
-        if "vector" in doc_dict and len(doc_dict.get("vector")) > 0:
-            pop = doc_dict.pop("vector")
-            vector = [x for x in pop if type(x) == float]
-            if len(vector) > 0:
-                body["vector"] = vector
-
-        body["update"] = doc_dict
+        body["update"] = vars(document)
         postRes = self._conn.post('/document/update', body, timeout)
         resBody = postRes.body
         res = {}

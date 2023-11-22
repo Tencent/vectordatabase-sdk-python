@@ -2,11 +2,28 @@ import unittest
 from unittest import mock
 
 import requests
+from tcvectordb.model.enum import EmbeddingModel
+
 from tcvectordb.model.document import Filter
 
 from tcvectordb.client.httpclient import HTTPClient, Response
-from tcvectordb.model.collection import Collection
+from tcvectordb.model.collection import Collection, Embedding
 from tcvectordb.model.database import Database
+
+
+class TestEmbedding(unittest.TestCase):
+
+    def test_init(self):
+        embedding1 = Embedding(vector_field="vector", field="text", model=EmbeddingModel.BGE_BASE_ZH)
+        self.assertEqual(vars(embedding1),
+                         {'status': 'disabled', 'field': 'text', 'model': 'bge-base-zh', 'vectorField': 'vector'})
+        embedding2 = Embedding(vector_field="vector", field="text", model_name="bge_large_zh")
+        self.assertEqual(vars(embedding2),
+                         {'status': 'disabled', 'field': 'text', 'model': 'bge_large_zh', 'vectorField': 'vector'})
+        embedding3 = Embedding(vector_field="vector", field="text", model=EmbeddingModel.BGE_BASE_ZH,
+                               model_name="bge_large_zh")
+        self.assertEqual(vars(embedding3),
+                         {'status': 'disabled', 'field': 'text', 'model': 'bge_large_zh', 'vectorField': 'vector'})
 
 
 class TestCollection(unittest.TestCase):
