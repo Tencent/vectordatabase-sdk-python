@@ -6,6 +6,8 @@
 import json
 import time
 
+from tcvectordb import exceptions
+
 import tcvectordb
 from tcvectordb.model.document import Document, HNSWSearchParams, Filter
 from tcvectordb.model.enum import FieldType, IndexType, MetricType, ReadConsistency
@@ -34,8 +36,12 @@ class TestVDB:
                                                  read_consistency=ReadConsistency.EVENTUAL_CONSISTENCY, timeout=timeout)
 
     def clear(self):
-        db = self._client.database('book')
-        db.drop_database('book')
+        try:
+            db = self._client.database('book')
+            if db:
+                db.drop_database('book')
+        except exceptions.ParamError:
+            pass
 
     def delete_and_drop(self):
         db = self._client.database('book')

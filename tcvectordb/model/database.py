@@ -4,6 +4,7 @@ from tcvectordb.model.enum import ReadConsistency
 
 from tcvectordb.client.httpclient import HTTPClient
 from tcvectordb import exceptions
+from .ai_database import AIDatabase
 
 from .collection import Collection, Embedding
 from .index import Index
@@ -30,7 +31,7 @@ class Database:
         """Creates a database.
 
         :param database_name: The name of the database. A database name can only include
-        numbers, letters, and underscores, and must not begin with a letter, and length 
+        numbers, letters, and underscores, and must not begin with a letter, and length
         must between 1 and 128
         :type  database_name: str
 
@@ -73,7 +74,8 @@ class Database:
             'database': self.database_name
         }
         try:
-            self.conn.post('/database/drop', body, timeout)
+            res = self.conn.post('/database/drop', body, timeout)
+            return res.data()
         except exceptions.VectorDBException as e:
             if e.message.find('not exist') == -1:
                 raise e
@@ -90,9 +92,14 @@ class Database:
         """
         res = self.conn.get('/database/list', timeout=timeout)
         databases = res.body.get('databases', [])
+        db_info = res.body.get('info', {})
         res = []
-        for db in databases:
-            res.append(Database(conn=self.conn, name=db, read_consistency=self._read_consistency))
+        for db_name in databases:
+            db_type = db_info.get(db_name, {}).get('dbType', 'BASE_DB')
+            if db_type in ('AI_DOC', 'AI_DB'):
+                res.append(AIDatabase(conn=self.conn, name=db_name, read_consistency=self._read_consistency))
+            else:
+                res.append(Database(conn=self.conn, name=db_name, read_consistency=self._read_consistency))
         return res
 
     def create_collection(
@@ -108,7 +115,7 @@ class Database:
         """Create a collection.
 
         :param name: The name of the collection. A collection name can only include
-        numbers, letters, and underscores, and must not begin with a letter, and length 
+        numbers, letters, and underscores, and must not begin with a letter, and length
         must between 1 and 128
         :type  name: str
 
@@ -188,7 +195,7 @@ class Database:
                 col['collection'],
                 shard=col['shardNum'],
                 replicas=col['replicaNum'],
-                description=col['description'],
+                description=col.get('description'),
                 index=index,
                 embedding=ebd,
                 create_time=col['createTime'],
@@ -240,7 +247,7 @@ class Database:
             col['collection'],
             shard=col['shardNum'],
             replicas=col['replicaNum'],
-            description=col['description'],
+            description=col.get('description'),
             index=index,
             embedding=ebd,
             create_time=col['createTime'],
@@ -269,7 +276,8 @@ class Database:
             'collection': name,
         }
         try:
-            self._conn.post('/collection/drop', body)
+            res = self._conn.post('/collection/drop', body)
+            return res.data()
         except exceptions.VectorDBException as e:
             if e.message.find('not exist') == -1:
                 raise e
@@ -284,65 +292,38 @@ class Database:
             'database': self.database_name,
             'collection': collection_name,
         }
-        try:
-            postRes = self._conn.post('/collection/truncate', body)
-
-            if 'affectedCount' in postRes.body:
-                return {'affectedCount': postRes.body.get('affectedCount')}
-
-            raise exceptions.ServerInternalError(message='response content is not as expected')
-
-        except exceptions.VectorDBException as e:
-            if e.message.find('not exist') == -1:
-                raise e
+        res = self._conn.post('/collection/truncate', body)
+        return res.data()
 
     def set_alias(self, collection_name: str, collection_alias: str) -> Dict[str, Any]:
         if not self.database_name:
             raise exceptions.ParamError(message='database not found')
-
         if not collection_name:
             raise exceptions.ParamError(
                 message='collection name param not found')
-
         if not collection_alias:
             raise exceptions.ParamError(message="collection_alias is blank")
-
         body = {
             'database': self.database_name,
             'collection': collection_name,
             'alias': collection_alias
         }
-
-        try:
-            postRes = self._conn.post('/alias/set', body)
-
-            if 'affectedCount' in postRes.body:
-                return {'affectedCount': postRes.body.get('affectedCount')}
-
-            raise exceptions.ServerInternalError(message='response content is not as expected')
-        except exceptions.VectorDBException as e:
-            if e.message.find('not exist') == -1:
-                raise e
+        postRes = self._conn.post('/alias/set', body)
+        if 'affectedCount' in postRes.body:
+            return {'affectedCount': postRes.body.get('affectedCount')}
+        raise exceptions.ServerInternalError(message='response content is not as expected: {}'.format(postRes.body))
 
     def delete_alias(self, alias: str) -> Dict[str, Any]:
         if not self.database_name or not alias:
             raise exceptions.ParamError(message='database and alias required')
-
         body = {
             'database': self.database_name,
             'alias': alias
         }
-
-        try:
-            postRes = self._conn.post('/alias/delete', body)
-
-            if 'affectedCount' in postRes.body:
-                return {'affectedCount': postRes.body.get('affectedCount')}
-
-            raise exceptions.ServerInternalError(message='response content is not as expected')
-        except exceptions.VectorDBException as e:
-            if e.message.find('not exist') == -1:
-                raise e
+        postRes = self._conn.post('/alias/delete', body)
+        if 'affectedCount' in postRes.body:
+            return {'affectedCount': postRes.body.get('affectedCount')}
+        raise exceptions.ServerInternalError(message='response content is not as expected: {}'.format(postRes.body))
 
     def collection(self, name: str) -> Collection:
         """Get a collection object, same as describe_collection.

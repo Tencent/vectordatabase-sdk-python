@@ -1,4 +1,3 @@
-import json
 from typing import Dict, List, Optional, Any
 
 from tcvectordb import exceptions
@@ -109,8 +108,8 @@ class Query(BaseQuery):
     """
 
     def __init__(self,
-                 limit: int = 10,
-                 offset: int = 0,
+                 limit: Optional[int] = None,
+                 offset: Optional[int] = None,
                  retrieve_vector: bool = False,
                  filter: Optional[Filter] = None,
                  document_ids: Optional[List] = None,
@@ -118,7 +117,6 @@ class Query(BaseQuery):
                  ):
 
         super().__init__(filter, document_ids)
-
         self._limit = limit
         self._offset = offset
         self._retrieve_vector = retrieve_vector
@@ -130,13 +128,13 @@ class Query(BaseQuery):
     def __dict__(self):
         res = {
             "retrieveVector": self._retrieve_vector,
-            "limit": self._limit,
-            "offset": self._offset,
         }
-
+        if self._limit is not None:
+            res["limit"] = self._limit
+        if self._offset is not None:
+            res["offset"] = self._offset
         if hasattr(self, "_output_fields"):
             res["outputFields"] = self._output_fields
-
         res.update(super().__dict__)
         return res
 
@@ -298,11 +296,11 @@ class Collection():
             'collection': self.collection_name,
             'replicaNum': self.replicas,
             'shardNum': self.shard,
-            'description': self.description,
             'indexes': self.index.list(),
             'embedding': vars(self._embedding) if self._embedding is not None else {}
         }
-
+        if self.description:
+            res_dict['description'] = self.description,
         if len(self._coll_info) > 0:
             res_dict.update(self._coll_info)
 
@@ -345,14 +343,15 @@ class Collection():
         for doc in documents:
             body['documents'].append(vars(doc))
 
-        self._conn.post('/document/upsert', body, timeout)
+        res = self._conn.post('/document/upsert', body, timeout)
+        return res.data()
 
     def query(
             self,
             document_ids: Optional[List] = None,
             retrieve_vector: bool = False,
-            limit: Optional[int] = 1,
-            offset: Optional[int] = 0,
+            limit: Optional[int] = None,
+            offset: Optional[int] = None,
             filter: Optional[Filter] = None,
             output_fields: Optional[List[str]] = None,
             timeout: Optional[float] = None,
@@ -586,7 +585,7 @@ class Collection():
         """
 
         delete_query_param = DeleteQuery(document_ids=document_ids, filter=filter)
-        self.__base_delete(delete_query=delete_query_param, timeout=timeout)
+        return self.__base_delete(delete_query=delete_query_param, timeout=timeout)
 
     def __base_delete(
             self,
@@ -615,7 +614,8 @@ class Collection():
             "collection": self.collection_name,
             "query": vars(delete_query)
         }
-        self._conn.post('/document/delete', body, timeout)
+        res = self._conn.post('/document/delete', body, timeout)
+        return res.data()
 
     def update(self, data: Document, filter: Optional[Filter] = None, document_ids: Optional[List[str]] = None,
                timeout: Optional[float] = None):

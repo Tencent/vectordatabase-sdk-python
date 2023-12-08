@@ -21,6 +21,10 @@ class Response():
             path(str): The request path, used for debug print
             res(requests.Response): The requests response.
         """
+        if not res.ok:
+            if ('code' not in res.text) or ('msg' not in res.text):
+                raise exceptions.ServerInternalError(code=res.status_code,
+                                                     message='{}: {}'.format(res.reason, res.text))
         try:
             response = res.json()
             self._code = int(response.get('code', 0))
@@ -30,7 +34,7 @@ class Response():
             Debug("RESPONSE: %s", path)
             Debug(json.dumps(response, indent=2))
         except Exception as e:
-            raise exceptions.ConnectError(
+            raise exceptions.ServerInternalError(
                 code=-1, message=str(res.content)+' ' + str(e))
 
     @property
@@ -44,6 +48,11 @@ class Response():
     @property
     def body(self) -> dict:
         return self._body
+
+    def data(self) -> dict:
+        res = {}
+        res.update(self._body)
+        return res
 
 
 class HTTPClient:

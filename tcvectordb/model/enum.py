@@ -9,6 +9,7 @@ class FieldType(Enum):
     # scalar field type
     Uint64 = "uint64"
     String = "string"
+    Array = "array"
 
     # vector field type
     Vector = "vector"
@@ -68,5 +69,3 @@ class ReadConsistency(Enum):
     @property
     def value(self):
         return self.__value
-
-

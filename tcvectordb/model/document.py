@@ -26,6 +26,21 @@ class Filter:
         return self
 
     @classmethod
+    def Include(self, key: str, value: List):
+        value = map(lambda x: '"' + x + '"' if type(x) is str else str(x), value)
+        return '{} include ({})'.format(key, ','.join(list(value)))
+
+    @classmethod
+    def Exclude(self, key: str, value: List):
+        value = map(lambda x: '"' + x + '"' if type(x) is str else str(x), value)
+        return '{} exclude ({})'.format(key, ','.join(list(value)))
+
+    @classmethod
+    def IncludeAll(self, key: str, value: List):
+        value = map(lambda x: '"' + x + '"' if type(x) is str else str(x), value)
+        return '{} include all ({})'.format(key, ','.join(list(value)))
+
+    @classmethod
     def In(self, key: str, value: List):
         value = map(lambda x: '"' + x + '"' if type(x) is str else str(x), value)
         return '{} in ({})'.format(key, ','.join(list(value)))

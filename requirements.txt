@@ -1,1 +1,2 @@
 requests
+cos-python-sdk-v5==1.9.26

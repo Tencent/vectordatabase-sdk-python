@@ -43,5 +43,10 @@ class ServerInternalError(VectorDBException):
 class IndexTypeException(VectorDBException):
     """Raise when one field is invalid"""
 
+
 class DescribeCollectionException(VectorDBException):
     """Raise when describe collection error"""
+
+
+class AIUnsupportedException(VectorDBException):
+    """Raise when method unsupported"""
