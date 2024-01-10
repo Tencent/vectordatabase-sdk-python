@@ -4,7 +4,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='tcvectordb',
-    version='1.1.0',
+    version='1.2.0',
     description='Tencent VectorDB Python SDK',
     author='tencent vdb team',
     url='',

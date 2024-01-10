@@ -4,6 +4,25 @@ from typing import Dict, Any, Optional, List
 from tcvectordb.model.document import Filter
 
 
+class Chunk:
+    """Chunk"""
+
+    def __init__(self, start_pos: int, end_pos: int, text: str):
+        self.start_pos = start_pos
+        self.end_pos = end_pos
+        self.text = text
+
+    @property
+    def __dict__(self):
+        res = {
+            "startPos": self.start_pos,
+            "endPos": self.end_pos,
+        }
+        if self.text:
+            res['text'] = self.text
+        return res
+
+
 class DocumentSet:
     """DocumentSet"""
 
@@ -21,6 +40,7 @@ class DocumentSet:
                  last_update_time: Optional[str] = None,
                  keywords: Optional[str] = None,
                  indexed_error_msg: Optional[str] = None,
+                 splitter_process=None,
                  **kwargs) -> None:
         self.collection_view = collection_view
         self.id = id
@@ -37,6 +57,7 @@ class DocumentSet:
             keywords=keywords,
             indexed_error_msg=indexed_error_msg,
         )
+        self.splitter_process = splitter_process
         self._scalar_fields = None
         self._set_scalar_fields(kwargs)
 
@@ -52,6 +73,8 @@ class DocumentSet:
             res['text'] = self.text
         if self.document_set_info and vars(self.document_set_info):
             res['documentSetInfo'] = vars(self.document_set_info)
+        if self.splitter_process:
+            res['splitterPreprocess'] = vars(self.splitter_process)
         if self._scalar_fields:
             res.update(self._scalar_fields)
         return res
@@ -67,9 +90,11 @@ class DocumentSet:
             data.pop('textPrefix')
         if 'text' in data:
             data.pop('text')
+        if 'splitterPreprocess' in data:
+            data.pop('splitterPreprocess')
         self._scalar_fields = data
 
-    def load_fields(self, data: dict):
+    def load_fields(self, data: dict, splitter_process=None):
         self.text_prefix = data.get('textPrefix')
         self.text = data.get('text')
         if 'documentSetInfo' in data:
@@ -85,7 +110,10 @@ class DocumentSet:
                 indexed_error_msg=info.get('indexedErrorMsg')
             )
             self.document_set_info = dsi
+        if splitter_process is not None:
+            self.splitter_process = splitter_process
         self._set_scalar_fields(data)
+
 
     def get_text(self) -> str:
         ds = self.collection_view.get_document_set(document_set_id=self.id)
@@ -94,6 +122,17 @@ class DocumentSet:
 
     def delete(self) -> Dict[str, Any]:
         return self.collection_view.delete(document_set_id=self.id)
+
+    def get_chunks(self,
+                   limit: Optional[int] = None,
+                   offset: Optional[int] = None,
+                   timeout: Optional[float] = None,
+                   ) -> List[Chunk]:
+        return self.collection_view.get_chunks(document_set_id=self.id,
+                                               document_set_name=self.name,
+                                               limit=limit,
+                                               offset=offset,
+                                               timeout=timeout)
 
 
 class DocumentSetInfo:

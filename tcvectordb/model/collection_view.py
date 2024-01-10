@@ -11,7 +11,7 @@ from tcvectordb import exceptions
 from tcvectordb.debug import Debug
 from tcvectordb.model.document import Filter, Document
 from tcvectordb.model.document_set import FileType, DocumentSet, SearchParam, QueryParam, \
-    Rerank, SearchResult
+    Rerank, SearchResult, Chunk
 from tcvectordb.model.index import Index
 
 
@@ -42,9 +42,11 @@ class Embedding:
 class SplitterProcess:
     def __init__(self,
                  append_title_to_chunk: Optional[bool] = None,
-                 append_keywords_to_chunk: Optional[bool] = None):
+                 append_keywords_to_chunk: Optional[bool] = None,
+                 chunk_splitter: Optional[str] = None):
         self.append_title_to_chunk = append_title_to_chunk
         self.append_keywords_to_chunk = append_keywords_to_chunk
+        self.chunk_splitter = chunk_splitter
 
     @property
     def __dict__(self):
@@ -53,6 +55,8 @@ class SplitterProcess:
             res['appendTitleToChunk'] = self.append_title_to_chunk
         if self.append_keywords_to_chunk is not None:
             res['appendKeywordsToChunk'] = self.append_keywords_to_chunk
+        if self.chunk_splitter is not None:
+            res['chunkSplitter'] = self.chunk_splitter
         return res
 
 
@@ -147,7 +151,7 @@ class CollectionView:
                 message='{} fileSize is invalid, support max content length is {} bytes'.format(
                     local_file_path, max_length))
 
-    def _get_cos_metadata(self, metadata: dict = None):
+    def _get_cos_metadata(self, metadata: dict = None, splitter_process: Optional[SplitterProcess] = None):
         cos_metadata = {}
         if not metadata:
             metadata = {}
@@ -155,6 +159,10 @@ class CollectionView:
             if k.startswith('_'):
                 raise exceptions.ParamError(
                     message='field {} can not start with "-"'.format(k))
+        if splitter_process:
+            config = vars(splitter_process)
+            cos_metadata['x-cos-meta-config'] = \
+                urllib.parse.quote(base64.b64encode(json.dumps(config).encode('utf-8')))
         cos_metadata['x-cos-meta-data'] = \
             urllib.parse.quote(base64.b64encode(json.dumps(metadata).encode('utf-8')))
         return cos_metadata
@@ -163,6 +171,7 @@ class CollectionView:
                             local_file_path: str,
                             document_set_name: Optional[str] = None,
                             metadata: Optional[dict] = None,
+                            splitter_process: Optional[SplitterProcess] = None,
                             timeout: Optional[float] = None) -> DocumentSet:
         """Upload local file, parse and save it remotely.
 
@@ -181,7 +190,7 @@ class CollectionView:
         if not os.path.isfile(local_file_path):
             raise exceptions.ParamError(message="not a file: {}".format(local_file_path))
         # metadata check
-        cos_metadata = self._get_cos_metadata(metadata)
+        cos_metadata = self._get_cos_metadata(metadata, splitter_process)
         # parse file type
         file_type = self._parse_file_type(local_file_path)
         if FileType.UnSupport == file_type:
@@ -322,9 +331,19 @@ class CollectionView:
             return []
         for doc in documents:
             ds = DocumentSet(self, id=doc['documentSetId'], name=doc['documentSetName'])
-            ds.load_fields(doc)
+            ds.load_fields(doc, self._parse_splitter_preprocess(doc))
             res.append(ds)
         return res
+
+    def _parse_splitter_preprocess(self, doc: dict):
+        if 'splitterPreprocess' not in doc:
+            return None
+        splitter = doc['splitterPreprocess']
+        return SplitterProcess(
+            append_title_to_chunk=splitter.get('appendTitleToChunk'),
+            append_keywords_to_chunk=splitter.get('appendKeywordsToChunk'),
+            chunk_splitter=splitter.get('chunkSplitter'),
+        )
 
     def get_document_set(self,
                          document_set_id: Optional[str] = None,
@@ -353,7 +372,7 @@ class CollectionView:
         if not data:
             return None
         ds = DocumentSet(self, id=data['documentSetId'], name=data['documentSetName'])
-        ds.load_fields(data)
+        ds.load_fields(data, self._parse_splitter_preprocess(data))
         return ds
 
     def delete(self,
@@ -424,3 +443,49 @@ class CollectionView:
         }
         res = self.db.conn.post('/ai/documentSet/update', body, timeout)
         return res.data()
+
+    def get_chunks(self,
+                   document_set_id: Optional[str] = None,
+                   document_set_name: Optional[str] = None,
+                   limit: Optional[int] = None,
+                   offset: Optional[int] = None,
+                   timeout: Optional[float] = None,
+                   ) -> List[Chunk]:
+        """Get chunks of document set.
+
+        Args:
+            document_set_id  : DocumentSet's id
+            document_set_name: DocumentSet's name
+            limit            : The limit of the result
+            offset           : The offset of the result
+            timeout          : An optional duration of time in seconds to allow for the request
+                               When timeout is set to None, will use the connect timeout
+        Returns:
+            List[Chunk]
+        """
+        if (not document_set_id) and (not document_set_name):
+            raise exceptions.ParamError(message="please provide document_set_id or document_set_name")
+        body = {
+            'database': self.db.database_name,
+            'collectionView': self.name,
+        }
+        if document_set_id is not None:
+            body['documentSetId'] = document_set_id
+        if document_set_name is not None:
+            body['documentSetName'] = document_set_name
+        if limit is not None:
+            body['limit'] = limit
+        if offset is not None:
+            body['offset'] = offset
+        res = self.db.conn.post('/ai/documentSet/getChunks', body, timeout)
+        chunks = res.body.get('chunks', [])
+        res = []
+        if not chunks:
+            return []
+        for ck in chunks:
+            chunk = Chunk(start_pos=ck.get('startPos'),
+                          end_pos=ck.get('endPos'),
+                          text=ck.get('text'),
+                          )
+            res.append(chunk)
+        return res

@@ -108,7 +108,11 @@ class AiDocExample:
                 'filekey': 1024,
                 'author': 'sum',
                 'testList': ['a', 'b', 'c'],
-            }
+            },
+            splitter_process=SplitterProcess(
+                append_keywords_to_chunk=False,
+                append_title_to_chunk=False,
+            ),
         )
         print(vars(doc_set))
         self.doc_set_id = doc_set.id
@@ -121,10 +125,17 @@ class AiDocExample:
         print('========5.1 Get DocumentSet:')
         # 查询指定CollectionView中所有的DocumentSet
         ds = self.coll_view.get_document_set(document_set_id=self.doc_set_id)
-        print(vars(ds))
+        print(json.dumps(vars(ds), indent=2, ensure_ascii=False))
         print('========5.2 Get DocumentSet Text:')
         # 查询指定CollectionView中所有的DocumentSet
-        print(ds.get_text()[:20])
+        if ds.get_text():
+            print(ds.get_text()[:100])
+        print('========5.3 Get DocumentSet Chunks:')
+        res = ds.get_chunks(limit=3, offset=0)
+        print(res[0].start_pos)
+        print(res[0].end_pos)
+        print(res[0].text)
+        self.print_object(res)
 
     def query_and_search(self):
         print('========6.1 Query:')
@@ -141,7 +152,7 @@ class AiDocExample:
             expand_chunk=[1, 0],
             rerank=Rerank(
                 enable=True,
-                expect_recall_multiples=5,
+                expect_recall_multiples=3,
             ),
             filter=Filter('teststr="v1"'),
             limit=2,
@@ -214,7 +225,7 @@ if __name__ == '__main__':
         time.sleep(3)
         example.collection_view_info()
         example.upload_file("./tests/files/tcvdb.md")
-        time.sleep(10)  # wait file parse
+        time.sleep(15)  # wait file parse
         example.document_set_info()
         example.query_and_search()
         example.update_and_delete()

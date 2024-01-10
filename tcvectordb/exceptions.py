@@ -3,7 +3,7 @@ from enum import IntEnum
 
 class ErrorCode(IntEnum):
     SUCCESS = 0
-    UNEXPECTED_ERROR = 1
+    UNEXPECTED_ERROR = -1
 
 
 class VectorDBException(Exception):
