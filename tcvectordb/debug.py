@@ -16,3 +16,7 @@ DebugEnable = False
 def Debug(msg, *args):
     if DebugEnable:
         _log.debug(msg, *args)
+
+
+def Warning(msg, *args):
+    _log.warning(msg, *args)

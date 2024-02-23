@@ -225,6 +225,9 @@ if __name__ == '__main__':
         time.sleep(3)
         example.collection_view_info()
         example.upload_file("./tests/files/tcvdb.md")
+        # example.upload_file("x.pdf")
+        # example.upload_file("x.pptx")
+        # example.upload_file("x.docx")
         time.sleep(15)  # wait file parse
         example.document_set_info()
         example.query_and_search()

@@ -8,9 +8,9 @@ from typing import Optional, List, Union
 from qcloud_cos import CosConfig, CosS3Client
 
 from tcvectordb import exceptions
-from tcvectordb.debug import Debug
+from tcvectordb.debug import Debug, Warning
 from tcvectordb.model.document import Filter, Document
-from tcvectordb.model.document_set import FileType, DocumentSet, SearchParam, QueryParam, \
+from tcvectordb.model.document_set import DocumentSet, SearchParam, QueryParam, \
     Rerank, SearchResult, Chunk
 from tcvectordb.model.index import Index
 
@@ -130,17 +130,6 @@ class CollectionView:
 
     # The following is the document API
 
-    def _parse_file_type(self, local_file_path: str):
-        _, extension = os.path.splitext(local_file_path)
-        if extension == "":
-            return FileType.Markdown
-        elif extension == ".md":
-            return FileType.Markdown
-        elif extension == ".markdown":
-            return FileType.Markdown
-        else:
-            return FileType.UnSupport
-
     def _check_file_size(self, local_file_path: str, max_length: int):
         file_stat = os.stat(local_file_path)
         if file_stat.st_size == 0:
@@ -167,6 +156,16 @@ class CollectionView:
             urllib.parse.quote(base64.b64encode(json.dumps(metadata).encode('utf-8')))
         return cos_metadata
 
+    def _chunk_splitter_check(self,
+                              local_file_path: str,
+                              splitter_process: Optional[SplitterProcess] = None
+                              ):
+        if splitter_process is None or splitter_process.chunk_splitter is None:
+            return
+        _, extension = os.path.splitext(local_file_path)
+        if extension.lower() in {'.pdf', '.docx', '.pptx'}:
+            Warning("The splitter_process.chunk_splitter parameter is valid only for markdown files")
+
     def load_and_split_text(self,
                             local_file_path: str,
                             document_set_name: Optional[str] = None,
@@ -189,12 +188,10 @@ class CollectionView:
             raise exceptions.ParamError(message="file not found: {}".format(local_file_path))
         if not os.path.isfile(local_file_path):
             raise exceptions.ParamError(message="not a file: {}".format(local_file_path))
+        # chunk splitter check
+        self._chunk_splitter_check(local_file_path, splitter_process)
         # metadata check
         cos_metadata = self._get_cos_metadata(metadata, splitter_process)
-        # parse file type
-        file_type = self._parse_file_type(local_file_path)
-        if FileType.UnSupport == file_type:
-            raise exceptions.ParamError(message="only markdown file can upload")
         _, file_name = os.path.split(local_file_path)
         if not document_set_name:
             document_set_name = file_name
@@ -223,12 +220,13 @@ class CollectionView:
         document_set_id = res.body.get('documentSetId')
         cos_metadata['x-cos-meta-id'] = document_set_id
         cos_metadata['x-cos-meta-source'] = 'PythonSDK'
-        response = client.upload_file(
-            Bucket=bucket,
-            Key=upload_path,
-            LocalFilePath=local_file_path,
-            Metadata=cos_metadata
-        )
+        with open(local_file_path, 'rb') as fp:
+            response = client.put_object(
+                Bucket=bucket,
+                Key=upload_path,
+                Body=fp,
+                Metadata=cos_metadata
+            )
         Debug(json.dumps(response, indent=2))
         return DocumentSet(
             self,

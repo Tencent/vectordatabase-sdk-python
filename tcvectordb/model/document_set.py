@@ -177,12 +177,6 @@ class DocumentSetInfo:
         return res
 
 
-@unique
-class FileType(Enum):
-    Markdown = "markdown"
-    UnSupport = "unSupport"
-
-
 class Rerank:
     def __init__(self,
                  enable: Optional[bool] = None,
@@ -241,12 +235,16 @@ class SearchResultData:
                  end_pos: Optional[DocumentSet] = None,
                  pre: Optional[List[str]] = None,
                  next: Optional[List[str]] = None,
+                 paragraph_title: Optional[str] = None,
+                 all_parent_paragraph_titles: Optional[List[str]] = None,
                  ):
         self.text = text
         self.start_pos = start_pos
         self.end_pos = end_pos
         self.pre = pre
         self.next = next
+        self.paragraph_title = paragraph_title
+        self.all_parent_paragraph_titles = all_parent_paragraph_titles
 
     @property
     def __dict__(self):
@@ -257,6 +255,10 @@ class SearchResultData:
             "pre": self.pre,
             "next": self.next,
         }
+        if self.paragraph_title is not None:
+            res['paragraphTitle'] = self.paragraph_title
+        if self.all_parent_paragraph_titles is not None:
+            res['allParentParagraphTitles'] = self.all_parent_paragraph_titles
         return res
 
 
@@ -290,6 +292,8 @@ class SearchResult:
                 end_pos=d.get('endPos'),
                 pre=d.get('pre'),
                 next=d.get('next'),
+                paragraph_title=d.get('paragraphTitle'),
+                all_parent_paragraph_titles =d.get('allParentParagraphTitles'),
             )
         if 'documentSet' in data:
             ds_dict = data['documentSet']
