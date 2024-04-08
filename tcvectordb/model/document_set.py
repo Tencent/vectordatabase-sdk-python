@@ -114,7 +114,6 @@ class DocumentSet:
             self.splitter_process = splitter_process
         self._set_scalar_fields(data)
 
-
     def get_text(self) -> str:
         ds = self.collection_view.get_document_set(document_set_id=self.id)
         self.load_fields(vars(ds))

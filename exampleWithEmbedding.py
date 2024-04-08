@@ -14,44 +14,13 @@ from tcvectordb.model.document import Document, Filter, SearchParams, HNSWSearch
 from tcvectordb.model.enum import FieldType, IndexType, MetricType, EmbeddingModel, ReadConsistency
 from tcvectordb.model.index import Index, VectorIndex, FilterIndex, HNSWParams, IVFFLATParams
 
+from example import print_object, TestVDB
+
 # disable/enable http request log print
 tcvectordb.debug.DebugEnable = False
 
 
-def print_object(obj):
-    for elem in obj:
-        if hasattr(elem, '__dict__'):
-            print(json.dumps(vars(elem), indent=2))
-        else:
-            print(json.dumps(elem, indent=2))
-
-
-class TestVDB:
-
-    def __init__(self, url: str, username: str, key: str, timeout: int = 30):
-        """
-        初始化客户端
-        """
-        # 创建客户端时可以指定 read_consistency，后续调用 sdk 接口的 read_consistency 将延用该值
-        self._client = tcvectordb.VectorDBClient(url=url, username=username, key=key,
-                                                 read_consistency=ReadConsistency.EVENTUAL_CONSISTENCY, timeout=timeout)
-
-    def clear(self):
-        try:
-            db = self._client.database('book')
-            if db:
-                db.drop_database('book')
-        except exceptions.ParamError:
-            pass
-
-    def delete_and_drop(self):
-        db = self._client.database('book')
-
-        # 删除collection，删除collection的同时，其中的数据也将被全部删除
-        db.drop_collection('book_segments')
-
-        # 删除db，db下的所有collection都将被删除
-        db.drop_database('book')
+class TestEmbedding(TestVDB):
 
     def create_db_and_collection(self):
         database = 'book'
@@ -263,7 +232,7 @@ class TestVDB:
 
 
 if __name__ == '__main__':
-    test_vdb = TestVDB('vdb http url or ip and post', key='key get from web console', username='vdb username')
+    test_vdb = TestEmbedding('vdb http url or ip and post', key='key get from web console', username='vdb username')
     # test_vdb = TestVDB('http://127.0.0.1:8100', key='vdb-key', username='root')
     test_vdb.clear()  # 测试前清理环境
     test_vdb.create_db_and_collection()

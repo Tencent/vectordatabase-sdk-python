@@ -4,14 +4,14 @@ from setuptools import setup, find_packages
 
 setup(
     name='tcvectordb',
-    version='1.3.0',
+    version='1.3.1',
     description='Tencent VectorDB Python SDK',
     author='tencent vdb team',
     url='',
     packages=find_packages(),
     install_requires=[
         'requests',
-        'cos-python-sdk-v5==1.9.26',
+        'cos-python-sdk-v5>=1.9.26',
     ],
     python_requires='>=3'
 )

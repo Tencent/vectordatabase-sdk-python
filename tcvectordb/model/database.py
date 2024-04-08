@@ -164,6 +164,27 @@ class Database:
         return Collection(self, name, shard, replicas, description, index, embedding=embedding,
                           read_consistency=self._read_consistency)
 
+    def _generate_collection(self, col):
+        index = Index()
+        for elem in col.get('indexes', []):
+            index.add(**elem)
+        ebd = Embedding()
+        if "embedding" in col:
+            ebd.set_fields(**col.get("embedding"))
+        collection = Collection(
+            self,
+            col['collection'],
+            shard=col['shardNum'],
+            replicas=col['replicaNum'],
+            description=col.get('description'),
+            index=index,
+            embedding=ebd,
+            create_time=col['createTime'],
+            read_consistency=self._read_consistency
+        )
+        collection.set_fields(**col)
+        return collection
+
     def list_collections(self, timeout: Optional[float] = None) -> List[Collection]:
         """Get collection list.
 
@@ -182,28 +203,7 @@ class Database:
         res = self._conn.post('/collection/list', body, timeout)
         collections = []
         for col in res.body['collections']:
-            index = Index()
-            for elem in col.get('indexes', []):
-                index.add(**elem)
-
-            ebd = Embedding()
-            if "embedding" in col:
-                ebd.set_fields(**col.get("embedding"))
-
-            collection = Collection(
-                self,
-                col['collection'],
-                shard=col['shardNum'],
-                replicas=col['replicaNum'],
-                description=col.get('description'),
-                index=index,
-                embedding=ebd,
-                create_time=col['createTime'],
-                read_consistency=self._read_consistency
-            )
-
-            collection.set_fields(**col)
-
+            collection = self._generate_collection(col)
             collections.append(collection)
 
         return collections
@@ -234,28 +234,7 @@ class Database:
             raise exceptions.DescribeCollectionException(
                 code=-1, message=str(res.body))
         col = res.body['collection']
-        index = Index()
-        for elem in col.get('indexes', []):
-            index.add(**elem)
-
-        ebd = Embedding()
-        if "embedding" in col:
-            ebd.set_fields(**col.get("embedding"))
-
-        collection = Collection(
-            self,
-            col['collection'],
-            shard=col['shardNum'],
-            replicas=col['replicaNum'],
-            description=col.get('description'),
-            index=index,
-            embedding=ebd,
-            create_time=col['createTime'],
-            read_consistency=self._read_consistency
-        )
-        collection.set_fields(**col)
-
-        return collection
+        return self._generate_collection(col)
 
     def drop_collection(self, name: str, timeout: Optional[float] = None):
         """Delete a collection.
