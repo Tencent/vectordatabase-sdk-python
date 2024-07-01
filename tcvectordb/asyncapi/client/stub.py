@@ -15,9 +15,10 @@ class AsyncVectorDBClient(VectorDBClient):
                  username='',
                  key='',
                  read_consistency: ReadConsistency = ReadConsistency.EVENTUAL_CONSISTENCY,
-                 timeout=5,
-                 adapter: HTTPAdapter = None):
-        super().__init__(url, username, key, read_consistency, timeout, adapter)
+                 timeout=10,
+                 adapter: HTTPAdapter = None,
+                 pool_size: int = 10):
+        super().__init__(url, username, key, read_consistency, timeout, adapter, pool_size=pool_size)
 
     async def create_database(self, database_name: str, timeout: Optional[float] = None) -> AsyncDatabase:
         db = AsyncDatabase(conn=self._conn, name=database_name, read_consistency=self._read_consistency)

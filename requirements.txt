@@ -1,2 +1,6 @@
 requests
-cos-python-sdk-v5==1.9.26
+cos-python-sdk-v5
+grpcio
+grpcio-tools
+cachetools
+urllib3<=1.26.19

@@ -1,0 +1,1378 @@
+from google.protobuf.internal import containers as _containers
+from google.protobuf.internal import enum_type_wrapper as _enum_type_wrapper
+from google.protobuf import descriptor as _descriptor
+from google.protobuf import message as _message
+from typing import ClassVar as _ClassVar, Iterable as _Iterable, Mapping as _Mapping, Optional as _Optional, Union as _Union
+
+DESCRIPTOR: _descriptor.FileDescriptor
+
+class WorkRunState(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
+    __slots__ = []
+    WORKER_UN_INIT: _ClassVar[WorkRunState]
+    WORKER_BOOTING: _ClassVar[WorkRunState]
+    WORKER_RUNNING: _ClassVar[WorkRunState]
+    WORKER_STOP: _ClassVar[WorkRunState]
+    WORKER_STOPED: _ClassVar[WorkRunState]
+
+class WorkNodeState(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
+    __slots__ = []
+    WNODE_ACTIVE: _ClassVar[WorkNodeState]
+    WNODE_TEMP_UNAVAILABLE: _ClassVar[WorkNodeState]
+    WNODE_TIMEOUT: _ClassVar[WorkNodeState]
+    WNODE_INACTIVE: _ClassVar[WorkNodeState]
+    WNODE_BOOTING: _ClassVar[WorkNodeState]
+
+class ShardDataState(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
+    __slots__ = []
+    SHARD_INDEX_READY: _ClassVar[ShardDataState]
+    SHARD_INDEX_TRAINING: _ClassVar[ShardDataState]
+    SHARD_INDEX_BUILDING: _ClassVar[ShardDataState]
+    SHARD_INDEX_FAILED: _ClassVar[ShardDataState]
+
+class HealthState(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
+    __slots__ = []
+    HEALTH_GREEN: _ClassVar[HealthState]
+    HEALTH_YELLOW: _ClassVar[HealthState]
+    HEALTH_RED: _ClassVar[HealthState]
+
+class DataType(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
+    __slots__ = []
+    BASE: _ClassVar[DataType]
+    AI_DOC: _ClassVar[DataType]
+
+class IndexMetricType(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
+    __slots__ = []
+    INDEX_METRIC_INNER_PRODUCT: _ClassVar[IndexMetricType]
+    INDEX_METRIC_L2: _ClassVar[IndexMetricType]
+    INDEX_METRIC_COSINE: _ClassVar[IndexMetricType]
+    INDEX_METRIC_HAMMING: _ClassVar[IndexMetricType]
+
+class IndexEngineType(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
+    __slots__ = []
+    ENGINE_FAISS_VECTOR: _ClassVar[IndexEngineType]
+    ENGINE_FAISS_BINARY: _ClassVar[IndexEngineType]
+    ENGINE_HNSWLIB: _ClassVar[IndexEngineType]
+
+class FieldType(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
+    __slots__ = []
+    TYPE_STRING: _ClassVar[FieldType]
+    TYPE_ARRAY: _ClassVar[FieldType]
+    TYPE_UINT64: _ClassVar[FieldType]
+
+class FieldElementType(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
+    __slots__ = []
+    ELEMENT_TYPE_STRING: _ClassVar[FieldElementType]
+WORKER_UN_INIT: WorkRunState
+WORKER_BOOTING: WorkRunState
+WORKER_RUNNING: WorkRunState
+WORKER_STOP: WorkRunState
+WORKER_STOPED: WorkRunState
+WNODE_ACTIVE: WorkNodeState
+WNODE_TEMP_UNAVAILABLE: WorkNodeState
+WNODE_TIMEOUT: WorkNodeState
+WNODE_INACTIVE: WorkNodeState
+WNODE_BOOTING: WorkNodeState
+SHARD_INDEX_READY: ShardDataState
+SHARD_INDEX_TRAINING: ShardDataState
+SHARD_INDEX_BUILDING: ShardDataState
+SHARD_INDEX_FAILED: ShardDataState
+HEALTH_GREEN: HealthState
+HEALTH_YELLOW: HealthState
+HEALTH_RED: HealthState
+BASE: DataType
+AI_DOC: DataType
+INDEX_METRIC_INNER_PRODUCT: IndexMetricType
+INDEX_METRIC_L2: IndexMetricType
+INDEX_METRIC_COSINE: IndexMetricType
+INDEX_METRIC_HAMMING: IndexMetricType
+ENGINE_FAISS_VECTOR: IndexEngineType
+ENGINE_FAISS_BINARY: IndexEngineType
+ENGINE_HNSWLIB: IndexEngineType
+TYPE_STRING: FieldType
+TYPE_ARRAY: FieldType
+TYPE_UINT64: FieldType
+ELEMENT_TYPE_STRING: FieldElementType
+
+class Document(_message.Message):
+    __slots__ = ["id", "vector", "score", "fields", "index_id", "from_peer", "shard_idx", "vector_offset", "doc_info"]
+    class FieldsEntry(_message.Message):
+        __slots__ = ["key", "value"]
+        KEY_FIELD_NUMBER: _ClassVar[int]
+        VALUE_FIELD_NUMBER: _ClassVar[int]
+        key: str
+        value: Field
+        def __init__(self, key: _Optional[str] = ..., value: _Optional[_Union[Field, _Mapping]] = ...) -> None: ...
+    ID_FIELD_NUMBER: _ClassVar[int]
+    VECTOR_FIELD_NUMBER: _ClassVar[int]
+    SCORE_FIELD_NUMBER: _ClassVar[int]
+    FIELDS_FIELD_NUMBER: _ClassVar[int]
+    INDEX_ID_FIELD_NUMBER: _ClassVar[int]
+    FROM_PEER_FIELD_NUMBER: _ClassVar[int]
+    SHARD_IDX_FIELD_NUMBER: _ClassVar[int]
+    VECTOR_OFFSET_FIELD_NUMBER: _ClassVar[int]
+    DOC_INFO_FIELD_NUMBER: _ClassVar[int]
+    id: str
+    vector: _containers.RepeatedScalarFieldContainer[float]
+    score: float
+    fields: _containers.MessageMap[str, Field]
+    index_id: int
+    from_peer: str
+    shard_idx: int
+    vector_offset: int
+    doc_info: bytes
+    def __init__(self, id: _Optional[str] = ..., vector: _Optional[_Iterable[float]] = ..., score: _Optional[float] = ..., fields: _Optional[_Mapping[str, Field]] = ..., index_id: _Optional[int] = ..., from_peer: _Optional[str] = ..., shard_idx: _Optional[int] = ..., vector_offset: _Optional[int] = ..., doc_info: _Optional[bytes] = ...) -> None: ...
+
+class Field(_message.Message):
+    __slots__ = ["val_str", "val_u64", "val_double", "val_str_arr"]
+    class StringArray(_message.Message):
+        __slots__ = ["str_arr"]
+        STR_ARR_FIELD_NUMBER: _ClassVar[int]
+        str_arr: _containers.RepeatedScalarFieldContainer[bytes]
+        def __init__(self, str_arr: _Optional[_Iterable[bytes]] = ...) -> None: ...
+    VAL_STR_FIELD_NUMBER: _ClassVar[int]
+    VAL_U64_FIELD_NUMBER: _ClassVar[int]
+    VAL_DOUBLE_FIELD_NUMBER: _ClassVar[int]
+    VAL_STR_ARR_FIELD_NUMBER: _ClassVar[int]
+    val_str: bytes
+    val_u64: int
+    val_double: float
+    val_str_arr: Field.StringArray
+    def __init__(self, val_str: _Optional[bytes] = ..., val_u64: _Optional[int] = ..., val_double: _Optional[float] = ..., val_str_arr: _Optional[_Union[Field.StringArray, _Mapping]] = ...) -> None: ...
+
+class MasterNode(_message.Message):
+    __slots__ = ["peer_id", "is_leader"]
+    PEER_ID_FIELD_NUMBER: _ClassVar[int]
+    IS_LEADER_FIELD_NUMBER: _ClassVar[int]
+    peer_id: str
+    is_leader: bool
+    def __init__(self, peer_id: _Optional[str] = ..., is_leader: bool = ...) -> None: ...
+
+class ShardState(_message.Message):
+    __slots__ = ["data_state", "estimate_index_mem_size", "snapshoting", "last_applied_index", "last_applied_term", "id_seed", "added_items", "data_state_change_time"]
+    DATA_STATE_FIELD_NUMBER: _ClassVar[int]
+    ESTIMATE_INDEX_MEM_SIZE_FIELD_NUMBER: _ClassVar[int]
+    SNAPSHOTING_FIELD_NUMBER: _ClassVar[int]
+    LAST_APPLIED_INDEX_FIELD_NUMBER: _ClassVar[int]
+    LAST_APPLIED_TERM_FIELD_NUMBER: _ClassVar[int]
+    ID_SEED_FIELD_NUMBER: _ClassVar[int]
+    ADDED_ITEMS_FIELD_NUMBER: _ClassVar[int]
+    DATA_STATE_CHANGE_TIME_FIELD_NUMBER: _ClassVar[int]
+    data_state: ShardDataState
+    estimate_index_mem_size: int
+    snapshoting: bool
+    last_applied_index: int
+    last_applied_term: int
+    id_seed: int
+    added_items: int
+    data_state_change_time: int
+    def __init__(self, data_state: _Optional[_Union[ShardDataState, str]] = ..., estimate_index_mem_size: _Optional[int] = ..., snapshoting: bool = ..., last_applied_index: _Optional[int] = ..., last_applied_term: _Optional[int] = ..., id_seed: _Optional[int] = ..., added_items: _Optional[int] = ..., data_state_change_time: _Optional[int] = ...) -> None: ...
+
+class Shard(_message.Message):
+    __slots__ = ["collection", "shard_idx", "is_leader", "following", "state", "nodes", "from_node", "version"]
+    COLLECTION_FIELD_NUMBER: _ClassVar[int]
+    SHARD_IDX_FIELD_NUMBER: _ClassVar[int]
+    IS_LEADER_FIELD_NUMBER: _ClassVar[int]
+    FOLLOWING_FIELD_NUMBER: _ClassVar[int]
+    STATE_FIELD_NUMBER: _ClassVar[int]
+    NODES_FIELD_NUMBER: _ClassVar[int]
+    FROM_NODE_FIELD_NUMBER: _ClassVar[int]
+    VERSION_FIELD_NUMBER: _ClassVar[int]
+    collection: str
+    shard_idx: int
+    is_leader: bool
+    following: bool
+    state: ShardState
+    nodes: _containers.RepeatedScalarFieldContainer[str]
+    from_node: str
+    version: int
+    def __init__(self, collection: _Optional[str] = ..., shard_idx: _Optional[int] = ..., is_leader: bool = ..., following: bool = ..., state: _Optional[_Union[ShardState, _Mapping]] = ..., nodes: _Optional[_Iterable[str]] = ..., from_node: _Optional[str] = ..., version: _Optional[int] = ...) -> None: ...
+
+class WorkNode(_message.Message):
+    __slots__ = ["peer_id", "last_active_ms", "last_state_ms", "shards", "state", "used_rss_size", "set_name"]
+    PEER_ID_FIELD_NUMBER: _ClassVar[int]
+    LAST_ACTIVE_MS_FIELD_NUMBER: _ClassVar[int]
+    LAST_STATE_MS_FIELD_NUMBER: _ClassVar[int]
+    SHARDS_FIELD_NUMBER: _ClassVar[int]
+    STATE_FIELD_NUMBER: _ClassVar[int]
+    USED_RSS_SIZE_FIELD_NUMBER: _ClassVar[int]
+    SET_NAME_FIELD_NUMBER: _ClassVar[int]
+    peer_id: str
+    last_active_ms: int
+    last_state_ms: int
+    shards: _containers.RepeatedCompositeFieldContainer[Shard]
+    state: WorkNodeState
+    used_rss_size: int
+    set_name: str
+    def __init__(self, peer_id: _Optional[str] = ..., last_active_ms: _Optional[int] = ..., last_state_ms: _Optional[int] = ..., shards: _Optional[_Iterable[_Union[Shard, _Mapping]]] = ..., state: _Optional[_Union[WorkNodeState, str]] = ..., used_rss_size: _Optional[int] = ..., set_name: _Optional[str] = ...) -> None: ...
+
+class ClusterState(_message.Message):
+    __slots__ = ["update_ms", "status", "nodes", "version_seed"]
+    class NodesEntry(_message.Message):
+        __slots__ = ["key", "value"]
+        KEY_FIELD_NUMBER: _ClassVar[int]
+        VALUE_FIELD_NUMBER: _ClassVar[int]
+        key: str
+        value: WorkNode
+        def __init__(self, key: _Optional[str] = ..., value: _Optional[_Union[WorkNode, _Mapping]] = ...) -> None: ...
+    UPDATE_MS_FIELD_NUMBER: _ClassVar[int]
+    STATUS_FIELD_NUMBER: _ClassVar[int]
+    NODES_FIELD_NUMBER: _ClassVar[int]
+    VERSION_SEED_FIELD_NUMBER: _ClassVar[int]
+    update_ms: int
+    status: HealthState
+    nodes: _containers.MessageMap[str, WorkNode]
+    version_seed: int
+    def __init__(self, update_ms: _Optional[int] = ..., status: _Optional[_Union[HealthState, str]] = ..., nodes: _Optional[_Mapping[str, WorkNode]] = ..., version_seed: _Optional[int] = ...) -> None: ...
+
+class AliasItem(_message.Message):
+    __slots__ = ["alias", "collection"]
+    ALIAS_FIELD_NUMBER: _ClassVar[int]
+    COLLECTION_FIELD_NUMBER: _ClassVar[int]
+    alias: str
+    collection: str
+    def __init__(self, alias: _Optional[str] = ..., collection: _Optional[str] = ...) -> None: ...
+
+class DatabaseItem(_message.Message):
+    __slots__ = ["create_time", "db_type"]
+    CREATE_TIME_FIELD_NUMBER: _ClassVar[int]
+    DB_TYPE_FIELD_NUMBER: _ClassVar[int]
+    create_time: int
+    db_type: DataType
+    def __init__(self, create_time: _Optional[int] = ..., db_type: _Optional[_Union[DataType, str]] = ...) -> None: ...
+
+class ClusterSettings(_message.Message):
+    __slots__ = ["aliases", "databases"]
+    class DatabasesEntry(_message.Message):
+        __slots__ = ["key", "value"]
+        KEY_FIELD_NUMBER: _ClassVar[int]
+        VALUE_FIELD_NUMBER: _ClassVar[int]
+        key: str
+        value: DatabaseItem
+        def __init__(self, key: _Optional[str] = ..., value: _Optional[_Union[DatabaseItem, _Mapping]] = ...) -> None: ...
+    ALIASES_FIELD_NUMBER: _ClassVar[int]
+    DATABASES_FIELD_NUMBER: _ClassVar[int]
+    aliases: _containers.RepeatedCompositeFieldContainer[AliasItem]
+    databases: _containers.MessageMap[str, DatabaseItem]
+    def __init__(self, aliases: _Optional[_Iterable[_Union[AliasItem, _Mapping]]] = ..., databases: _Optional[_Mapping[str, DatabaseItem]] = ...) -> None: ...
+
+class SnapshotRule(_message.Message):
+    __slots__ = ["period_secs", "changed_docs"]
+    PERIOD_SECS_FIELD_NUMBER: _ClassVar[int]
+    CHANGED_DOCS_FIELD_NUMBER: _ClassVar[int]
+    period_secs: int
+    changed_docs: int
+    def __init__(self, period_secs: _Optional[int] = ..., changed_docs: _Optional[int] = ...) -> None: ...
+
+class EmbeddingParams(_message.Message):
+    __slots__ = ["field", "vector_field", "model_name"]
+    FIELD_FIELD_NUMBER: _ClassVar[int]
+    VECTOR_FIELD_FIELD_NUMBER: _ClassVar[int]
+    MODEL_NAME_FIELD_NUMBER: _ClassVar[int]
+    field: str
+    vector_field: str
+    model_name: str
+    def __init__(self, field: _Optional[str] = ..., vector_field: _Optional[str] = ..., model_name: _Optional[str] = ...) -> None: ...
+
+class CollectionConf(_message.Message):
+    __slots__ = ["database", "collection", "description", "number_of_shards", "number_of_replicas", "dimension", "metric", "nprobe", "snapshot_rules", "engine", "model_desc", "field_metas", "options", "nlist", "embedding_params", "data_type", "version", "ttlConfig"]
+    class FieldMetasEntry(_message.Message):
+        __slots__ = ["key", "value"]
+        KEY_FIELD_NUMBER: _ClassVar[int]
+        VALUE_FIELD_NUMBER: _ClassVar[int]
+        key: str
+        value: FieldMeta
+        def __init__(self, key: _Optional[str] = ..., value: _Optional[_Union[FieldMeta, _Mapping]] = ...) -> None: ...
+    class OptionsEntry(_message.Message):
+        __slots__ = ["key", "value"]
+        KEY_FIELD_NUMBER: _ClassVar[int]
+        VALUE_FIELD_NUMBER: _ClassVar[int]
+        key: str
+        value: str
+        def __init__(self, key: _Optional[str] = ..., value: _Optional[str] = ...) -> None: ...
+    DATABASE_FIELD_NUMBER: _ClassVar[int]
+    COLLECTION_FIELD_NUMBER: _ClassVar[int]
+    DESCRIPTION_FIELD_NUMBER: _ClassVar[int]
+    NUMBER_OF_SHARDS_FIELD_NUMBER: _ClassVar[int]
+    NUMBER_OF_REPLICAS_FIELD_NUMBER: _ClassVar[int]
+    DIMENSION_FIELD_NUMBER: _ClassVar[int]
+    METRIC_FIELD_NUMBER: _ClassVar[int]
+    NPROBE_FIELD_NUMBER: _ClassVar[int]
+    SNAPSHOT_RULES_FIELD_NUMBER: _ClassVar[int]
+    ENGINE_FIELD_NUMBER: _ClassVar[int]
+    MODEL_DESC_FIELD_NUMBER: _ClassVar[int]
+    FIELD_METAS_FIELD_NUMBER: _ClassVar[int]
+    OPTIONS_FIELD_NUMBER: _ClassVar[int]
+    NLIST_FIELD_NUMBER: _ClassVar[int]
+    EMBEDDING_PARAMS_FIELD_NUMBER: _ClassVar[int]
+    DATA_TYPE_FIELD_NUMBER: _ClassVar[int]
+    VERSION_FIELD_NUMBER: _ClassVar[int]
+    TTLCONFIG_FIELD_NUMBER: _ClassVar[int]
+    database: str
+    collection: str
+    description: str
+    number_of_shards: int
+    number_of_replicas: int
+    dimension: int
+    metric: IndexMetricType
+    nprobe: int
+    snapshot_rules: _containers.RepeatedCompositeFieldContainer[SnapshotRule]
+    engine: IndexEngineType
+    model_desc: str
+    field_metas: _containers.MessageMap[str, FieldMeta]
+    options: _containers.ScalarMap[str, str]
+    nlist: int
+    embedding_params: EmbeddingParams
+    data_type: DataType
+    version: int
+    ttlConfig: TTLConfig
+    def __init__(self, database: _Optional[str] = ..., collection: _Optional[str] = ..., description: _Optional[str] = ..., number_of_shards: _Optional[int] = ..., number_of_replicas: _Optional[int] = ..., dimension: _Optional[int] = ..., metric: _Optional[_Union[IndexMetricType, str]] = ..., nprobe: _Optional[int] = ..., snapshot_rules: _Optional[_Iterable[_Union[SnapshotRule, _Mapping]]] = ..., engine: _Optional[_Union[IndexEngineType, str]] = ..., model_desc: _Optional[str] = ..., field_metas: _Optional[_Mapping[str, FieldMeta]] = ..., options: _Optional[_Mapping[str, str]] = ..., nlist: _Optional[int] = ..., embedding_params: _Optional[_Union[EmbeddingParams, _Mapping]] = ..., data_type: _Optional[_Union[DataType, str]] = ..., version: _Optional[int] = ..., ttlConfig: _Optional[_Union[TTLConfig, _Mapping]] = ...) -> None: ...
+
+class FieldMeta(_message.Message):
+    __slots__ = ["field_type", "field_element_type"]
+    FIELD_TYPE_FIELD_NUMBER: _ClassVar[int]
+    FIELD_ELEMENT_TYPE_FIELD_NUMBER: _ClassVar[int]
+    field_type: FieldType
+    field_element_type: FieldElementType
+    def __init__(self, field_type: _Optional[_Union[FieldType, str]] = ..., field_element_type: _Optional[_Union[FieldElementType, str]] = ...) -> None: ...
+
+class ShardConf(_message.Message):
+    __slots__ = ["collection", "shard_idx", "conf", "nodes"]
+    COLLECTION_FIELD_NUMBER: _ClassVar[int]
+    SHARD_IDX_FIELD_NUMBER: _ClassVar[int]
+    CONF_FIELD_NUMBER: _ClassVar[int]
+    NODES_FIELD_NUMBER: _ClassVar[int]
+    collection: str
+    shard_idx: int
+    conf: CollectionConf
+    nodes: _containers.RepeatedScalarFieldContainer[str]
+    def __init__(self, collection: _Optional[str] = ..., shard_idx: _Optional[int] = ..., conf: _Optional[_Union[CollectionConf, _Mapping]] = ..., nodes: _Optional[_Iterable[str]] = ...) -> None: ...
+
+class TTLConfig(_message.Message):
+    __slots__ = ["enable", "timeField"]
+    ENABLE_FIELD_NUMBER: _ClassVar[int]
+    TIMEFIELD_FIELD_NUMBER: _ClassVar[int]
+    enable: bool
+    timeField: str
+    def __init__(self, enable: bool = ..., timeField: _Optional[str] = ...) -> None: ...
+
+class ShardCollectionState(_message.Message):
+    __slots__ = ["shard_idx", "leader", "node_peers", "allocate_start_ms", "allocate_stop_ms", "leader_ms", "allocating", "shards", "creating", "removing"]
+    SHARD_IDX_FIELD_NUMBER: _ClassVar[int]
+    LEADER_FIELD_NUMBER: _ClassVar[int]
+    NODE_PEERS_FIELD_NUMBER: _ClassVar[int]
+    ALLOCATE_START_MS_FIELD_NUMBER: _ClassVar[int]
+    ALLOCATE_STOP_MS_FIELD_NUMBER: _ClassVar[int]
+    LEADER_MS_FIELD_NUMBER: _ClassVar[int]
+    ALLOCATING_FIELD_NUMBER: _ClassVar[int]
+    SHARDS_FIELD_NUMBER: _ClassVar[int]
+    CREATING_FIELD_NUMBER: _ClassVar[int]
+    REMOVING_FIELD_NUMBER: _ClassVar[int]
+    shard_idx: int
+    leader: str
+    node_peers: _containers.RepeatedScalarFieldContainer[str]
+    allocate_start_ms: int
+    allocate_stop_ms: int
+    leader_ms: int
+    allocating: bool
+    shards: _containers.RepeatedCompositeFieldContainer[Shard]
+    creating: bool
+    removing: bool
+    def __init__(self, shard_idx: _Optional[int] = ..., leader: _Optional[str] = ..., node_peers: _Optional[_Iterable[str]] = ..., allocate_start_ms: _Optional[int] = ..., allocate_stop_ms: _Optional[int] = ..., leader_ms: _Optional[int] = ..., allocating: bool = ..., shards: _Optional[_Iterable[_Union[Shard, _Mapping]]] = ..., creating: bool = ..., removing: bool = ...) -> None: ...
+
+class CollectionState(_message.Message):
+    __slots__ = ["collection", "conf", "shards", "size", "create_time", "req", "status", "index_state"]
+    COLLECTION_FIELD_NUMBER: _ClassVar[int]
+    CONF_FIELD_NUMBER: _ClassVar[int]
+    SHARDS_FIELD_NUMBER: _ClassVar[int]
+    SIZE_FIELD_NUMBER: _ClassVar[int]
+    CREATE_TIME_FIELD_NUMBER: _ClassVar[int]
+    REQ_FIELD_NUMBER: _ClassVar[int]
+    STATUS_FIELD_NUMBER: _ClassVar[int]
+    INDEX_STATE_FIELD_NUMBER: _ClassVar[int]
+    collection: str
+    conf: CollectionConf
+    shards: _containers.RepeatedCompositeFieldContainer[ShardCollectionState]
+    size: int
+    create_time: int
+    req: CreateCollectionRequest
+    status: HealthState
+    index_state: ShardDataState
+    def __init__(self, collection: _Optional[str] = ..., conf: _Optional[_Union[CollectionConf, _Mapping]] = ..., shards: _Optional[_Iterable[_Union[ShardCollectionState, _Mapping]]] = ..., size: _Optional[int] = ..., create_time: _Optional[int] = ..., req: _Optional[_Union[CreateCollectionRequest, _Mapping]] = ..., status: _Optional[_Union[HealthState, str]] = ..., index_state: _Optional[_Union[ShardDataState, str]] = ...) -> None: ...
+
+class UpdateClusterSettingRequest(_message.Message):
+    __slots__ = ["settings"]
+    SETTINGS_FIELD_NUMBER: _ClassVar[int]
+    settings: ClusterSettings
+    def __init__(self, settings: _Optional[_Union[ClusterSettings, _Mapping]] = ...) -> None: ...
+
+class UpdateClusterSettingResponse(_message.Message):
+    __slots__ = ["code", "msg", "redirect"]
+    CODE_FIELD_NUMBER: _ClassVar[int]
+    MSG_FIELD_NUMBER: _ClassVar[int]
+    REDIRECT_FIELD_NUMBER: _ClassVar[int]
+    code: int
+    msg: str
+    redirect: str
+    def __init__(self, code: _Optional[int] = ..., msg: _Optional[str] = ..., redirect: _Optional[str] = ...) -> None: ...
+
+class GetClusterStateRequest(_message.Message):
+    __slots__ = []
+    def __init__(self) -> None: ...
+
+class GetClusterStateResponse(_message.Message):
+    __slots__ = ["code", "msg", "redirect", "masters", "state", "server_infos"]
+    class ServerInfosEntry(_message.Message):
+        __slots__ = ["key", "value"]
+        KEY_FIELD_NUMBER: _ClassVar[int]
+        VALUE_FIELD_NUMBER: _ClassVar[int]
+        key: str
+        value: str
+        def __init__(self, key: _Optional[str] = ..., value: _Optional[str] = ...) -> None: ...
+    CODE_FIELD_NUMBER: _ClassVar[int]
+    MSG_FIELD_NUMBER: _ClassVar[int]
+    REDIRECT_FIELD_NUMBER: _ClassVar[int]
+    MASTERS_FIELD_NUMBER: _ClassVar[int]
+    STATE_FIELD_NUMBER: _ClassVar[int]
+    SERVER_INFOS_FIELD_NUMBER: _ClassVar[int]
+    code: int
+    msg: str
+    redirect: str
+    masters: _containers.RepeatedCompositeFieldContainer[MasterNode]
+    state: ClusterState
+    server_infos: _containers.ScalarMap[str, str]
+    def __init__(self, code: _Optional[int] = ..., msg: _Optional[str] = ..., redirect: _Optional[str] = ..., masters: _Optional[_Iterable[_Union[MasterNode, _Mapping]]] = ..., state: _Optional[_Union[ClusterState, _Mapping]] = ..., server_infos: _Optional[_Mapping[str, str]] = ...) -> None: ...
+
+class AddAliasRequest(_message.Message):
+    __slots__ = ["database", "collection", "alias"]
+    DATABASE_FIELD_NUMBER: _ClassVar[int]
+    COLLECTION_FIELD_NUMBER: _ClassVar[int]
+    ALIAS_FIELD_NUMBER: _ClassVar[int]
+    database: str
+    collection: str
+    alias: str
+    def __init__(self, database: _Optional[str] = ..., collection: _Optional[str] = ..., alias: _Optional[str] = ...) -> None: ...
+
+class RemoveAliasRequest(_message.Message):
+    __slots__ = ["database", "alias"]
+    DATABASE_FIELD_NUMBER: _ClassVar[int]
+    ALIAS_FIELD_NUMBER: _ClassVar[int]
+    database: str
+    alias: str
+    def __init__(self, database: _Optional[str] = ..., alias: _Optional[str] = ...) -> None: ...
+
+class UpdateAliasResponse(_message.Message):
+    __slots__ = ["code", "msg", "redirect", "affectedCount"]
+    CODE_FIELD_NUMBER: _ClassVar[int]
+    MSG_FIELD_NUMBER: _ClassVar[int]
+    REDIRECT_FIELD_NUMBER: _ClassVar[int]
+    AFFECTEDCOUNT_FIELD_NUMBER: _ClassVar[int]
+    code: int
+    msg: str
+    redirect: str
+    affectedCount: int
+    def __init__(self, code: _Optional[int] = ..., msg: _Optional[str] = ..., redirect: _Optional[str] = ..., affectedCount: _Optional[int] = ...) -> None: ...
+
+class GetAliasRequest(_message.Message):
+    __slots__ = ["database", "alias"]
+    DATABASE_FIELD_NUMBER: _ClassVar[int]
+    ALIAS_FIELD_NUMBER: _ClassVar[int]
+    database: str
+    alias: str
+    def __init__(self, database: _Optional[str] = ..., alias: _Optional[str] = ...) -> None: ...
+
+class GetAliasResponse(_message.Message):
+    __slots__ = ["code", "msg", "redirect", "aliases"]
+    CODE_FIELD_NUMBER: _ClassVar[int]
+    MSG_FIELD_NUMBER: _ClassVar[int]
+    REDIRECT_FIELD_NUMBER: _ClassVar[int]
+    ALIASES_FIELD_NUMBER: _ClassVar[int]
+    code: int
+    msg: str
+    redirect: str
+    aliases: _containers.RepeatedCompositeFieldContainer[AliasItem]
+    def __init__(self, code: _Optional[int] = ..., msg: _Optional[str] = ..., redirect: _Optional[str] = ..., aliases: _Optional[_Iterable[_Union[AliasItem, _Mapping]]] = ...) -> None: ...
+
+class GetShardStateRequest(_message.Message):
+    __slots__ = ["database", "collection", "shard_idx"]
+    DATABASE_FIELD_NUMBER: _ClassVar[int]
+    COLLECTION_FIELD_NUMBER: _ClassVar[int]
+    SHARD_IDX_FIELD_NUMBER: _ClassVar[int]
+    database: str
+    collection: str
+    shard_idx: int
+    def __init__(self, database: _Optional[str] = ..., collection: _Optional[str] = ..., shard_idx: _Optional[int] = ...) -> None: ...
+
+class GetShardStateResponse(_message.Message):
+    __slots__ = ["code", "msg", "redirect", "shard"]
+    CODE_FIELD_NUMBER: _ClassVar[int]
+    MSG_FIELD_NUMBER: _ClassVar[int]
+    REDIRECT_FIELD_NUMBER: _ClassVar[int]
+    SHARD_FIELD_NUMBER: _ClassVar[int]
+    code: int
+    msg: str
+    redirect: str
+    shard: Shard
+    def __init__(self, code: _Optional[int] = ..., msg: _Optional[str] = ..., redirect: _Optional[str] = ..., shard: _Optional[_Union[Shard, _Mapping]] = ...) -> None: ...
+
+class GetNodeInfoRequest(_message.Message):
+    __slots__ = []
+    def __init__(self) -> None: ...
+
+class GetNodeInfoResponse(_message.Message):
+    __slots__ = ["code", "msg", "redirect", "node_infos"]
+    class NodeInfosEntry(_message.Message):
+        __slots__ = ["key", "value"]
+        KEY_FIELD_NUMBER: _ClassVar[int]
+        VALUE_FIELD_NUMBER: _ClassVar[int]
+        key: str
+        value: str
+        def __init__(self, key: _Optional[str] = ..., value: _Optional[str] = ...) -> None: ...
+    CODE_FIELD_NUMBER: _ClassVar[int]
+    MSG_FIELD_NUMBER: _ClassVar[int]
+    REDIRECT_FIELD_NUMBER: _ClassVar[int]
+    NODE_INFOS_FIELD_NUMBER: _ClassVar[int]
+    code: int
+    msg: str
+    redirect: str
+    node_infos: _containers.ScalarMap[str, str]
+    def __init__(self, code: _Optional[int] = ..., msg: _Optional[str] = ..., redirect: _Optional[str] = ..., node_infos: _Optional[_Mapping[str, str]] = ...) -> None: ...
+
+class DescribeCollectionRequest(_message.Message):
+    __slots__ = ["database", "collection", "transfer"]
+    DATABASE_FIELD_NUMBER: _ClassVar[int]
+    COLLECTION_FIELD_NUMBER: _ClassVar[int]
+    TRANSFER_FIELD_NUMBER: _ClassVar[int]
+    database: str
+    collection: str
+    transfer: bool
+    def __init__(self, database: _Optional[str] = ..., collection: _Optional[str] = ..., transfer: bool = ...) -> None: ...
+
+class DescribeCollectionResponse(_message.Message):
+    __slots__ = ["code", "msg", "redirect", "collection", "state"]
+    CODE_FIELD_NUMBER: _ClassVar[int]
+    MSG_FIELD_NUMBER: _ClassVar[int]
+    REDIRECT_FIELD_NUMBER: _ClassVar[int]
+    COLLECTION_FIELD_NUMBER: _ClassVar[int]
+    STATE_FIELD_NUMBER: _ClassVar[int]
+    code: int
+    msg: str
+    redirect: str
+    collection: CreateCollectionRequest
+    state: CollectionState
+    def __init__(self, code: _Optional[int] = ..., msg: _Optional[str] = ..., redirect: _Optional[str] = ..., collection: _Optional[_Union[CreateCollectionRequest, _Mapping]] = ..., state: _Optional[_Union[CollectionState, _Mapping]] = ...) -> None: ...
+
+class ListCollectionsRequest(_message.Message):
+    __slots__ = ["database", "transfer"]
+    DATABASE_FIELD_NUMBER: _ClassVar[int]
+    TRANSFER_FIELD_NUMBER: _ClassVar[int]
+    database: str
+    transfer: bool
+    def __init__(self, database: _Optional[str] = ..., transfer: bool = ...) -> None: ...
+
+class ListCollectionsResponse(_message.Message):
+    __slots__ = ["code", "msg", "redirect", "collections", "states", "cluster"]
+    CODE_FIELD_NUMBER: _ClassVar[int]
+    MSG_FIELD_NUMBER: _ClassVar[int]
+    REDIRECT_FIELD_NUMBER: _ClassVar[int]
+    COLLECTIONS_FIELD_NUMBER: _ClassVar[int]
+    STATES_FIELD_NUMBER: _ClassVar[int]
+    CLUSTER_FIELD_NUMBER: _ClassVar[int]
+    code: int
+    msg: str
+    redirect: str
+    collections: _containers.RepeatedCompositeFieldContainer[CreateCollectionRequest]
+    states: _containers.RepeatedCompositeFieldContainer[CollectionState]
+    cluster: ClusterState
+    def __init__(self, code: _Optional[int] = ..., msg: _Optional[str] = ..., redirect: _Optional[str] = ..., collections: _Optional[_Iterable[_Union[CreateCollectionRequest, _Mapping]]] = ..., states: _Optional[_Iterable[_Union[CollectionState, _Mapping]]] = ..., cluster: _Optional[_Union[ClusterState, _Mapping]] = ...) -> None: ...
+
+class IndexParams(_message.Message):
+    __slots__ = ["M", "efConstruction", "nprobe", "nlist"]
+    M_FIELD_NUMBER: _ClassVar[int]
+    EFCONSTRUCTION_FIELD_NUMBER: _ClassVar[int]
+    NPROBE_FIELD_NUMBER: _ClassVar[int]
+    NLIST_FIELD_NUMBER: _ClassVar[int]
+    M: int
+    efConstruction: int
+    nprobe: int
+    nlist: int
+    def __init__(self, M: _Optional[int] = ..., efConstruction: _Optional[int] = ..., nprobe: _Optional[int] = ..., nlist: _Optional[int] = ...) -> None: ...
+
+class IndexColumn(_message.Message):
+    __slots__ = ["fieldName", "fieldType", "indexType", "dimension", "metricType", "params", "fieldElementType"]
+    FIELDNAME_FIELD_NUMBER: _ClassVar[int]
+    FIELDTYPE_FIELD_NUMBER: _ClassVar[int]
+    INDEXTYPE_FIELD_NUMBER: _ClassVar[int]
+    DIMENSION_FIELD_NUMBER: _ClassVar[int]
+    METRICTYPE_FIELD_NUMBER: _ClassVar[int]
+    PARAMS_FIELD_NUMBER: _ClassVar[int]
+    FIELDELEMENTTYPE_FIELD_NUMBER: _ClassVar[int]
+    fieldName: str
+    fieldType: str
+    indexType: str
+    dimension: int
+    metricType: str
+    params: IndexParams
+    fieldElementType: str
+    def __init__(self, fieldName: _Optional[str] = ..., fieldType: _Optional[str] = ..., indexType: _Optional[str] = ..., dimension: _Optional[int] = ..., metricType: _Optional[str] = ..., params: _Optional[_Union[IndexParams, _Mapping]] = ..., fieldElementType: _Optional[str] = ...) -> None: ...
+
+class indexStatus(_message.Message):
+    __slots__ = ["status", "progress", "startTime"]
+    STATUS_FIELD_NUMBER: _ClassVar[int]
+    PROGRESS_FIELD_NUMBER: _ClassVar[int]
+    STARTTIME_FIELD_NUMBER: _ClassVar[int]
+    status: str
+    progress: str
+    startTime: str
+    def __init__(self, status: _Optional[str] = ..., progress: _Optional[str] = ..., startTime: _Optional[str] = ...) -> None: ...
+
+class CreateCollectionRequest(_message.Message):
+    __slots__ = ["database", "collection", "replicaNum", "shardNum", "size", "createTime", "description", "indexes", "indexStatus", "alias_list", "embeddingParams", "version", "ttlConfig"]
+    class IndexesEntry(_message.Message):
+        __slots__ = ["key", "value"]
+        KEY_FIELD_NUMBER: _ClassVar[int]
+        VALUE_FIELD_NUMBER: _ClassVar[int]
+        key: str
+        value: IndexColumn
+        def __init__(self, key: _Optional[str] = ..., value: _Optional[_Union[IndexColumn, _Mapping]] = ...) -> None: ...
+    DATABASE_FIELD_NUMBER: _ClassVar[int]
+    COLLECTION_FIELD_NUMBER: _ClassVar[int]
+    REPLICANUM_FIELD_NUMBER: _ClassVar[int]
+    SHARDNUM_FIELD_NUMBER: _ClassVar[int]
+    SIZE_FIELD_NUMBER: _ClassVar[int]
+    CREATETIME_FIELD_NUMBER: _ClassVar[int]
+    DESCRIPTION_FIELD_NUMBER: _ClassVar[int]
+    INDEXES_FIELD_NUMBER: _ClassVar[int]
+    INDEXSTATUS_FIELD_NUMBER: _ClassVar[int]
+    ALIAS_LIST_FIELD_NUMBER: _ClassVar[int]
+    EMBEDDINGPARAMS_FIELD_NUMBER: _ClassVar[int]
+    VERSION_FIELD_NUMBER: _ClassVar[int]
+    TTLCONFIG_FIELD_NUMBER: _ClassVar[int]
+    database: str
+    collection: str
+    replicaNum: int
+    shardNum: int
+    size: int
+    createTime: str
+    description: str
+    indexes: _containers.MessageMap[str, IndexColumn]
+    indexStatus: indexStatus
+    alias_list: _containers.RepeatedScalarFieldContainer[str]
+    embeddingParams: EmbeddingParams
+    version: int
+    ttlConfig: TTLConfig
+    def __init__(self, database: _Optional[str] = ..., collection: _Optional[str] = ..., replicaNum: _Optional[int] = ..., shardNum: _Optional[int] = ..., size: _Optional[int] = ..., createTime: _Optional[str] = ..., description: _Optional[str] = ..., indexes: _Optional[_Mapping[str, IndexColumn]] = ..., indexStatus: _Optional[_Union[indexStatus, _Mapping]] = ..., alias_list: _Optional[_Iterable[str]] = ..., embeddingParams: _Optional[_Union[EmbeddingParams, _Mapping]] = ..., version: _Optional[int] = ..., ttlConfig: _Optional[_Union[TTLConfig, _Mapping]] = ...) -> None: ...
+
+class CreateCollectionResponse(_message.Message):
+    __slots__ = ["code", "msg", "redirect", "affectedCount"]
+    CODE_FIELD_NUMBER: _ClassVar[int]
+    MSG_FIELD_NUMBER: _ClassVar[int]
+    REDIRECT_FIELD_NUMBER: _ClassVar[int]
+    AFFECTEDCOUNT_FIELD_NUMBER: _ClassVar[int]
+    code: int
+    msg: str
+    redirect: str
+    affectedCount: int
+    def __init__(self, code: _Optional[int] = ..., msg: _Optional[str] = ..., redirect: _Optional[str] = ..., affectedCount: _Optional[int] = ...) -> None: ...
+
+class DropCollectionRequest(_message.Message):
+    __slots__ = ["database", "collection", "force", "without_alias"]
+    DATABASE_FIELD_NUMBER: _ClassVar[int]
+    COLLECTION_FIELD_NUMBER: _ClassVar[int]
+    FORCE_FIELD_NUMBER: _ClassVar[int]
+    WITHOUT_ALIAS_FIELD_NUMBER: _ClassVar[int]
+    database: str
+    collection: str
+    force: bool
+    without_alias: bool
+    def __init__(self, database: _Optional[str] = ..., collection: _Optional[str] = ..., force: bool = ..., without_alias: bool = ...) -> None: ...
+
+class DropCollectionResponse(_message.Message):
+    __slots__ = ["code", "msg", "redirect", "affectedCount"]
+    CODE_FIELD_NUMBER: _ClassVar[int]
+    MSG_FIELD_NUMBER: _ClassVar[int]
+    REDIRECT_FIELD_NUMBER: _ClassVar[int]
+    AFFECTEDCOUNT_FIELD_NUMBER: _ClassVar[int]
+    code: int
+    msg: str
+    redirect: str
+    affectedCount: int
+    def __init__(self, code: _Optional[int] = ..., msg: _Optional[str] = ..., redirect: _Optional[str] = ..., affectedCount: _Optional[int] = ...) -> None: ...
+
+class TruncateCollectionRequest(_message.Message):
+    __slots__ = ["database", "collection", "only_truncate_ann_index"]
+    DATABASE_FIELD_NUMBER: _ClassVar[int]
+    COLLECTION_FIELD_NUMBER: _ClassVar[int]
+    ONLY_TRUNCATE_ANN_INDEX_FIELD_NUMBER: _ClassVar[int]
+    database: str
+    collection: str
+    only_truncate_ann_index: bool
+    def __init__(self, database: _Optional[str] = ..., collection: _Optional[str] = ..., only_truncate_ann_index: bool = ...) -> None: ...
+
+class TruncateCollectionResponse(_message.Message):
+    __slots__ = ["code", "msg", "redirect", "affectedCount"]
+    CODE_FIELD_NUMBER: _ClassVar[int]
+    MSG_FIELD_NUMBER: _ClassVar[int]
+    REDIRECT_FIELD_NUMBER: _ClassVar[int]
+    AFFECTEDCOUNT_FIELD_NUMBER: _ClassVar[int]
+    code: int
+    msg: str
+    redirect: str
+    affectedCount: int
+    def __init__(self, code: _Optional[int] = ..., msg: _Optional[str] = ..., redirect: _Optional[str] = ..., affectedCount: _Optional[int] = ...) -> None: ...
+
+class UpdateCollectionRequest(_message.Message):
+    __slots__ = ["database", "collection", "conf"]
+    DATABASE_FIELD_NUMBER: _ClassVar[int]
+    COLLECTION_FIELD_NUMBER: _ClassVar[int]
+    CONF_FIELD_NUMBER: _ClassVar[int]
+    database: str
+    collection: str
+    conf: CollectionConf
+    def __init__(self, database: _Optional[str] = ..., collection: _Optional[str] = ..., conf: _Optional[_Union[CollectionConf, _Mapping]] = ...) -> None: ...
+
+class UpdateCollectionResponse(_message.Message):
+    __slots__ = ["code", "msg", "redirect", "task_ids"]
+    CODE_FIELD_NUMBER: _ClassVar[int]
+    MSG_FIELD_NUMBER: _ClassVar[int]
+    REDIRECT_FIELD_NUMBER: _ClassVar[int]
+    TASK_IDS_FIELD_NUMBER: _ClassVar[int]
+    code: int
+    msg: str
+    redirect: str
+    task_ids: _containers.RepeatedScalarFieldContainer[str]
+    def __init__(self, code: _Optional[int] = ..., msg: _Optional[str] = ..., redirect: _Optional[str] = ..., task_ids: _Optional[_Iterable[str]] = ...) -> None: ...
+
+class RebuildIndexRequest(_message.Message):
+    __slots__ = ["database", "collection", "dropBeforeRebuild", "throttle", "disable_train", "force_rebuild"]
+    DATABASE_FIELD_NUMBER: _ClassVar[int]
+    COLLECTION_FIELD_NUMBER: _ClassVar[int]
+    DROPBEFOREREBUILD_FIELD_NUMBER: _ClassVar[int]
+    THROTTLE_FIELD_NUMBER: _ClassVar[int]
+    DISABLE_TRAIN_FIELD_NUMBER: _ClassVar[int]
+    FORCE_REBUILD_FIELD_NUMBER: _ClassVar[int]
+    database: str
+    collection: str
+    dropBeforeRebuild: bool
+    throttle: int
+    disable_train: bool
+    force_rebuild: bool
+    def __init__(self, database: _Optional[str] = ..., collection: _Optional[str] = ..., dropBeforeRebuild: bool = ..., throttle: _Optional[int] = ..., disable_train: bool = ..., force_rebuild: bool = ...) -> None: ...
+
+class RebuildIndexResponse(_message.Message):
+    __slots__ = ["code", "msg", "redirect", "task_ids"]
+    CODE_FIELD_NUMBER: _ClassVar[int]
+    MSG_FIELD_NUMBER: _ClassVar[int]
+    REDIRECT_FIELD_NUMBER: _ClassVar[int]
+    TASK_IDS_FIELD_NUMBER: _ClassVar[int]
+    code: int
+    msg: str
+    redirect: str
+    task_ids: _containers.RepeatedScalarFieldContainer[str]
+    def __init__(self, code: _Optional[int] = ..., msg: _Optional[str] = ..., redirect: _Optional[str] = ..., task_ids: _Optional[_Iterable[str]] = ...) -> None: ...
+
+class MoveShardRequest(_message.Message):
+    __slots__ = ["database", "collection", "shard_idx", "from_node", "to_node"]
+    DATABASE_FIELD_NUMBER: _ClassVar[int]
+    COLLECTION_FIELD_NUMBER: _ClassVar[int]
+    SHARD_IDX_FIELD_NUMBER: _ClassVar[int]
+    FROM_NODE_FIELD_NUMBER: _ClassVar[int]
+    TO_NODE_FIELD_NUMBER: _ClassVar[int]
+    database: str
+    collection: str
+    shard_idx: int
+    from_node: str
+    to_node: str
+    def __init__(self, database: _Optional[str] = ..., collection: _Optional[str] = ..., shard_idx: _Optional[int] = ..., from_node: _Optional[str] = ..., to_node: _Optional[str] = ...) -> None: ...
+
+class MoveShardResponse(_message.Message):
+    __slots__ = ["code", "msg", "redirect"]
+    CODE_FIELD_NUMBER: _ClassVar[int]
+    MSG_FIELD_NUMBER: _ClassVar[int]
+    REDIRECT_FIELD_NUMBER: _ClassVar[int]
+    code: int
+    msg: str
+    redirect: str
+    def __init__(self, code: _Optional[int] = ..., msg: _Optional[str] = ..., redirect: _Optional[str] = ...) -> None: ...
+
+class ResetShardRequest(_message.Message):
+    __slots__ = ["database", "collection", "shard_idx", "nodes"]
+    DATABASE_FIELD_NUMBER: _ClassVar[int]
+    COLLECTION_FIELD_NUMBER: _ClassVar[int]
+    SHARD_IDX_FIELD_NUMBER: _ClassVar[int]
+    NODES_FIELD_NUMBER: _ClassVar[int]
+    database: str
+    collection: str
+    shard_idx: int
+    nodes: _containers.RepeatedScalarFieldContainer[str]
+    def __init__(self, database: _Optional[str] = ..., collection: _Optional[str] = ..., shard_idx: _Optional[int] = ..., nodes: _Optional[_Iterable[str]] = ...) -> None: ...
+
+class ResetShardResponse(_message.Message):
+    __slots__ = ["code", "msg", "redirect"]
+    CODE_FIELD_NUMBER: _ClassVar[int]
+    MSG_FIELD_NUMBER: _ClassVar[int]
+    REDIRECT_FIELD_NUMBER: _ClassVar[int]
+    code: int
+    msg: str
+    redirect: str
+    def __init__(self, code: _Optional[int] = ..., msg: _Optional[str] = ..., redirect: _Optional[str] = ...) -> None: ...
+
+class MigrateRequest(_message.Message):
+    __slots__ = ["database", "collection", "dest_collection", "batch_size", "docs_per_second_limit", "dest_peers", "shard_idxs", "dump_path", "dump_format"]
+    DATABASE_FIELD_NUMBER: _ClassVar[int]
+    COLLECTION_FIELD_NUMBER: _ClassVar[int]
+    DEST_COLLECTION_FIELD_NUMBER: _ClassVar[int]
+    BATCH_SIZE_FIELD_NUMBER: _ClassVar[int]
+    DOCS_PER_SECOND_LIMIT_FIELD_NUMBER: _ClassVar[int]
+    DEST_PEERS_FIELD_NUMBER: _ClassVar[int]
+    SHARD_IDXS_FIELD_NUMBER: _ClassVar[int]
+    DUMP_PATH_FIELD_NUMBER: _ClassVar[int]
+    DUMP_FORMAT_FIELD_NUMBER: _ClassVar[int]
+    database: str
+    collection: str
+    dest_collection: str
+    batch_size: int
+    docs_per_second_limit: int
+    dest_peers: _containers.RepeatedScalarFieldContainer[str]
+    shard_idxs: _containers.RepeatedScalarFieldContainer[int]
+    dump_path: str
+    dump_format: int
+    def __init__(self, database: _Optional[str] = ..., collection: _Optional[str] = ..., dest_collection: _Optional[str] = ..., batch_size: _Optional[int] = ..., docs_per_second_limit: _Optional[int] = ..., dest_peers: _Optional[_Iterable[str]] = ..., shard_idxs: _Optional[_Iterable[int]] = ..., dump_path: _Optional[str] = ..., dump_format: _Optional[int] = ...) -> None: ...
+
+class MigrateResponse(_message.Message):
+    __slots__ = ["code", "msg", "redirect", "task_ids"]
+    CODE_FIELD_NUMBER: _ClassVar[int]
+    MSG_FIELD_NUMBER: _ClassVar[int]
+    REDIRECT_FIELD_NUMBER: _ClassVar[int]
+    TASK_IDS_FIELD_NUMBER: _ClassVar[int]
+    code: int
+    msg: str
+    redirect: str
+    task_ids: _containers.RepeatedScalarFieldContainer[str]
+    def __init__(self, code: _Optional[int] = ..., msg: _Optional[str] = ..., redirect: _Optional[str] = ..., task_ids: _Optional[_Iterable[str]] = ...) -> None: ...
+
+class InfoNodeRequest(_message.Message):
+    __slots__ = ["nodes"]
+    NODES_FIELD_NUMBER: _ClassVar[int]
+    nodes: _containers.RepeatedScalarFieldContainer[str]
+    def __init__(self, nodes: _Optional[_Iterable[str]] = ...) -> None: ...
+
+class InfoNodeResponse(_message.Message):
+    __slots__ = ["code", "msg", "redirect", "nodes"]
+    CODE_FIELD_NUMBER: _ClassVar[int]
+    MSG_FIELD_NUMBER: _ClassVar[int]
+    REDIRECT_FIELD_NUMBER: _ClassVar[int]
+    NODES_FIELD_NUMBER: _ClassVar[int]
+    code: int
+    msg: str
+    redirect: str
+    nodes: _containers.RepeatedCompositeFieldContainer[WorkNode]
+    def __init__(self, code: _Optional[int] = ..., msg: _Optional[str] = ..., redirect: _Optional[str] = ..., nodes: _Optional[_Iterable[_Union[WorkNode, _Mapping]]] = ...) -> None: ...
+
+class RemoveNodeRequest(_message.Message):
+    __slots__ = ["node"]
+    NODE_FIELD_NUMBER: _ClassVar[int]
+    node: str
+    def __init__(self, node: _Optional[str] = ...) -> None: ...
+
+class RemoveNodeResponse(_message.Message):
+    __slots__ = ["code", "msg", "redirect"]
+    CODE_FIELD_NUMBER: _ClassVar[int]
+    MSG_FIELD_NUMBER: _ClassVar[int]
+    REDIRECT_FIELD_NUMBER: _ClassVar[int]
+    code: int
+    msg: str
+    redirect: str
+    def __init__(self, code: _Optional[int] = ..., msg: _Optional[str] = ..., redirect: _Optional[str] = ...) -> None: ...
+
+class TaskStateRequest(_message.Message):
+    __slots__ = ["tasks"]
+    TASKS_FIELD_NUMBER: _ClassVar[int]
+    tasks: _containers.RepeatedScalarFieldContainer[str]
+    def __init__(self, tasks: _Optional[_Iterable[str]] = ...) -> None: ...
+
+class TaskState(_message.Message):
+    __slots__ = ["id", "desc", "node", "completed", "success", "error", "started_ms", "stoped_ms", "progress", "latest_active_ms", "elapsed_ms"]
+    ID_FIELD_NUMBER: _ClassVar[int]
+    DESC_FIELD_NUMBER: _ClassVar[int]
+    NODE_FIELD_NUMBER: _ClassVar[int]
+    COMPLETED_FIELD_NUMBER: _ClassVar[int]
+    SUCCESS_FIELD_NUMBER: _ClassVar[int]
+    ERROR_FIELD_NUMBER: _ClassVar[int]
+    STARTED_MS_FIELD_NUMBER: _ClassVar[int]
+    STOPED_MS_FIELD_NUMBER: _ClassVar[int]
+    PROGRESS_FIELD_NUMBER: _ClassVar[int]
+    LATEST_ACTIVE_MS_FIELD_NUMBER: _ClassVar[int]
+    ELAPSED_MS_FIELD_NUMBER: _ClassVar[int]
+    id: str
+    desc: str
+    node: str
+    completed: bool
+    success: bool
+    error: str
+    started_ms: int
+    stoped_ms: int
+    progress: str
+    latest_active_ms: int
+    elapsed_ms: int
+    def __init__(self, id: _Optional[str] = ..., desc: _Optional[str] = ..., node: _Optional[str] = ..., completed: bool = ..., success: bool = ..., error: _Optional[str] = ..., started_ms: _Optional[int] = ..., stoped_ms: _Optional[int] = ..., progress: _Optional[str] = ..., latest_active_ms: _Optional[int] = ..., elapsed_ms: _Optional[int] = ...) -> None: ...
+
+class TaskStateResponse(_message.Message):
+    __slots__ = ["code", "msg", "redirect", "states"]
+    CODE_FIELD_NUMBER: _ClassVar[int]
+    MSG_FIELD_NUMBER: _ClassVar[int]
+    REDIRECT_FIELD_NUMBER: _ClassVar[int]
+    STATES_FIELD_NUMBER: _ClassVar[int]
+    code: int
+    msg: str
+    redirect: str
+    states: _containers.RepeatedCompositeFieldContainer[TaskState]
+    def __init__(self, code: _Optional[int] = ..., msg: _Optional[str] = ..., redirect: _Optional[str] = ..., states: _Optional[_Iterable[_Union[TaskState, _Mapping]]] = ...) -> None: ...
+
+class UpsertRequest(_message.Message):
+    __slots__ = ["database", "collection", "buildIndex", "documents"]
+    DATABASE_FIELD_NUMBER: _ClassVar[int]
+    COLLECTION_FIELD_NUMBER: _ClassVar[int]
+    BUILDINDEX_FIELD_NUMBER: _ClassVar[int]
+    DOCUMENTS_FIELD_NUMBER: _ClassVar[int]
+    database: str
+    collection: str
+    buildIndex: bool
+    documents: _containers.RepeatedCompositeFieldContainer[Document]
+    def __init__(self, database: _Optional[str] = ..., collection: _Optional[str] = ..., buildIndex: bool = ..., documents: _Optional[_Iterable[_Union[Document, _Mapping]]] = ...) -> None: ...
+
+class EmbeddingExtraInfo(_message.Message):
+    __slots__ = ["token_used"]
+    TOKEN_USED_FIELD_NUMBER: _ClassVar[int]
+    token_used: int
+    def __init__(self, token_used: _Optional[int] = ...) -> None: ...
+
+class UpsertResponse(_message.Message):
+    __slots__ = ["code", "msg", "redirect", "affectedCount", "warning", "embedding_extra_info"]
+    CODE_FIELD_NUMBER: _ClassVar[int]
+    MSG_FIELD_NUMBER: _ClassVar[int]
+    REDIRECT_FIELD_NUMBER: _ClassVar[int]
+    AFFECTEDCOUNT_FIELD_NUMBER: _ClassVar[int]
+    WARNING_FIELD_NUMBER: _ClassVar[int]
+    EMBEDDING_EXTRA_INFO_FIELD_NUMBER: _ClassVar[int]
+    code: int
+    msg: str
+    redirect: str
+    affectedCount: int
+    warning: str
+    embedding_extra_info: EmbeddingExtraInfo
+    def __init__(self, code: _Optional[int] = ..., msg: _Optional[str] = ..., redirect: _Optional[str] = ..., affectedCount: _Optional[int] = ..., warning: _Optional[str] = ..., embedding_extra_info: _Optional[_Union[EmbeddingExtraInfo, _Mapping]] = ...) -> None: ...
+
+class UpdateRequest(_message.Message):
+    __slots__ = ["database", "collection", "query", "update"]
+    DATABASE_FIELD_NUMBER: _ClassVar[int]
+    COLLECTION_FIELD_NUMBER: _ClassVar[int]
+    QUERY_FIELD_NUMBER: _ClassVar[int]
+    UPDATE_FIELD_NUMBER: _ClassVar[int]
+    database: str
+    collection: str
+    query: QueryCond
+    update: Document
+    def __init__(self, database: _Optional[str] = ..., collection: _Optional[str] = ..., query: _Optional[_Union[QueryCond, _Mapping]] = ..., update: _Optional[_Union[Document, _Mapping]] = ...) -> None: ...
+
+class UpdateResponse(_message.Message):
+    __slots__ = ["code", "msg", "redirect", "affectedCount", "warning", "embedding_extra_info"]
+    CODE_FIELD_NUMBER: _ClassVar[int]
+    MSG_FIELD_NUMBER: _ClassVar[int]
+    REDIRECT_FIELD_NUMBER: _ClassVar[int]
+    AFFECTEDCOUNT_FIELD_NUMBER: _ClassVar[int]
+    WARNING_FIELD_NUMBER: _ClassVar[int]
+    EMBEDDING_EXTRA_INFO_FIELD_NUMBER: _ClassVar[int]
+    code: int
+    msg: str
+    redirect: str
+    affectedCount: int
+    warning: str
+    embedding_extra_info: EmbeddingExtraInfo
+    def __init__(self, code: _Optional[int] = ..., msg: _Optional[str] = ..., redirect: _Optional[str] = ..., affectedCount: _Optional[int] = ..., warning: _Optional[str] = ..., embedding_extra_info: _Optional[_Union[EmbeddingExtraInfo, _Mapping]] = ...) -> None: ...
+
+class DeleteRequest(_message.Message):
+    __slots__ = ["database", "collection", "query"]
+    DATABASE_FIELD_NUMBER: _ClassVar[int]
+    COLLECTION_FIELD_NUMBER: _ClassVar[int]
+    QUERY_FIELD_NUMBER: _ClassVar[int]
+    database: str
+    collection: str
+    query: QueryCond
+    def __init__(self, database: _Optional[str] = ..., collection: _Optional[str] = ..., query: _Optional[_Union[QueryCond, _Mapping]] = ...) -> None: ...
+
+class DeleteResponse(_message.Message):
+    __slots__ = ["code", "msg", "redirect", "affectedCount"]
+    CODE_FIELD_NUMBER: _ClassVar[int]
+    MSG_FIELD_NUMBER: _ClassVar[int]
+    REDIRECT_FIELD_NUMBER: _ClassVar[int]
+    AFFECTEDCOUNT_FIELD_NUMBER: _ClassVar[int]
+    code: int
+    msg: str
+    redirect: str
+    affectedCount: int
+    def __init__(self, code: _Optional[int] = ..., msg: _Optional[str] = ..., redirect: _Optional[str] = ..., affectedCount: _Optional[int] = ...) -> None: ...
+
+class QueryCond(_message.Message):
+    __slots__ = ["documentIds", "indexIds", "retrieveVector", "filter", "limit", "offset", "outputFields"]
+    DOCUMENTIDS_FIELD_NUMBER: _ClassVar[int]
+    INDEXIDS_FIELD_NUMBER: _ClassVar[int]
+    RETRIEVEVECTOR_FIELD_NUMBER: _ClassVar[int]
+    FILTER_FIELD_NUMBER: _ClassVar[int]
+    LIMIT_FIELD_NUMBER: _ClassVar[int]
+    OFFSET_FIELD_NUMBER: _ClassVar[int]
+    OUTPUTFIELDS_FIELD_NUMBER: _ClassVar[int]
+    documentIds: _containers.RepeatedScalarFieldContainer[str]
+    indexIds: _containers.RepeatedScalarFieldContainer[int]
+    retrieveVector: bool
+    filter: str
+    limit: int
+    offset: int
+    outputFields: _containers.RepeatedScalarFieldContainer[str]
+    def __init__(self, documentIds: _Optional[_Iterable[str]] = ..., indexIds: _Optional[_Iterable[int]] = ..., retrieveVector: bool = ..., filter: _Optional[str] = ..., limit: _Optional[int] = ..., offset: _Optional[int] = ..., outputFields: _Optional[_Iterable[str]] = ...) -> None: ...
+
+class QueryRequest(_message.Message):
+    __slots__ = ["database", "collection", "query", "readConsistency"]
+    DATABASE_FIELD_NUMBER: _ClassVar[int]
+    COLLECTION_FIELD_NUMBER: _ClassVar[int]
+    QUERY_FIELD_NUMBER: _ClassVar[int]
+    READCONSISTENCY_FIELD_NUMBER: _ClassVar[int]
+    database: str
+    collection: str
+    query: QueryCond
+    readConsistency: str
+    def __init__(self, database: _Optional[str] = ..., collection: _Optional[str] = ..., query: _Optional[_Union[QueryCond, _Mapping]] = ..., readConsistency: _Optional[str] = ...) -> None: ...
+
+class QueryResponse(_message.Message):
+    __slots__ = ["code", "msg", "redirect", "documents", "count"]
+    CODE_FIELD_NUMBER: _ClassVar[int]
+    MSG_FIELD_NUMBER: _ClassVar[int]
+    REDIRECT_FIELD_NUMBER: _ClassVar[int]
+    DOCUMENTS_FIELD_NUMBER: _ClassVar[int]
+    COUNT_FIELD_NUMBER: _ClassVar[int]
+    code: int
+    msg: str
+    redirect: str
+    documents: _containers.RepeatedCompositeFieldContainer[Document]
+    count: int
+    def __init__(self, code: _Optional[int] = ..., msg: _Optional[str] = ..., redirect: _Optional[str] = ..., documents: _Optional[_Iterable[_Union[Document, _Mapping]]] = ..., count: _Optional[int] = ...) -> None: ...
+
+class ExplainRequest(_message.Message):
+    __slots__ = ["database", "collection", "query"]
+    DATABASE_FIELD_NUMBER: _ClassVar[int]
+    COLLECTION_FIELD_NUMBER: _ClassVar[int]
+    QUERY_FIELD_NUMBER: _ClassVar[int]
+    database: str
+    collection: str
+    query: QueryCond
+    def __init__(self, database: _Optional[str] = ..., collection: _Optional[str] = ..., query: _Optional[_Union[QueryCond, _Mapping]] = ...) -> None: ...
+
+class ExplainResponse(_message.Message):
+    __slots__ = ["code", "msg", "redirect", "affectedTable", "affectedCount"]
+    CODE_FIELD_NUMBER: _ClassVar[int]
+    MSG_FIELD_NUMBER: _ClassVar[int]
+    REDIRECT_FIELD_NUMBER: _ClassVar[int]
+    AFFECTEDTABLE_FIELD_NUMBER: _ClassVar[int]
+    AFFECTEDCOUNT_FIELD_NUMBER: _ClassVar[int]
+    code: int
+    msg: str
+    redirect: str
+    affectedTable: _containers.RepeatedScalarFieldContainer[int]
+    affectedCount: int
+    def __init__(self, code: _Optional[int] = ..., msg: _Optional[str] = ..., redirect: _Optional[str] = ..., affectedTable: _Optional[_Iterable[int]] = ..., affectedCount: _Optional[int] = ...) -> None: ...
+
+class SearchResult(_message.Message):
+    __slots__ = ["documents"]
+    DOCUMENTS_FIELD_NUMBER: _ClassVar[int]
+    documents: _containers.RepeatedCompositeFieldContainer[Document]
+    def __init__(self, documents: _Optional[_Iterable[_Union[Document, _Mapping]]] = ...) -> None: ...
+
+class SearchParams(_message.Message):
+    __slots__ = ["nprobe", "ef", "radius"]
+    NPROBE_FIELD_NUMBER: _ClassVar[int]
+    EF_FIELD_NUMBER: _ClassVar[int]
+    RADIUS_FIELD_NUMBER: _ClassVar[int]
+    nprobe: int
+    ef: int
+    radius: float
+    def __init__(self, nprobe: _Optional[int] = ..., ef: _Optional[int] = ..., radius: _Optional[float] = ...) -> None: ...
+
+class VectorArray(_message.Message):
+    __slots__ = ["vector"]
+    VECTOR_FIELD_NUMBER: _ClassVar[int]
+    vector: _containers.RepeatedScalarFieldContainer[float]
+    def __init__(self, vector: _Optional[_Iterable[float]] = ...) -> None: ...
+
+class SearchCond(_message.Message):
+    __slots__ = ["vectors", "documentIds", "params", "filter", "retrieveVector", "limit", "outputfields", "embeddingItems"]
+    VECTORS_FIELD_NUMBER: _ClassVar[int]
+    DOCUMENTIDS_FIELD_NUMBER: _ClassVar[int]
+    PARAMS_FIELD_NUMBER: _ClassVar[int]
+    FILTER_FIELD_NUMBER: _ClassVar[int]
+    RETRIEVEVECTOR_FIELD_NUMBER: _ClassVar[int]
+    LIMIT_FIELD_NUMBER: _ClassVar[int]
+    OUTPUTFIELDS_FIELD_NUMBER: _ClassVar[int]
+    EMBEDDINGITEMS_FIELD_NUMBER: _ClassVar[int]
+    vectors: _containers.RepeatedCompositeFieldContainer[VectorArray]
+    documentIds: _containers.RepeatedScalarFieldContainer[str]
+    params: SearchParams
+    filter: str
+    retrieveVector: bool
+    limit: int
+    outputfields: _containers.RepeatedScalarFieldContainer[str]
+    embeddingItems: _containers.RepeatedScalarFieldContainer[str]
+    def __init__(self, vectors: _Optional[_Iterable[_Union[VectorArray, _Mapping]]] = ..., documentIds: _Optional[_Iterable[str]] = ..., params: _Optional[_Union[SearchParams, _Mapping]] = ..., filter: _Optional[str] = ..., retrieveVector: bool = ..., limit: _Optional[int] = ..., outputfields: _Optional[_Iterable[str]] = ..., embeddingItems: _Optional[_Iterable[str]] = ...) -> None: ...
+
+class SearchRequest(_message.Message):
+    __slots__ = ["database", "collection", "search", "readConsistency"]
+    DATABASE_FIELD_NUMBER: _ClassVar[int]
+    COLLECTION_FIELD_NUMBER: _ClassVar[int]
+    SEARCH_FIELD_NUMBER: _ClassVar[int]
+    READCONSISTENCY_FIELD_NUMBER: _ClassVar[int]
+    database: str
+    collection: str
+    search: SearchCond
+    readConsistency: str
+    def __init__(self, database: _Optional[str] = ..., collection: _Optional[str] = ..., search: _Optional[_Union[SearchCond, _Mapping]] = ..., readConsistency: _Optional[str] = ...) -> None: ...
+
+class ExposeDataUni(_message.Message):
+    __slots__ = ["expose_name", "buffer"]
+    EXPOSE_NAME_FIELD_NUMBER: _ClassVar[int]
+    BUFFER_FIELD_NUMBER: _ClassVar[int]
+    expose_name: str
+    buffer: bytes
+    def __init__(self, expose_name: _Optional[str] = ..., buffer: _Optional[bytes] = ...) -> None: ...
+
+class ExposeData(_message.Message):
+    __slots__ = ["expose_data_uni"]
+    EXPOSE_DATA_UNI_FIELD_NUMBER: _ClassVar[int]
+    expose_data_uni: _containers.RepeatedCompositeFieldContainer[ExposeDataUni]
+    def __init__(self, expose_data_uni: _Optional[_Iterable[_Union[ExposeDataUni, _Mapping]]] = ...) -> None: ...
+
+class Filter(_message.Message):
+    __slots__ = ["expr", "radius", "size", "expose_data"]
+    EXPR_FIELD_NUMBER: _ClassVar[int]
+    RADIUS_FIELD_NUMBER: _ClassVar[int]
+    SIZE_FIELD_NUMBER: _ClassVar[int]
+    EXPOSE_DATA_FIELD_NUMBER: _ClassVar[int]
+    expr: str
+    radius: float
+    size: int
+    expose_data: ExposeData
+    def __init__(self, expr: _Optional[str] = ..., radius: _Optional[float] = ..., size: _Optional[int] = ..., expose_data: _Optional[_Union[ExposeData, _Mapping]] = ...) -> None: ...
+
+class RoaringBinary(_message.Message):
+    __slots__ = ["size", "data"]
+    SIZE_FIELD_NUMBER: _ClassVar[int]
+    DATA_FIELD_NUMBER: _ClassVar[int]
+    size: int
+    data: bytes
+    def __init__(self, size: _Optional[int] = ..., data: _Optional[bytes] = ...) -> None: ...
+
+class SearchResponse(_message.Message):
+    __slots__ = ["code", "msg", "redirect", "results", "warning", "embedding_extra_info"]
+    CODE_FIELD_NUMBER: _ClassVar[int]
+    MSG_FIELD_NUMBER: _ClassVar[int]
+    REDIRECT_FIELD_NUMBER: _ClassVar[int]
+    RESULTS_FIELD_NUMBER: _ClassVar[int]
+    WARNING_FIELD_NUMBER: _ClassVar[int]
+    EMBEDDING_EXTRA_INFO_FIELD_NUMBER: _ClassVar[int]
+    code: int
+    msg: str
+    redirect: str
+    results: _containers.RepeatedCompositeFieldContainer[SearchResult]
+    warning: str
+    embedding_extra_info: EmbeddingExtraInfo
+    def __init__(self, code: _Optional[int] = ..., msg: _Optional[str] = ..., redirect: _Optional[str] = ..., results: _Optional[_Iterable[_Union[SearchResult, _Mapping]]] = ..., warning: _Optional[str] = ..., embedding_extra_info: _Optional[_Union[EmbeddingExtraInfo, _Mapping]] = ...) -> None: ...
+
+class SortCond(_message.Message):
+    __slots__ = ["sort_vec", "sort_id", "ids"]
+    SORT_VEC_FIELD_NUMBER: _ClassVar[int]
+    SORT_ID_FIELD_NUMBER: _ClassVar[int]
+    IDS_FIELD_NUMBER: _ClassVar[int]
+    sort_vec: _containers.RepeatedScalarFieldContainer[float]
+    sort_id: str
+    ids: _containers.RepeatedScalarFieldContainer[str]
+    def __init__(self, sort_vec: _Optional[_Iterable[float]] = ..., sort_id: _Optional[str] = ..., ids: _Optional[_Iterable[str]] = ...) -> None: ...
+
+class SortRequest(_message.Message):
+    __slots__ = ["database", "collection", "shard_idx", "cond", "limit", "metric"]
+    DATABASE_FIELD_NUMBER: _ClassVar[int]
+    COLLECTION_FIELD_NUMBER: _ClassVar[int]
+    SHARD_IDX_FIELD_NUMBER: _ClassVar[int]
+    COND_FIELD_NUMBER: _ClassVar[int]
+    LIMIT_FIELD_NUMBER: _ClassVar[int]
+    METRIC_FIELD_NUMBER: _ClassVar[int]
+    database: str
+    collection: str
+    shard_idx: int
+    cond: SortCond
+    limit: int
+    metric: IndexMetricType
+    def __init__(self, database: _Optional[str] = ..., collection: _Optional[str] = ..., shard_idx: _Optional[int] = ..., cond: _Optional[_Union[SortCond, _Mapping]] = ..., limit: _Optional[int] = ..., metric: _Optional[_Union[IndexMetricType, str]] = ...) -> None: ...
+
+class SortResponse(_message.Message):
+    __slots__ = ["code", "msg", "redirect", "documents", "invalid_conds"]
+    CODE_FIELD_NUMBER: _ClassVar[int]
+    MSG_FIELD_NUMBER: _ClassVar[int]
+    REDIRECT_FIELD_NUMBER: _ClassVar[int]
+    DOCUMENTS_FIELD_NUMBER: _ClassVar[int]
+    INVALID_CONDS_FIELD_NUMBER: _ClassVar[int]
+    code: int
+    msg: str
+    redirect: str
+    documents: _containers.RepeatedCompositeFieldContainer[Document]
+    invalid_conds: _containers.RepeatedScalarFieldContainer[str]
+    def __init__(self, code: _Optional[int] = ..., msg: _Optional[str] = ..., redirect: _Optional[str] = ..., documents: _Optional[_Iterable[_Union[Document, _Mapping]]] = ..., invalid_conds: _Optional[_Iterable[str]] = ...) -> None: ...
+
+class SaveIndexModelRequest(_message.Message):
+    __slots__ = ["database", "collection", "offset", "size", "content", "cksm"]
+    DATABASE_FIELD_NUMBER: _ClassVar[int]
+    COLLECTION_FIELD_NUMBER: _ClassVar[int]
+    OFFSET_FIELD_NUMBER: _ClassVar[int]
+    SIZE_FIELD_NUMBER: _ClassVar[int]
+    CONTENT_FIELD_NUMBER: _ClassVar[int]
+    CKSM_FIELD_NUMBER: _ClassVar[int]
+    database: str
+    collection: str
+    offset: int
+    size: int
+    content: bytes
+    cksm: str
+    def __init__(self, database: _Optional[str] = ..., collection: _Optional[str] = ..., offset: _Optional[int] = ..., size: _Optional[int] = ..., content: _Optional[bytes] = ..., cksm: _Optional[str] = ...) -> None: ...
+
+class SaveIndexModelResponse(_message.Message):
+    __slots__ = ["code", "msg", "redirect"]
+    CODE_FIELD_NUMBER: _ClassVar[int]
+    MSG_FIELD_NUMBER: _ClassVar[int]
+    REDIRECT_FIELD_NUMBER: _ClassVar[int]
+    code: int
+    msg: str
+    redirect: str
+    def __init__(self, code: _Optional[int] = ..., msg: _Optional[str] = ..., redirect: _Optional[str] = ...) -> None: ...
+
+class GetIndexModelRequest(_message.Message):
+    __slots__ = ["database", "collection", "offset", "count"]
+    DATABASE_FIELD_NUMBER: _ClassVar[int]
+    COLLECTION_FIELD_NUMBER: _ClassVar[int]
+    OFFSET_FIELD_NUMBER: _ClassVar[int]
+    COUNT_FIELD_NUMBER: _ClassVar[int]
+    database: str
+    collection: str
+    offset: int
+    count: int
+    def __init__(self, database: _Optional[str] = ..., collection: _Optional[str] = ..., offset: _Optional[int] = ..., count: _Optional[int] = ...) -> None: ...
+
+class GetIndexModelResponse(_message.Message):
+    __slots__ = ["code", "msg", "redirect", "content", "size", "cksm"]
+    CODE_FIELD_NUMBER: _ClassVar[int]
+    MSG_FIELD_NUMBER: _ClassVar[int]
+    REDIRECT_FIELD_NUMBER: _ClassVar[int]
+    CONTENT_FIELD_NUMBER: _ClassVar[int]
+    SIZE_FIELD_NUMBER: _ClassVar[int]
+    CKSM_FIELD_NUMBER: _ClassVar[int]
+    code: int
+    msg: str
+    redirect: str
+    content: bytes
+    size: int
+    cksm: str
+    def __init__(self, code: _Optional[int] = ..., msg: _Optional[str] = ..., redirect: _Optional[str] = ..., content: _Optional[bytes] = ..., size: _Optional[int] = ..., cksm: _Optional[str] = ...) -> None: ...
+
+class CreateShardRequest(_message.Message):
+    __slots__ = ["conf", "recover"]
+    CONF_FIELD_NUMBER: _ClassVar[int]
+    RECOVER_FIELD_NUMBER: _ClassVar[int]
+    conf: ShardConf
+    recover: bool
+    def __init__(self, conf: _Optional[_Union[ShardConf, _Mapping]] = ..., recover: bool = ...) -> None: ...
+
+class CreateShardResponse(_message.Message):
+    __slots__ = ["code", "msg", "redirect"]
+    CODE_FIELD_NUMBER: _ClassVar[int]
+    MSG_FIELD_NUMBER: _ClassVar[int]
+    REDIRECT_FIELD_NUMBER: _ClassVar[int]
+    code: int
+    msg: str
+    redirect: str
+    def __init__(self, code: _Optional[int] = ..., msg: _Optional[str] = ..., redirect: _Optional[str] = ...) -> None: ...
+
+class DeleteShardRequest(_message.Message):
+    __slots__ = ["database", "collection", "shard_idx", "remove_model", "peer_id"]
+    DATABASE_FIELD_NUMBER: _ClassVar[int]
+    COLLECTION_FIELD_NUMBER: _ClassVar[int]
+    SHARD_IDX_FIELD_NUMBER: _ClassVar[int]
+    REMOVE_MODEL_FIELD_NUMBER: _ClassVar[int]
+    PEER_ID_FIELD_NUMBER: _ClassVar[int]
+    database: str
+    collection: str
+    shard_idx: int
+    remove_model: bool
+    peer_id: str
+    def __init__(self, database: _Optional[str] = ..., collection: _Optional[str] = ..., shard_idx: _Optional[int] = ..., remove_model: bool = ..., peer_id: _Optional[str] = ...) -> None: ...
+
+class DeleteShardResponse(_message.Message):
+    __slots__ = ["code", "msg", "redirect"]
+    CODE_FIELD_NUMBER: _ClassVar[int]
+    MSG_FIELD_NUMBER: _ClassVar[int]
+    REDIRECT_FIELD_NUMBER: _ClassVar[int]
+    code: int
+    msg: str
+    redirect: str
+    def __init__(self, code: _Optional[int] = ..., msg: _Optional[str] = ..., redirect: _Optional[str] = ...) -> None: ...
+
+class DatabaseRequest(_message.Message):
+    __slots__ = ["database", "dbType"]
+    DATABASE_FIELD_NUMBER: _ClassVar[int]
+    DBTYPE_FIELD_NUMBER: _ClassVar[int]
+    database: str
+    dbType: DataType
+    def __init__(self, database: _Optional[str] = ..., dbType: _Optional[_Union[DataType, str]] = ...) -> None: ...
+
+class DatabaseResponse(_message.Message):
+    __slots__ = ["code", "msg", "redirect", "databases", "affectedCount", "info"]
+    class InfoEntry(_message.Message):
+        __slots__ = ["key", "value"]
+        KEY_FIELD_NUMBER: _ClassVar[int]
+        VALUE_FIELD_NUMBER: _ClassVar[int]
+        key: str
+        value: DatabaseItem
+        def __init__(self, key: _Optional[str] = ..., value: _Optional[_Union[DatabaseItem, _Mapping]] = ...) -> None: ...
+    CODE_FIELD_NUMBER: _ClassVar[int]
+    MSG_FIELD_NUMBER: _ClassVar[int]
+    REDIRECT_FIELD_NUMBER: _ClassVar[int]
+    DATABASES_FIELD_NUMBER: _ClassVar[int]
+    AFFECTEDCOUNT_FIELD_NUMBER: _ClassVar[int]
+    INFO_FIELD_NUMBER: _ClassVar[int]
+    code: int
+    msg: str
+    redirect: str
+    databases: _containers.RepeatedScalarFieldContainer[str]
+    affectedCount: int
+    info: _containers.MessageMap[str, DatabaseItem]
+    def __init__(self, code: _Optional[int] = ..., msg: _Optional[str] = ..., redirect: _Optional[str] = ..., databases: _Optional[_Iterable[str]] = ..., affectedCount: _Optional[int] = ..., info: _Optional[_Mapping[str, DatabaseItem]] = ...) -> None: ...
+
+class DescribeDatabaseRequest(_message.Message):
+    __slots__ = ["database"]
+    DATABASE_FIELD_NUMBER: _ClassVar[int]
+    database: str
+    def __init__(self, database: _Optional[str] = ...) -> None: ...
+
+class DescribeDatabaseResponse(_message.Message):
+    __slots__ = ["code", "msg", "redirect", "database"]
+    CODE_FIELD_NUMBER: _ClassVar[int]
+    MSG_FIELD_NUMBER: _ClassVar[int]
+    REDIRECT_FIELD_NUMBER: _ClassVar[int]
+    DATABASE_FIELD_NUMBER: _ClassVar[int]
+    code: int
+    msg: str
+    redirect: str
+    database: DatabaseItem
+    def __init__(self, code: _Optional[int] = ..., msg: _Optional[str] = ..., redirect: _Optional[str] = ..., database: _Optional[_Union[DatabaseItem, _Mapping]] = ...) -> None: ...
+
+class HttpRequest(_message.Message):
+    __slots__ = []
+    def __init__(self) -> None: ...
+
+class HttpResponse(_message.Message):
+    __slots__ = []
+    def __init__(self) -> None: ...

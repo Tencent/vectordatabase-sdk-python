@@ -300,7 +300,7 @@ class Collection():
             'embedding': vars(self._embedding) if self._embedding is not None else {}
         }
         if self.description:
-            res_dict['description'] = self.description,
+            res_dict['description'] = self.description
         if len(self._coll_info) > 0:
             res_dict.update(self._coll_info)
 

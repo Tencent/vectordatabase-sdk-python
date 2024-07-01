@@ -18,6 +18,7 @@
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 from .client.stub import VectorDBClient
+from .rpc.client.stub import RPCVectorDBClient
 from .exceptions import VectorDBException
 
 
@@ -26,4 +27,5 @@ __version__ = "0.0.3"
 __all__ = [
     "VectorDBClient",
     "VectorDBException",
+    "RPCVectorDBClient",
 ]

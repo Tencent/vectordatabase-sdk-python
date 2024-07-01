@@ -50,3 +50,6 @@ class DescribeCollectionException(VectorDBException):
 
 class AIUnsupportedException(VectorDBException):
     """Raise when method unsupported"""
+
+class GrpcException(VectorDBException):
+    """Raise when grpc exception"""

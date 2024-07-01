@@ -1,0 +1,861 @@
+syntax = "proto3";
+
+package olama;
+option cc_generic_services = true;
+
+message Document {
+    string id                 = 1;
+    repeated float vector     = 2;
+    float score               = 3;
+    map<string, Field> fields = 4;
+    uint64 index_id           = 5;
+    string from_peer          = 6;
+    int32 shard_idx           = 7;
+    uint64 vector_offset      = 8;
+    bytes doc_info            = 9;
+}
+
+message Field {
+    message StringArray {
+      repeated bytes str_arr = 1;
+    }
+
+    oneof oneof_val {
+        bytes  val_str          = 1;
+        uint64 val_u64          = 2;
+        double val_double       = 3;
+        StringArray val_str_arr = 4;
+    }
+}
+
+message MasterNode {
+    string peer_id = 1;
+    bool is_leader = 2;
+}
+
+// work节点运行状态
+enum WorkRunState {
+    WORKER_UN_INIT = 0; // 初始值，未初始化
+    WORKER_BOOTING = 1; // 启动中
+    WORKER_RUNNING = 2; // 初始化成功
+    WORKER_STOP    = 3; // 服务停止，需要发送shut_down的心跳，停止线程
+    WORKER_STOPED  = 4; // 服务停止成功
+}
+
+// work节点服务状态
+enum WorkNodeState {
+    WNODE_ACTIVE           = 0; // 正常服务
+    WNODE_TEMP_UNAVAILABLE = 1; // 暂时失联，不提供服务
+    WNODE_TIMEOUT          = 2; // 长时间失联，不提供服务，在异常处理上和WNODE_TEMP_UNAVAILABLE没区别，但是上报的故障类型有差异
+    WNODE_INACTIVE         = 3; // 不能正常提供服务，进行删节点处理；
+    WNODE_BOOTING          = 4; // 重启中，不提供检索服务
+}
+
+enum ShardDataState {
+    SHARD_INDEX_READY     = 0;
+    SHARD_INDEX_TRAINING  = 1;
+    SHARD_INDEX_BUILDING  = 2;
+    SHARD_INDEX_FAILED    = 3;
+}
+
+message ShardState {
+    ShardDataState data_state      = 1;
+    uint64 estimate_index_mem_size = 2;
+    bool snapshoting               = 3;
+    int64 last_applied_index       = 4;
+    int64 last_applied_term        = 5;
+    int64 id_seed                  = 6;
+    uint64 added_items             = 7;
+    int64 data_state_change_time   = 8;
+}
+
+message Shard {
+    string collection     = 1;
+    int32 shard_idx       = 2;
+    bool is_leader        = 3;
+    bool following        = 4;
+    ShardState state      = 5;
+    repeated string nodes = 6; // only leader shard contains all nodes id
+    string from_node      = 7;
+    int64 version         = 8;
+}
+
+message WorkNode {
+    string peer_id        = 1;
+    int64 last_active_ms  = 2;
+    int64 last_state_ms   = 3;
+    repeated Shard shards = 4;
+    WorkNodeState state   = 5;
+    uint64 used_rss_size  = 6;
+    string set_name       = 7;
+}
+
+// The cluster/collection health status is: green , yellow or red . On the shard level:
+enum HealthState {
+    HEALTH_GREEN  = 0; // all shards are allocated
+    HEALTH_YELLOW = 1; // the primary shard is allocated but replicas are not
+    HEALTH_RED    = 2; // the specific shard is not allocated in the cluster
+}
+
+message ClusterState {
+    int64 update_ms             = 1;
+    HealthState status          = 2;
+    map<string, WorkNode> nodes = 3;
+    int64 version_seed          = 4;
+}
+
+message AliasItem {
+    string alias      = 1;
+    string collection = 2;
+}
+
+enum DataType {
+    BASE    = 0;   // normal user
+    AI_DOC  = 1;   // ai user
+}
+
+message DatabaseItem {
+    int64 create_time   = 1;
+    DataType db_type  = 2;
+}
+
+message ClusterSettings {
+   repeated AliasItem aliases          = 1;
+   map<string, DatabaseItem> databases = 2;
+}
+
+message SnapshotRule {
+    uint32 period_secs  = 1;
+    uint32 changed_docs = 2;
+}
+
+enum IndexMetricType {
+    INDEX_METRIC_INNER_PRODUCT = 0; // inner product distance
+    INDEX_METRIC_L2            = 1; // european distance
+    INDEX_METRIC_COSINE        = 2; // cosine distance
+    INDEX_METRIC_HAMMING       = 3; // hamming distance
+}
+
+enum IndexEngineType {
+    ENGINE_FAISS_VECTOR  = 0;
+    ENGINE_FAISS_BINARY  = 1;
+    // ENGINE_FAISS_VIRTUAL = 2; // discarded
+    ENGINE_HNSWLIB       = 3;
+}
+
+message EmbeddingParams {
+    string field           = 1;
+    string vector_field    = 2;
+    string model_name      = 3;
+};
+
+message CollectionConf {
+    string database                      = 1;
+    string collection                    = 2;
+    string description                   = 3;
+    uint32 number_of_shards              = 4;
+    uint32 number_of_replicas            = 5;
+    uint32 dimension                     = 6;
+    IndexMetricType metric               = 7;
+    uint32 nprobe                        = 8;
+    repeated SnapshotRule snapshot_rules = 9;
+    IndexEngineType engine               = 11;
+    string model_desc                    = 12;
+    map<string, FieldMeta> field_metas   = 15; // 存储Document中fields标签字段的元信息
+    map<string, string> options          = 16; // 存储collection拓展选项
+    uint32 nlist                         = 17;
+    EmbeddingParams embedding_params     = 18;
+    DataType data_type                   = 19;
+    int64 version                        = 20;
+    TTLConfig ttlConfig                  = 21;
+}
+
+message FieldMeta {
+    FieldType field_type                = 1;
+    FieldElementType field_element_type = 2; // 当field_type为TYPE_ARRAY时, 数组元素类型
+}
+
+enum FieldType {
+    TYPE_STRING       = 0;
+    TYPE_ARRAY        = 1;
+    TYPE_UINT64       = 2;
+}
+
+enum FieldElementType {
+    ELEMENT_TYPE_STRING   = 0;
+}
+
+message ShardConf {
+    string collection     = 1;
+    int32 shard_idx       = 2;
+    CollectionConf conf   = 3;
+    repeated string nodes = 4;
+}
+
+message TTLConfig {
+    bool enable         = 1;
+    string timeField    = 2;
+}
+
+message ShardCollectionState {
+    int32 shard_idx            = 1;
+    string leader              = 2;
+    repeated string node_peers = 3;
+    int64 allocate_start_ms    = 4;
+    int64 allocate_stop_ms     = 5;
+    int64 leader_ms            = 6;
+    bool allocating            = 7;
+    repeated Shard shards      = 8;  // only used for stat
+    bool creating              = 9;
+    bool removing              = 10;
+}
+
+message CollectionState {
+    string collection                    = 1;
+    CollectionConf conf                  = 2;
+    repeated ShardCollectionState shards = 3;
+    uint64 size                          = 4;
+    int64 create_time                    = 5;
+    CreateCollectionRequest req          = 6;
+    HealthState status                   = 7;
+    ShardDataState index_state           = 8;
+}
+
+message UpdateClusterSettingRequest {
+    ClusterSettings settings = 1;
+};
+
+message UpdateClusterSettingResponse {
+    int32 code      = 1;
+    string msg      = 2;
+    string redirect = 3;
+};
+
+message GetClusterStateRequest {
+};
+
+message GetClusterStateResponse {
+    int32 code                       = 1;
+    string msg                       = 2;
+    string redirect                  = 3;
+    repeated MasterNode masters      = 4;
+    ClusterState state               = 5;
+    map<string, string> server_infos = 6;
+};
+
+message AddAliasRequest {
+    string database   = 1;
+    string collection = 2;
+    string alias      = 3;
+};
+
+message RemoveAliasRequest {
+    string database = 1;
+    string alias    = 2;
+};
+
+message UpdateAliasResponse {
+    int32 code           = 1;
+    string msg           = 2;
+    string redirect      = 3;
+    uint64 affectedCount = 4;
+};
+
+message GetAliasRequest {
+    string database = 1;
+    string alias    = 2;
+};
+
+message GetAliasResponse {
+    int32 code                 = 1;
+    string msg                 = 2;
+    string redirect            = 3;
+    repeated AliasItem aliases = 4;
+};
+
+message GetShardStateRequest {
+    string database   = 1;
+    string collection = 2;
+    int32 shard_idx   = 3;
+};
+
+message GetShardStateResponse {
+    int32 code      = 1;
+    string msg      = 2;
+    string redirect = 3;
+    Shard shard     = 4;
+};
+
+message GetNodeInfoRequest {
+};
+
+message GetNodeInfoResponse {
+    int32 code                     = 1;
+    string msg                     = 2;
+    string redirect                = 3;
+    map<string, string> node_infos = 4;
+};
+
+message DescribeCollectionRequest {
+    string database   = 1;
+    string collection = 2;
+    bool transfer     = 3;
+};
+
+message DescribeCollectionResponse {
+    int32 code                         = 1;
+    string msg                         = 2;
+    string redirect                    = 3;
+    CreateCollectionRequest collection = 4;
+    CollectionState state              = 5;
+};
+
+message ListCollectionsRequest {
+    string database = 1;
+    bool transfer   = 2;
+};
+
+message ListCollectionsResponse {
+    int32 code                                   = 1;
+    string msg                                   = 2;
+    string redirect                              = 3;
+    repeated CreateCollectionRequest collections = 4;
+    repeated CollectionState states              = 5;
+    ClusterState cluster                         = 6;
+};
+
+message IndexParams {
+    uint32 M              = 1;
+    uint32 efConstruction = 2;
+    uint32 nprobe         = 3;
+    uint32 nlist          = 4;
+}
+
+message IndexColumn {
+    string fieldName        = 1;
+    string fieldType        = 2;
+    string indexType        = 3;
+    uint32 dimension        = 4;
+    string metricType       = 5;
+    IndexParams params      = 8;
+    string fieldElementType = 9; // 当fieldType为array时, 数组元素类型
+};
+
+message indexStatus {
+    string status    = 1;
+    string progress  = 2;
+    string startTime = 3;
+};
+
+message CreateCollectionRequest {
+    string database                        = 1;
+    string collection                      = 2;
+    uint32 replicaNum                      = 3;
+    uint32 shardNum                        = 4;
+    uint64 size                            = 5;
+    string createTime                      = 6;
+    string description                     = 7;
+    map <string, IndexColumn> indexes      = 8;
+    indexStatus indexStatus                = 9;
+    repeated string alias_list             = 10;
+    EmbeddingParams embeddingParams        = 11;
+    int64 version                          = 12;
+    TTLConfig ttlConfig                    = 13;
+};
+
+message CreateCollectionResponse {
+    int32 code           = 1;
+    string msg           = 2;
+    string redirect      = 3;
+    uint64 affectedCount = 4;
+};
+
+message DropCollectionRequest {
+    string database    = 1;
+    string collection  = 2;
+    bool force         = 3;
+    bool without_alias = 4;
+};
+
+message DropCollectionResponse {
+    int32 code           = 1;
+    string msg           = 2;
+    string redirect      = 3;
+    uint64 affectedCount = 4;
+};
+
+message TruncateCollectionRequest {
+    string database              = 1;
+    string collection            = 2;
+    bool only_truncate_ann_index = 3;
+};
+
+message TruncateCollectionResponse {
+    int32 code           = 1;
+    string msg           = 2;
+    string redirect      = 3;
+    uint64 affectedCount = 4;
+};
+
+message UpdateCollectionRequest {
+    string database     = 1;
+    string collection   = 2;
+    CollectionConf conf = 3;
+};
+
+message UpdateCollectionResponse {
+    int32 code               = 1;
+    string msg               = 2;
+    string redirect          = 3;
+    repeated string task_ids = 4;
+};
+
+message RebuildIndexRequest {
+    string database        = 1;
+    string collection      = 2;
+    bool dropBeforeRebuild = 3;
+    int32 throttle         = 4;
+    bool disable_train     = 5;
+    bool force_rebuild     = 6;
+};
+
+message RebuildIndexResponse {
+    int32 code               = 1;
+    string msg               = 2;
+    string redirect          = 3;
+    repeated string task_ids = 4;
+};
+
+message MoveShardRequest {
+    string database   = 1;
+    string collection = 2;
+    int32 shard_idx   = 3;
+    string from_node  = 4;
+    string to_node    = 5;
+};
+
+message MoveShardResponse {
+    int32 code      = 1;
+    string msg      = 2;
+    string redirect = 3;
+};
+
+message ResetShardRequest {
+    string database       = 1;
+    string collection     = 2;
+    int32 shard_idx       = 3;
+    repeated string nodes = 4;
+};
+
+message ResetShardResponse {
+    int32 code      = 1;
+    string msg      = 2;
+    string redirect = 3;
+};
+
+message MigrateRequest {
+    string database              = 1;
+    string collection            = 2;
+    string dest_collection       = 3;
+    uint32 batch_size            = 4;
+    uint32 docs_per_second_limit = 5;
+    repeated string dest_peers   = 6; // 目标地址,为空时在本集群内迁移;不为空时指定外部集群地址
+    repeated uint32 shard_idxs   = 7; // 指定迁移分片,默认迁移全部分片
+    string dump_path             = 8; // 数据路径
+    uint32 dump_format           = 9; // 数据格式 0:|分割文本,1:json
+}
+
+message MigrateResponse {
+    int32 code               = 1;
+    string msg               = 2;
+    string redirect          = 3;
+    repeated string task_ids = 4;
+}
+
+message InfoNodeRequest {
+    repeated string nodes = 1;
+}
+
+message InfoNodeResponse {
+    int32 code              = 1;
+    string msg              = 2;
+    string redirect         = 3;
+    repeated WorkNode nodes = 4;
+};
+
+message RemoveNodeRequest {
+    string node = 1;
+}
+
+message RemoveNodeResponse {
+    int32 code      = 1;
+    string msg      = 2;
+    string redirect = 3;
+};
+
+message TaskStateRequest {
+    repeated string tasks = 1;
+}
+
+message TaskState {
+    string id              = 1;
+    string desc            = 2;
+    string node            = 3;
+    bool completed         = 4;
+    bool success           = 5;
+    string error           = 6;
+    int64 started_ms       = 7;
+    int64 stoped_ms        = 8;
+    string progress        = 9;
+    int64 latest_active_ms = 10;
+    int64 elapsed_ms       = 11;
+}
+
+message TaskStateResponse {
+    int32 code                = 1;
+    string msg                = 2;
+    string redirect           = 3;
+    repeated TaskState states = 4;
+}
+
+message UpsertRequest {
+    string database             = 1;
+    string collection           = 2;
+    bool buildIndex             = 3; // 是否立即构建索引
+    repeated Document documents = 4; // 覆盖更新不想更新向量索引，只更新文档其他信息，可以设置向量为空
+};
+
+message EmbeddingExtraInfo {
+    uint64 token_used = 1;
+};
+
+message UpsertResponse {
+    int32 code                               = 1;
+    string msg                               = 2;
+    string redirect                          = 3;
+    uint64 affectedCount                     = 4;
+    string warning                           = 5;
+    EmbeddingExtraInfo embedding_extra_info  = 6;
+};
+
+message UpdateRequest {
+    string database             = 1;
+    string collection           = 2;
+    QueryCond query             = 3;
+    Document update             = 4;
+};
+
+message UpdateResponse {
+    int32 code                               = 1;
+    string msg                               = 2;
+    string redirect                          = 3;
+    uint64 affectedCount                     = 4;
+    string warning                           = 5;
+    EmbeddingExtraInfo embedding_extra_info  = 6;
+};
+
+message DeleteRequest {
+    string database     = 1;
+    string collection   = 2;
+    QueryCond query     = 3;
+};
+
+message DeleteResponse {
+    int32 code           = 1;
+    string msg           = 2;
+    string redirect      = 3;
+    uint64 affectedCount = 4;
+};
+
+message QueryCond {
+    repeated string documentIds     = 1;
+    repeated uint64 indexIds        = 2;
+    bool retrieveVector             = 3;
+    string filter                   = 4;
+    int64 limit                     = 5;
+    int64 offset                    = 6;
+    repeated string outputFields    = 7;
+}
+
+message QueryRequest {
+    string database         = 1;
+    string collection       = 2;
+    QueryCond query         = 3;
+    string readConsistency  = 4;
+};
+
+message QueryResponse {
+    int32 code                  = 1;
+    string msg                  = 2;
+    string redirect             = 3;
+    repeated Document documents = 4;
+    uint64 count                = 5;
+};
+
+message ExplainRequest {
+    string database         = 1;
+    string collection       = 2;
+    QueryCond query         = 3;
+    // string readConsistency  = 4;   默认要强一致性
+};
+
+message ExplainResponse {
+    int32 code                    = 1;
+    string msg                    = 2;
+    string redirect               = 3;
+    repeated uint64 affectedTable = 4;
+    uint64 affectedCount          = 5;
+};
+
+message SearchResult {
+    repeated Document documents = 1;
+}
+
+message SearchParams {
+    uint32 nprobe = 1; // 搜索时查找的聚类数量，使用索引默认值即可
+    uint32 ef     = 2; // HNSW
+    float radius  = 3; // 距离阈值,范围搜索时有效
+}
+
+message VectorArray {
+    repeated float vector = 1;
+}
+
+message SearchCond {
+    repeated VectorArray vectors      = 1; // 使用向量值检索
+    repeated string documentIds       = 2; // 使用向量id检索
+    SearchParams params               = 3;
+    string filter                     = 4; // 过滤条件
+    bool retrieveVector               = 5; // 是否返回原始向量，注意设置为true时会降低性能
+    uint32 limit                      = 6; // 结果数量
+    repeated string outputfields      = 7; // 输出字段
+    repeated string embeddingItems    = 8; // 使用字符串检索
+}
+
+message SearchRequest {
+    string database          = 1;
+    string collection        = 2; // 索引名称
+    SearchCond search        = 3; // 检索条件
+    string readConsistency   = 4; // 读取一致性
+};
+
+message ExposeDataUni {
+    string expose_name = 1; // 一个曝光去重的名称
+    bytes buffer       = 2; // 一个曝光去重的原始二进制数据
+}
+
+message ExposeData {
+    repeated ExposeDataUni expose_data_uni = 1; // 多种曝光去重数据
+}
+
+message Filter {
+    string expr            = 1; // 条件过滤
+    float radius           = 2; // 距离过滤
+    uint32 size            = 3; // 设置分片返回的结果数量,需要小于整体返回的数量
+    ExposeData expose_data = 4; // 曝光过滤
+}
+
+message RoaringBinary {
+    int64 size = 1;
+    bytes data = 2;
+}
+
+message SearchResponse {
+    int32 code                               = 1;
+    string msg                               = 2;
+    string redirect                          = 3;
+    repeated SearchResult results            = 4;
+    string warning                           = 5;
+    EmbeddingExtraInfo embedding_extra_info  = 6;
+};
+
+message SortCond {
+    repeated float sort_vec = 1;
+    string sort_id          = 2;
+    repeated string ids     = 3;
+}
+
+message SortRequest {
+    string database        = 1;
+    string collection      = 2;
+    int32 shard_idx        = 3; // use in internal
+    SortCond cond          = 4;
+    uint32 limit           = 5;
+    IndexMetricType metric = 6;
+};
+
+message SortResponse {
+    int32 code                    = 1;
+    string msg                    = 2;
+    string redirect               = 3;
+    repeated Document documents   = 4;
+    repeated string invalid_conds = 5;
+};
+
+message SaveIndexModelRequest {
+    string database   = 1;
+    string collection = 2;
+    uint64 offset     = 3;
+    uint64 size       = 4;
+    bytes content     = 5;
+    string cksm       = 6;
+}
+
+message SaveIndexModelResponse {
+    int32 code      = 1;
+    string msg      = 2;
+    string redirect = 3;
+}
+
+message GetIndexModelRequest {
+    string database   = 1;
+    string collection = 2;
+    uint64 offset     = 3;
+    uint64 count      = 4;
+}
+
+message GetIndexModelResponse {
+    int32 code      = 1;
+    string msg      = 2;
+    string redirect = 3;
+    bytes content   = 4;
+    uint64 size     = 5;
+    string cksm     = 6;
+}
+
+message CreateShardRequest {
+    ShardConf conf = 1;
+    bool recover   = 2;
+};
+
+message CreateShardResponse {
+    int32 code      = 1;
+    string msg      = 2;
+    string redirect = 3;
+};
+
+message DeleteShardRequest {
+    string database   = 1;
+    string collection = 2;
+    int32 shard_idx   = 3;
+    bool remove_model = 4;
+    string peer_id    = 5;
+};
+
+message DeleteShardResponse {
+    int32 code      = 1;
+    string msg      = 2;
+    string redirect = 3;
+};
+
+message DatabaseRequest {
+    string database     = 1;
+    DataType dbType     = 2;
+};
+
+message DatabaseResponse {
+    int32 code                      = 1;
+    string msg                      = 2;
+    string redirect                 = 3;
+    repeated string databases       = 4;
+    uint64 affectedCount            = 5;
+    map<string, DatabaseItem> info  = 6;
+};
+
+message DescribeDatabaseRequest {
+    string database   = 1;
+};
+
+message DescribeDatabaseResponse {
+    int32 code                              = 1;
+    string msg                              = 2;
+    string redirect                         = 3;
+    DatabaseItem database                   = 4;
+};
+
+message HttpRequest {};
+
+message HttpResponse {};
+
+service SearchEngine {
+    // 更新集群配置
+    rpc cluster_setting(UpdateClusterSettingRequest) returns (UpdateClusterSettingResponse);
+    // 获取集群状态
+    rpc get_cluster_state(GetClusterStateRequest) returns (GetClusterStateResponse);
+
+    // 修改别名指向
+    rpc setAlias(AddAliasRequest) returns (UpdateAliasResponse);
+    // 查询别名指向
+    rpc getAlias(GetAliasRequest) returns (GetAliasResponse);
+    // 删除别名指向
+    rpc deleteAlias(RemoveAliasRequest) returns (UpdateAliasResponse);
+
+    // 创建索引
+    rpc createCollection(CreateCollectionRequest) returns (CreateCollectionResponse);
+    // 删除索引
+    rpc dropCollection(DropCollectionRequest) returns (DropCollectionResponse);
+    // 清空索引
+    rpc truncateCollection(TruncateCollectionRequest) returns (TruncateCollectionResponse);
+    // 显示索引配置
+    rpc describeCollection(DescribeCollectionRequest) returns (DescribeCollectionResponse);
+    // 显示全部索引
+    rpc listCollections(ListCollectionsRequest) returns (ListCollectionsResponse);
+
+    // 上传模型文件
+    rpc save_index_model(SaveIndexModelRequest) returns (SaveIndexModelResponse);
+    // 下载模型文件
+    rpc get_index_model(GetIndexModelRequest) returns (GetIndexModelResponse);
+    
+    // 更新索引参数
+    rpc updateCollection(UpdateCollectionRequest) returns (UpdateCollectionResponse);
+    // 重建索引
+    rpc rebuildIndex(RebuildIndexRequest) returns (RebuildIndexResponse);
+
+    // 迁移分片
+    rpc move_shard(MoveShardRequest) returns (MoveShardResponse);
+    // 重置分片
+    rpc reset_shard(ResetShardRequest) returns (ResetShardResponse);
+    // 删除分片
+    rpc delete_shard(DeleteShardRequest) returns (DeleteShardResponse);
+    // 迁移索引
+    rpc migrate_collection(MigrateRequest) returns (MigrateResponse);
+
+    // 查询单个节点信息
+    rpc info_node(InfoNodeRequest) returns (InfoNodeResponse);
+    // 立即移除指定节点
+    rpc remove_node(RemoveNodeRequest) returns (RemoveNodeResponse);
+    // 查询任务状态
+    rpc tasks(TaskStateRequest) returns (TaskStateResponse);
+
+    // 写入向量
+    rpc upsert(UpsertRequest) returns (UpsertResponse);
+    // 更新向量
+    rpc update(UpdateRequest) returns (UpdateResponse);
+    // 查询向量
+    rpc query(QueryRequest) returns (QueryResponse);
+    // KNN搜索
+    rpc search(SearchRequest) returns (SearchResponse);
+    // 删除向量
+    rpc dele(DeleteRequest) returns (DeleteResponse);
+
+    // 范围搜索
+    rpc range_search(SearchRequest) returns (SearchResponse);
+    // 指定候选集排序
+    rpc sort(SortRequest) returns (SortResponse);
+    // explain
+    rpc explain(ExplainRequest) returns (ExplainResponse);
+
+    // 创建 database
+    rpc createDatabase(DatabaseRequest) returns (DatabaseResponse);
+    // 删除 database
+    rpc dropDatabase(DatabaseRequest) returns (DatabaseResponse);
+    // 显示全部 database
+    rpc listDatabases(DatabaseRequest) returns (DatabaseResponse);
+    // 显示数据库
+    rpc describeDatabase(DescribeDatabaseRequest) returns (DescribeDatabaseResponse);
+};
+
+service ProxyEngine {
+    // proxy
+    rpc proxy(HttpRequest) returns (HttpResponse);
+};

@@ -57,7 +57,9 @@ class Response():
 
 class HTTPClient:
     def __init__(self, url: str, username: str, key: str,
-                 timeout: int = None, adapter: HTTPAdapter = None):
+                 timeout: int = 10,
+                 adapter: HTTPAdapter = None,
+                 pool_size: int = 10):
         """
         Create a httpclient session.
         Args:
@@ -77,6 +79,7 @@ class HTTPClient:
         self.header = {
             'Authorization': 'Bearer {}'.format(self._authorization()),
         }
+        self.pool_size = pool_size
         self.session = requests.Session()
         self._set_adapter(adapter)
 
@@ -90,8 +93,10 @@ class HTTPClient:
                 (socket.IPPROTO_TCP, socket.TCP_KEEPINTVL, 10),
                 (socket.IPPROTO_TCP, socket.TCP_KEEPCNT, 3),
             ]
-            adapter = _SockOpsAdapter(pool_connections=10,
-                                      pool_maxsize=10, max_retries=3, options=options)
+            adapter = _SockOpsAdapter(pool_connections=self.pool_size,
+                                      pool_maxsize=self.pool_size,
+                                      max_retries=3,
+                                      options=options)
         self.session.mount('http://', adapter)
         self.session.mount('https://', adapter)
 
