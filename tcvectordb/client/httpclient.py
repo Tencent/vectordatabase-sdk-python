@@ -32,7 +32,7 @@ class Response():
             self._body = response
             # print debug message if set DebugEnable is True
             Debug("RESPONSE: %s", path)
-            Debug(json.dumps(response, indent=2))
+            Debug(response)
         except Exception as e:
             raise exceptions.ServerInternalError(
                 code=-1, message=str(res.content)+' ' + str(e))
@@ -121,7 +121,7 @@ class HTTPClient:
         if timeout is not None and timeout <= 0:
             timeout = None
         Debug("GET %s", path)
-        Debug('params: %s', json.dumps(params, indent=2))
+        Debug(params)
         res = self.session.get(self._get_url(
             path), params=params, headers=self.header, timeout=timeout)
 
@@ -141,7 +141,7 @@ class HTTPClient:
         if timeout is not None and timeout <= 0:
             timeout = None
         Debug('POST %s', path)
-        Debug('body: %s', json.dumps(body, indent=2))
+        Debug(body)
         res = self.session.post(self._get_url(
             path), json=body, headers=self.header, timeout=timeout)
 

@@ -227,7 +227,8 @@ class CollectionView:
                 Body=fp,
                 Metadata=cos_metadata
             )
-        Debug(json.dumps(response, indent=2))
+        Debug("Put object response:")
+        Debug(response)
         return DocumentSet(
             self,
             id=document_set_id,

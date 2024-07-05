@@ -51,3 +51,7 @@ class RPCVectorDBClient(VectorDBClient):
     def database(self, database: str) -> RPCDatabase:
         sdb = super().database(database)
         return db_convert(sdb, self.rpc_client)
+
+    def close(self):
+        super().close()
+        self.rpc_client.close()

@@ -232,6 +232,9 @@ class TestVDB:
         truncate_res = db.truncate_collection('book_segments')
         print_object(truncate_res)
 
+    def close(self):
+        self._client.close()
+
 
 if __name__ == '__main__':
     test_vdb = TestVDB('vdb http url or ip and post', key='key get from web console', username='vdb username')
@@ -242,3 +245,4 @@ if __name__ == '__main__':
     test_vdb.query_data()
     test_vdb.update_and_delete()
     test_vdb.delete_and_drop()
+    test_vdb.close()
