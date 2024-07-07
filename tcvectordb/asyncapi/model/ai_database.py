@@ -30,13 +30,18 @@ class AsyncAIDatabase(AIDatabase):
             splitter_process: Optional[SplitterProcess] = None,
             index: Optional[Index] = None,
             timeout: Optional[float] = None,
+            expected_file_num: Optional[int] = None,
+            average_file_size: Optional[int] = None,
     ) -> AsyncCollectionView:
-        cv = super().create_collection_view(name,
-                                            description,
-                                            embedding,
-                                            splitter_process,
-                                            index,
-                                            timeout)
+        cv = super().create_collection_view(name=name,
+                                            description=description,
+                                            embedding=embedding,
+                                            splitter_process=splitter_process,
+                                            index=index,
+                                            timeout=timeout,
+                                            expected_file_num=expected_file_num,
+                                            average_file_size=average_file_size,
+                                            )
         return cv_convert(cv)
 
     async def describe_collection_view(self,

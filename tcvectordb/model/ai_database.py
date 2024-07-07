@@ -63,6 +63,8 @@ class AIDatabase:
             splitter_process: Optional[SplitterProcess] = None,
             index: Optional[Index] = None,
             timeout: Optional[float] = None,
+            expected_file_num: Optional[int] = None,
+            average_file_size: Optional[int] = None,
     ) -> CollectionView:
         """Create a collection view.
 
@@ -74,6 +76,8 @@ class AIDatabase:
             index           : A list of the index properties for the documents in a collection.
             timeout         : An optional duration of time in seconds to allow for the request.
                               When timeout is set to None, will use the connect timeout.
+            expected_file_num: Expected total number of documents
+            average_file_size: Estimate the average document size
         Returns:
             CollectionView
         """
@@ -84,6 +88,8 @@ class AIDatabase:
             embedding=embedding,
             splitter_process=splitter_process,
             index=index,
+            expected_file_num=expected_file_num,
+            average_file_size=average_file_size,
         )
         self.conn.post('/ai/collectionView/create', vars(coll), timeout)
         return coll

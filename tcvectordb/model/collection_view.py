@@ -70,6 +70,8 @@ class CollectionView:
                  embedding: Optional[Embedding] = None,
                  splitter_process: Optional[SplitterProcess] = None,
                  index: Optional[Index] = None,
+                 expected_file_num: Optional[int] = None,
+                 average_file_size: Optional[int] = None,
                  ):
         self.db = db
         self.name: str = name
@@ -77,6 +79,8 @@ class CollectionView:
         self.embedding: Optional[Embedding] = embedding
         self.splitter_process: Optional[SplitterProcess] = splitter_process
         self.index: Optional[Index] = index
+        self.expected_file_num: Optional[int] = expected_file_num
+        self.average_file_size: Optional[int] = average_file_size
         self.create_time: Optional[str] = None
         self.stats: Optional[dict] = None
         self.alias: Optional[list] = None
@@ -101,6 +105,10 @@ class CollectionView:
             res_dict['stats'] = self.stats
         if self.alias:
             res_dict['alias'] = self.alias
+        if self.expected_file_num is not None:
+            res_dict['expectedFileNum'] = self.expected_file_num
+        if self.average_file_size is not None:
+            res_dict['averageFileSize'] = self.average_file_size
         return res_dict
 
     def load_fields(self, fields: dict):
@@ -127,6 +135,10 @@ class CollectionView:
             self.stats = fields.get('stats')
         if 'alias' in fields:
             self.alias = fields.get('alias')
+        if 'expectedFileNum' in fields:
+            self.expected_file_num = fields.get('expectedFileNum')
+        if 'averageFileSize' in fields:
+            self.average_file_size = fields.get('averageFileSize')
 
     # The following is the document API
 
