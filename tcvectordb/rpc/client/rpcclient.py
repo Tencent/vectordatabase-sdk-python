@@ -21,8 +21,6 @@ class RPCClient:
             ('grpc.max_receive_message_length', 100 * 1024 * 1024)
         ]
         self.channel = grpc.insecure_channel(self._address(url), options=options)
-        if channel_ready_check:
-            grpc.channel_ready_future(self.channel).result(timeout=3)
         self.stub = olama_pb2_grpc.SearchEngineStub(self.channel)
         authorization = 'Bearer account={0}&api_key={1}'.format(username, key)
         self.headers = [('authorization', authorization)]
