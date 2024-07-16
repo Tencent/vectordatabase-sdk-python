@@ -113,7 +113,7 @@ class VectorIndex(IndexField):
         self._index_type = index_type
         self._metric_type = metric_type
         self._param = params
-        # self._indexed_count = kwargs.get('indexed_count', 0)
+        self.indexed_count = kwargs.pop('indexedCount', None)
         for k, v in kwargs.items():
             setattr(self, k, v)
 
@@ -143,8 +143,8 @@ class VectorIndex(IndexField):
         if self.param:
             obj['params'] = vars(self.param) if hasattr(
                 self.param, '__dict__') else self.param
-        if hasattr(self, 'indexedCount') and self.indexedCount:
-            obj['indexedCount'] = self.indexedCount
+        if self.indexed_count is not None:
+            obj['indexedCount'] = self.indexed_count
         return obj
 
 

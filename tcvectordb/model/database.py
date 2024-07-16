@@ -168,8 +168,9 @@ class Database:
         index = Index()
         for elem in col.get('indexes', []):
             index.add(**elem)
-        ebd = Embedding()
+        ebd = None
         if "embedding" in col:
+            ebd = Embedding()
             ebd.set_fields(**col.get("embedding"))
         collection = Collection(
             self,
@@ -179,8 +180,8 @@ class Database:
             description=col.get('description'),
             index=index,
             embedding=ebd,
-            create_time=col['createTime'],
-            read_consistency=self._read_consistency
+            read_consistency=self._read_consistency,
+            create_time=col.get('createTime'),
         )
         collection.set_fields(**col)
         return collection

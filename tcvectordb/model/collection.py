@@ -256,7 +256,7 @@ class Collection():
         self._embedding = embedding
         self._index = index
         self._coll_info = {}
-        self.create_time = kwargs.get('create_time', '')
+        self.create_time = kwargs.get('create_time')
         self._read_consistency = read_consistency
 
     @property
@@ -297,12 +297,15 @@ class Collection():
             'replicaNum': self.replicas,
             'shardNum': self.shard,
             'indexes': self.index.list(),
-            'embedding': vars(self._embedding) if self._embedding is not None else {}
         }
+        if self._embedding is not None:
+            res_dict['embedding'] = vars(self._embedding)
         if self.description:
             res_dict['description'] = self.description
         if len(self._coll_info) > 0:
             res_dict.update(self._coll_info)
+        if self.create_time is not None:
+            res_dict['createTime'] = self.create_time
 
         return res_dict
 

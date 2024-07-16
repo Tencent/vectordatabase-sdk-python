@@ -74,7 +74,7 @@ class RPCDatabase(Database):
 
 def coll_convert(coll: Collection, rpc_client) -> RPCCollection:
     read_consistency = coll.__getattribute__('_read_consistency')
-    return RPCCollection(
+    a_coll = RPCCollection(
         db=RPCDatabase(conn=coll.__getattribute__('_conn'),
                        name=coll.database_name,
                        read_consistency=read_consistency,
@@ -87,8 +87,10 @@ def coll_convert(coll: Collection, rpc_client) -> RPCCollection:
         embedding=coll.embedding,
         read_consistency=read_consistency,
         rpc_client=rpc_client,
-        kwargs={'create_time': coll.create_time},
+        create_time=coll.create_time,
     )
+    a_coll._coll_info = coll._coll_info
+    return a_coll
 
 
 def db_convert(db: Database, rpc_client) -> Union[RPCDatabase, AIDatabase]:

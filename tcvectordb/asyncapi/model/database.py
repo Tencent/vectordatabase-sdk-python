@@ -83,7 +83,7 @@ def db_convert(db) -> Union[AsyncDatabase, AsyncAIDatabase]:
 
 def coll_convert(coll: Collection) -> AsyncCollection:
     read_consistency = coll.__getattribute__('_read_consistency')
-    return AsyncCollection(
+    a_coll = AsyncCollection(
         db=AsyncDatabase(conn=coll.__getattribute__('_conn'),
                          name=coll.database_name,
                          read_consistency=read_consistency),
@@ -94,5 +94,7 @@ def coll_convert(coll: Collection) -> AsyncCollection:
         index=coll.index,
         embedding=coll.embedding,
         read_consistency=read_consistency,
-        kwargs={'create_time': coll.create_time},
+        create_time=coll.create_time,
     )
+    a_coll._coll_info = coll._coll_info
+    return a_coll
