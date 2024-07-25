@@ -166,24 +166,23 @@ class Database:
 
     def _generate_collection(self, col):
         index = Index()
-        for elem in col.get('indexes', []):
+        for elem in col.pop('indexes', []):
             index.add(**elem)
         ebd = None
         if "embedding" in col:
             ebd = Embedding()
-            ebd.set_fields(**col.get("embedding"))
+            ebd.set_fields(**col.pop("embedding", {}))
         collection = Collection(
             self,
-            col['collection'],
-            shard=col['shardNum'],
-            replicas=col['replicaNum'],
-            description=col.get('description'),
+            name=col.pop('collection', None),
+            shard=col.pop('shardNum', None),
+            replicas=col.pop('replicaNum', None),
+            description=col.pop('description', None),
             index=index,
             embedding=ebd,
             read_consistency=self._read_consistency,
-            create_time=col.get('createTime'),
+            **col,
         )
-        collection.set_fields(**col)
         return collection
 
     def list_collections(self, timeout: Optional[float] = None) -> List[Collection]:

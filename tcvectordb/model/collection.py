@@ -255,9 +255,12 @@ class Collection():
         self.description = description
         self._embedding = embedding
         self._index = index
-        self._coll_info = {}
-        self.create_time = kwargs.get('create_time')
+        self.create_time = kwargs.pop('createTime', None)
+        self.document_count = kwargs.pop("documentCount", None)
+        self.alias = kwargs.pop("alias", None)
+        self.index_status = kwargs.pop("indexStatus", None)
         self._read_consistency = read_consistency
+        self.kwargs = kwargs
 
     @property
     def database_name(self):
@@ -275,20 +278,6 @@ class Collection():
     def embedding(self):
         return self._embedding
 
-    def set_fields(self, **kwargs):
-        coll_info = {}
-
-        if "documentCount" in kwargs:
-            coll_info["documentCount"] = kwargs.get("documentCount")
-
-        if "alias" in kwargs:
-            coll_info["alias"] = kwargs.get("alias")
-
-        if "indexStatus" in kwargs:
-            coll_info["indexStatus"] = kwargs.get("indexStatus")
-
-        self._coll_info = coll_info
-
     @property
     def __dict__(self):
         res_dict = {
@@ -302,11 +291,14 @@ class Collection():
             res_dict['embedding'] = vars(self._embedding)
         if self.description:
             res_dict['description'] = self.description
-        if len(self._coll_info) > 0:
-            res_dict.update(self._coll_info)
         if self.create_time is not None:
             res_dict['createTime'] = self.create_time
-
+        if self.document_count is not None:
+            res_dict['documentCount'] = self.document_count
+        if self.alias is not None:
+            res_dict['alias'] = self.alias
+        if self.index_status is not None:
+            res_dict['indexStatus'] = self.index_status
         return res_dict
 
     def upsert(

@@ -87,9 +87,12 @@ def coll_convert(coll: Collection, rpc_client) -> RPCCollection:
         embedding=coll.embedding,
         read_consistency=read_consistency,
         rpc_client=rpc_client,
-        create_time=coll.create_time,
+        createTime=coll.create_time,
+        documentCount=coll.document_count,
+        alias=coll.alias,
+        indexStatus=coll.index_status,
+        **coll.kwargs,
     )
-    a_coll._coll_info = coll._coll_info
     return a_coll
 
 

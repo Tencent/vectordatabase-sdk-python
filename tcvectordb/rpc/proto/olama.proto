@@ -28,29 +28,6 @@ message Field {
     }
 }
 
-message MasterNode {
-    string peer_id = 1;
-    bool is_leader = 2;
-}
-
-// work节点运行状态
-enum WorkRunState {
-    WORKER_UN_INIT = 0; // 初始值，未初始化
-    WORKER_BOOTING = 1; // 启动中
-    WORKER_RUNNING = 2; // 初始化成功
-    WORKER_STOP    = 3; // 服务停止，需要发送shut_down的心跳，停止线程
-    WORKER_STOPED  = 4; // 服务停止成功
-}
-
-// work节点服务状态
-enum WorkNodeState {
-    WNODE_ACTIVE           = 0; // 正常服务
-    WNODE_TEMP_UNAVAILABLE = 1; // 暂时失联，不提供服务
-    WNODE_TIMEOUT          = 2; // 长时间失联，不提供服务，在异常处理上和WNODE_TEMP_UNAVAILABLE没区别，但是上报的故障类型有差异
-    WNODE_INACTIVE         = 3; // 不能正常提供服务，进行删节点处理；
-    WNODE_BOOTING          = 4; // 重启中，不提供检索服务
-}
-
 enum ShardDataState {
     SHARD_INDEX_READY     = 0;
     SHARD_INDEX_TRAINING  = 1;
@@ -67,6 +44,11 @@ message ShardState {
     int64 id_seed                  = 6;
     uint64 added_items             = 7;
     int64 data_state_change_time   = 8;
+    int64 last_snapshot_time       = 9;
+    int64 last_hnsw_resize_time    = 10;
+    int64 last_index_rebuild_time  = 11;
+    uint64 indexed_count           = 12;
+    uint64 unindexed_count         = 13;
 }
 
 message Shard {
@@ -80,28 +62,11 @@ message Shard {
     int64 version         = 8;
 }
 
-message WorkNode {
-    string peer_id        = 1;
-    int64 last_active_ms  = 2;
-    int64 last_state_ms   = 3;
-    repeated Shard shards = 4;
-    WorkNodeState state   = 5;
-    uint64 used_rss_size  = 6;
-    string set_name       = 7;
-}
-
 // The cluster/collection health status is: green , yellow or red . On the shard level:
 enum HealthState {
     HEALTH_GREEN  = 0; // all shards are allocated
     HEALTH_YELLOW = 1; // the primary shard is allocated but replicas are not
     HEALTH_RED    = 2; // the specific shard is not allocated in the cluster
-}
-
-message ClusterState {
-    int64 update_ms             = 1;
-    HealthState status          = 2;
-    map<string, WorkNode> nodes = 3;
-    int64 version_seed          = 4;
 }
 
 message AliasItem {
@@ -117,11 +82,6 @@ enum DataType {
 message DatabaseItem {
     int64 create_time   = 1;
     DataType db_type  = 2;
-}
-
-message ClusterSettings {
-   repeated AliasItem aliases          = 1;
-   map<string, DatabaseItem> databases = 2;
 }
 
 message SnapshotRule {
@@ -219,29 +179,9 @@ message CollectionState {
     CreateCollectionRequest req          = 6;
     HealthState status                   = 7;
     ShardDataState index_state           = 8;
+    uint64 indexed_count                 = 9;  // 已经创建索引的条目数
+    uint64 unindexed_count               = 10; // 尚未创建索引的条目数
 }
-
-message UpdateClusterSettingRequest {
-    ClusterSettings settings = 1;
-};
-
-message UpdateClusterSettingResponse {
-    int32 code      = 1;
-    string msg      = 2;
-    string redirect = 3;
-};
-
-message GetClusterStateRequest {
-};
-
-message GetClusterStateResponse {
-    int32 code                       = 1;
-    string msg                       = 2;
-    string redirect                  = 3;
-    repeated MasterNode masters      = 4;
-    ClusterState state               = 5;
-    map<string, string> server_infos = 6;
-};
 
 message AddAliasRequest {
     string database   = 1;
@@ -271,19 +211,6 @@ message GetAliasResponse {
     string msg                 = 2;
     string redirect            = 3;
     repeated AliasItem aliases = 4;
-};
-
-message GetShardStateRequest {
-    string database   = 1;
-    string collection = 2;
-    int32 shard_idx   = 3;
-};
-
-message GetShardStateResponse {
-    int32 code      = 1;
-    string msg      = 2;
-    string redirect = 3;
-    Shard shard     = 4;
 };
 
 message GetNodeInfoRequest {
@@ -321,7 +248,6 @@ message ListCollectionsResponse {
     string redirect                              = 3;
     repeated CreateCollectionRequest collections = 4;
     repeated CollectionState states              = 5;
-    ClusterState cluster                         = 6;
 };
 
 message IndexParams {
@@ -342,9 +268,11 @@ message IndexColumn {
 };
 
 message indexStatus {
-    string status    = 1;
-    string progress  = 2;
-    string startTime = 3;
+    string status           = 1;
+    string progress         = 2;
+    string startTime        = 3;
+    uint64 indexed_count    = 4; // 已经创建索引的条目数
+    uint64 unindexed_count  = 5; // 尚未创建索引的条目数
 };
 
 message CreateCollectionRequest {
@@ -397,19 +325,6 @@ message TruncateCollectionResponse {
     uint64 affectedCount = 4;
 };
 
-message UpdateCollectionRequest {
-    string database     = 1;
-    string collection   = 2;
-    CollectionConf conf = 3;
-};
-
-message UpdateCollectionResponse {
-    int32 code               = 1;
-    string msg               = 2;
-    string redirect          = 3;
-    repeated string task_ids = 4;
-};
-
 message RebuildIndexRequest {
     string database        = 1;
     string collection      = 2;
@@ -426,103 +341,12 @@ message RebuildIndexResponse {
     repeated string task_ids = 4;
 };
 
-message MoveShardRequest {
-    string database   = 1;
-    string collection = 2;
-    int32 shard_idx   = 3;
-    string from_node  = 4;
-    string to_node    = 5;
-};
-
-message MoveShardResponse {
-    int32 code      = 1;
-    string msg      = 2;
-    string redirect = 3;
-};
-
-message ResetShardRequest {
-    string database       = 1;
-    string collection     = 2;
-    int32 shard_idx       = 3;
-    repeated string nodes = 4;
-};
-
-message ResetShardResponse {
-    int32 code      = 1;
-    string msg      = 2;
-    string redirect = 3;
-};
-
-message MigrateRequest {
-    string database              = 1;
-    string collection            = 2;
-    string dest_collection       = 3;
-    uint32 batch_size            = 4;
-    uint32 docs_per_second_limit = 5;
-    repeated string dest_peers   = 6; // 目标地址,为空时在本集群内迁移;不为空时指定外部集群地址
-    repeated uint32 shard_idxs   = 7; // 指定迁移分片,默认迁移全部分片
-    string dump_path             = 8; // 数据路径
-    uint32 dump_format           = 9; // 数据格式 0:|分割文本,1:json
-}
-
-message MigrateResponse {
-    int32 code               = 1;
-    string msg               = 2;
-    string redirect          = 3;
-    repeated string task_ids = 4;
-}
-
-message InfoNodeRequest {
-    repeated string nodes = 1;
-}
-
-message InfoNodeResponse {
-    int32 code              = 1;
-    string msg              = 2;
-    string redirect         = 3;
-    repeated WorkNode nodes = 4;
-};
-
-message RemoveNodeRequest {
-    string node = 1;
-}
-
-message RemoveNodeResponse {
-    int32 code      = 1;
-    string msg      = 2;
-    string redirect = 3;
-};
-
-message TaskStateRequest {
-    repeated string tasks = 1;
-}
-
-message TaskState {
-    string id              = 1;
-    string desc            = 2;
-    string node            = 3;
-    bool completed         = 4;
-    bool success           = 5;
-    string error           = 6;
-    int64 started_ms       = 7;
-    int64 stoped_ms        = 8;
-    string progress        = 9;
-    int64 latest_active_ms = 10;
-    int64 elapsed_ms       = 11;
-}
-
-message TaskStateResponse {
-    int32 code                = 1;
-    string msg                = 2;
-    string redirect           = 3;
-    repeated TaskState states = 4;
-}
-
 message UpsertRequest {
     string database             = 1;
     string collection           = 2;
     bool buildIndex             = 3; // 是否立即构建索引
     repeated Document documents = 4; // 覆盖更新不想更新向量索引，只更新文档其他信息，可以设置向量为空
+    string buildIndexMode       = 5; // 是否同步构建索引
 };
 
 message EmbeddingExtraInfo {
@@ -590,21 +414,6 @@ message QueryResponse {
     string redirect             = 3;
     repeated Document documents = 4;
     uint64 count                = 5;
-};
-
-message ExplainRequest {
-    string database         = 1;
-    string collection       = 2;
-    QueryCond query         = 3;
-    // string readConsistency  = 4;   默认要强一致性
-};
-
-message ExplainResponse {
-    int32 code                    = 1;
-    string msg                    = 2;
-    string redirect               = 3;
-    repeated uint64 affectedTable = 4;
-    uint64 affectedCount          = 5;
 };
 
 message SearchResult {
@@ -692,62 +501,6 @@ message SortResponse {
     repeated string invalid_conds = 5;
 };
 
-message SaveIndexModelRequest {
-    string database   = 1;
-    string collection = 2;
-    uint64 offset     = 3;
-    uint64 size       = 4;
-    bytes content     = 5;
-    string cksm       = 6;
-}
-
-message SaveIndexModelResponse {
-    int32 code      = 1;
-    string msg      = 2;
-    string redirect = 3;
-}
-
-message GetIndexModelRequest {
-    string database   = 1;
-    string collection = 2;
-    uint64 offset     = 3;
-    uint64 count      = 4;
-}
-
-message GetIndexModelResponse {
-    int32 code      = 1;
-    string msg      = 2;
-    string redirect = 3;
-    bytes content   = 4;
-    uint64 size     = 5;
-    string cksm     = 6;
-}
-
-message CreateShardRequest {
-    ShardConf conf = 1;
-    bool recover   = 2;
-};
-
-message CreateShardResponse {
-    int32 code      = 1;
-    string msg      = 2;
-    string redirect = 3;
-};
-
-message DeleteShardRequest {
-    string database   = 1;
-    string collection = 2;
-    int32 shard_idx   = 3;
-    bool remove_model = 4;
-    string peer_id    = 5;
-};
-
-message DeleteShardResponse {
-    int32 code      = 1;
-    string msg      = 2;
-    string redirect = 3;
-};
-
 message DatabaseRequest {
     string database     = 1;
     DataType dbType     = 2;
@@ -778,10 +531,6 @@ message HttpRequest {};
 message HttpResponse {};
 
 service SearchEngine {
-    // 更新集群配置
-    rpc cluster_setting(UpdateClusterSettingRequest) returns (UpdateClusterSettingResponse);
-    // 获取集群状态
-    rpc get_cluster_state(GetClusterStateRequest) returns (GetClusterStateResponse);
 
     // 修改别名指向
     rpc setAlias(AddAliasRequest) returns (UpdateAliasResponse);
@@ -800,32 +549,8 @@ service SearchEngine {
     rpc describeCollection(DescribeCollectionRequest) returns (DescribeCollectionResponse);
     // 显示全部索引
     rpc listCollections(ListCollectionsRequest) returns (ListCollectionsResponse);
-
-    // 上传模型文件
-    rpc save_index_model(SaveIndexModelRequest) returns (SaveIndexModelResponse);
-    // 下载模型文件
-    rpc get_index_model(GetIndexModelRequest) returns (GetIndexModelResponse);
-    
-    // 更新索引参数
-    rpc updateCollection(UpdateCollectionRequest) returns (UpdateCollectionResponse);
     // 重建索引
     rpc rebuildIndex(RebuildIndexRequest) returns (RebuildIndexResponse);
-
-    // 迁移分片
-    rpc move_shard(MoveShardRequest) returns (MoveShardResponse);
-    // 重置分片
-    rpc reset_shard(ResetShardRequest) returns (ResetShardResponse);
-    // 删除分片
-    rpc delete_shard(DeleteShardRequest) returns (DeleteShardResponse);
-    // 迁移索引
-    rpc migrate_collection(MigrateRequest) returns (MigrateResponse);
-
-    // 查询单个节点信息
-    rpc info_node(InfoNodeRequest) returns (InfoNodeResponse);
-    // 立即移除指定节点
-    rpc remove_node(RemoveNodeRequest) returns (RemoveNodeResponse);
-    // 查询任务状态
-    rpc tasks(TaskStateRequest) returns (TaskStateResponse);
 
     // 写入向量
     rpc upsert(UpsertRequest) returns (UpsertResponse);
@@ -842,8 +567,6 @@ service SearchEngine {
     rpc range_search(SearchRequest) returns (SearchResponse);
     // 指定候选集排序
     rpc sort(SortRequest) returns (SortResponse);
-    // explain
-    rpc explain(ExplainRequest) returns (ExplainResponse);
 
     // 创建 database
     rpc createDatabase(DatabaseRequest) returns (DatabaseResponse);
@@ -853,9 +576,4 @@ service SearchEngine {
     rpc listDatabases(DatabaseRequest) returns (DatabaseResponse);
     // 显示数据库
     rpc describeDatabase(DescribeDatabaseRequest) returns (DescribeDatabaseResponse);
-};
-
-service ProxyEngine {
-    // proxy
-    rpc proxy(HttpRequest) returns (HttpResponse);
 };

@@ -14,16 +14,6 @@ class SearchEngineStub(object):
         Args:
             channel: A grpc.Channel.
         """
-        self.cluster_setting = channel.unary_unary(
-                '/olama.SearchEngine/cluster_setting',
-                request_serializer=olama__pb2.UpdateClusterSettingRequest.SerializeToString,
-                response_deserializer=olama__pb2.UpdateClusterSettingResponse.FromString,
-                )
-        self.get_cluster_state = channel.unary_unary(
-                '/olama.SearchEngine/get_cluster_state',
-                request_serializer=olama__pb2.GetClusterStateRequest.SerializeToString,
-                response_deserializer=olama__pb2.GetClusterStateResponse.FromString,
-                )
         self.setAlias = channel.unary_unary(
                 '/olama.SearchEngine/setAlias',
                 request_serializer=olama__pb2.AddAliasRequest.SerializeToString,
@@ -64,60 +54,10 @@ class SearchEngineStub(object):
                 request_serializer=olama__pb2.ListCollectionsRequest.SerializeToString,
                 response_deserializer=olama__pb2.ListCollectionsResponse.FromString,
                 )
-        self.save_index_model = channel.unary_unary(
-                '/olama.SearchEngine/save_index_model',
-                request_serializer=olama__pb2.SaveIndexModelRequest.SerializeToString,
-                response_deserializer=olama__pb2.SaveIndexModelResponse.FromString,
-                )
-        self.get_index_model = channel.unary_unary(
-                '/olama.SearchEngine/get_index_model',
-                request_serializer=olama__pb2.GetIndexModelRequest.SerializeToString,
-                response_deserializer=olama__pb2.GetIndexModelResponse.FromString,
-                )
-        self.updateCollection = channel.unary_unary(
-                '/olama.SearchEngine/updateCollection',
-                request_serializer=olama__pb2.UpdateCollectionRequest.SerializeToString,
-                response_deserializer=olama__pb2.UpdateCollectionResponse.FromString,
-                )
         self.rebuildIndex = channel.unary_unary(
                 '/olama.SearchEngine/rebuildIndex',
                 request_serializer=olama__pb2.RebuildIndexRequest.SerializeToString,
                 response_deserializer=olama__pb2.RebuildIndexResponse.FromString,
-                )
-        self.move_shard = channel.unary_unary(
-                '/olama.SearchEngine/move_shard',
-                request_serializer=olama__pb2.MoveShardRequest.SerializeToString,
-                response_deserializer=olama__pb2.MoveShardResponse.FromString,
-                )
-        self.reset_shard = channel.unary_unary(
-                '/olama.SearchEngine/reset_shard',
-                request_serializer=olama__pb2.ResetShardRequest.SerializeToString,
-                response_deserializer=olama__pb2.ResetShardResponse.FromString,
-                )
-        self.delete_shard = channel.unary_unary(
-                '/olama.SearchEngine/delete_shard',
-                request_serializer=olama__pb2.DeleteShardRequest.SerializeToString,
-                response_deserializer=olama__pb2.DeleteShardResponse.FromString,
-                )
-        self.migrate_collection = channel.unary_unary(
-                '/olama.SearchEngine/migrate_collection',
-                request_serializer=olama__pb2.MigrateRequest.SerializeToString,
-                response_deserializer=olama__pb2.MigrateResponse.FromString,
-                )
-        self.info_node = channel.unary_unary(
-                '/olama.SearchEngine/info_node',
-                request_serializer=olama__pb2.InfoNodeRequest.SerializeToString,
-                response_deserializer=olama__pb2.InfoNodeResponse.FromString,
-                )
-        self.remove_node = channel.unary_unary(
-                '/olama.SearchEngine/remove_node',
-                request_serializer=olama__pb2.RemoveNodeRequest.SerializeToString,
-                response_deserializer=olama__pb2.RemoveNodeResponse.FromString,
-                )
-        self.tasks = channel.unary_unary(
-                '/olama.SearchEngine/tasks',
-                request_serializer=olama__pb2.TaskStateRequest.SerializeToString,
-                response_deserializer=olama__pb2.TaskStateResponse.FromString,
                 )
         self.upsert = channel.unary_unary(
                 '/document/upsert',
@@ -154,11 +94,6 @@ class SearchEngineStub(object):
                 request_serializer=olama__pb2.SortRequest.SerializeToString,
                 response_deserializer=olama__pb2.SortResponse.FromString,
                 )
-        self.explain = channel.unary_unary(
-                '/olama.SearchEngine/explain',
-                request_serializer=olama__pb2.ExplainRequest.SerializeToString,
-                response_deserializer=olama__pb2.ExplainResponse.FromString,
-                )
         self.createDatabase = channel.unary_unary(
                 '/olama.SearchEngine/createDatabase',
                 request_serializer=olama__pb2.DatabaseRequest.SerializeToString,
@@ -183,20 +118,6 @@ class SearchEngineStub(object):
 
 class SearchEngineServicer(object):
     """Missing associated documentation comment in .proto file."""
-
-    def cluster_setting(self, request, context):
-        """更新集群配置
-        """
-        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details('Method not implemented!')
-        raise NotImplementedError('Method not implemented!')
-
-    def get_cluster_state(self, request, context):
-        """获取集群状态
-        """
-        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details('Method not implemented!')
-        raise NotImplementedError('Method not implemented!')
 
     def setAlias(self, request, context):
         """修改别名指向
@@ -254,78 +175,8 @@ class SearchEngineServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
-    def save_index_model(self, request, context):
-        """上传模型文件
-        """
-        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details('Method not implemented!')
-        raise NotImplementedError('Method not implemented!')
-
-    def get_index_model(self, request, context):
-        """下载模型文件
-        """
-        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details('Method not implemented!')
-        raise NotImplementedError('Method not implemented!')
-
-    def updateCollection(self, request, context):
-        """更新索引参数
-        """
-        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details('Method not implemented!')
-        raise NotImplementedError('Method not implemented!')
-
     def rebuildIndex(self, request, context):
         """重建索引
-        """
-        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details('Method not implemented!')
-        raise NotImplementedError('Method not implemented!')
-
-    def move_shard(self, request, context):
-        """迁移分片
-        """
-        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details('Method not implemented!')
-        raise NotImplementedError('Method not implemented!')
-
-    def reset_shard(self, request, context):
-        """重置分片
-        """
-        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details('Method not implemented!')
-        raise NotImplementedError('Method not implemented!')
-
-    def delete_shard(self, request, context):
-        """删除分片
-        """
-        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details('Method not implemented!')
-        raise NotImplementedError('Method not implemented!')
-
-    def migrate_collection(self, request, context):
-        """迁移索引
-        """
-        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details('Method not implemented!')
-        raise NotImplementedError('Method not implemented!')
-
-    def info_node(self, request, context):
-        """查询单个节点信息
-        """
-        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details('Method not implemented!')
-        raise NotImplementedError('Method not implemented!')
-
-    def remove_node(self, request, context):
-        """立即移除指定节点
-        """
-        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details('Method not implemented!')
-        raise NotImplementedError('Method not implemented!')
-
-    def tasks(self, request, context):
-        """查询任务状态
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -380,13 +231,6 @@ class SearchEngineServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
-    def explain(self, request, context):
-        """explain
-        """
-        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details('Method not implemented!')
-        raise NotImplementedError('Method not implemented!')
-
     def createDatabase(self, request, context):
         """创建 database
         """
@@ -418,16 +262,6 @@ class SearchEngineServicer(object):
 
 def add_SearchEngineServicer_to_server(servicer, server):
     rpc_method_handlers = {
-            'cluster_setting': grpc.unary_unary_rpc_method_handler(
-                    servicer.cluster_setting,
-                    request_deserializer=olama__pb2.UpdateClusterSettingRequest.FromString,
-                    response_serializer=olama__pb2.UpdateClusterSettingResponse.SerializeToString,
-            ),
-            'get_cluster_state': grpc.unary_unary_rpc_method_handler(
-                    servicer.get_cluster_state,
-                    request_deserializer=olama__pb2.GetClusterStateRequest.FromString,
-                    response_serializer=olama__pb2.GetClusterStateResponse.SerializeToString,
-            ),
             'setAlias': grpc.unary_unary_rpc_method_handler(
                     servicer.setAlias,
                     request_deserializer=olama__pb2.AddAliasRequest.FromString,
@@ -468,60 +302,10 @@ def add_SearchEngineServicer_to_server(servicer, server):
                     request_deserializer=olama__pb2.ListCollectionsRequest.FromString,
                     response_serializer=olama__pb2.ListCollectionsResponse.SerializeToString,
             ),
-            'save_index_model': grpc.unary_unary_rpc_method_handler(
-                    servicer.save_index_model,
-                    request_deserializer=olama__pb2.SaveIndexModelRequest.FromString,
-                    response_serializer=olama__pb2.SaveIndexModelResponse.SerializeToString,
-            ),
-            'get_index_model': grpc.unary_unary_rpc_method_handler(
-                    servicer.get_index_model,
-                    request_deserializer=olama__pb2.GetIndexModelRequest.FromString,
-                    response_serializer=olama__pb2.GetIndexModelResponse.SerializeToString,
-            ),
-            'updateCollection': grpc.unary_unary_rpc_method_handler(
-                    servicer.updateCollection,
-                    request_deserializer=olama__pb2.UpdateCollectionRequest.FromString,
-                    response_serializer=olama__pb2.UpdateCollectionResponse.SerializeToString,
-            ),
             'rebuildIndex': grpc.unary_unary_rpc_method_handler(
                     servicer.rebuildIndex,
                     request_deserializer=olama__pb2.RebuildIndexRequest.FromString,
                     response_serializer=olama__pb2.RebuildIndexResponse.SerializeToString,
-            ),
-            'move_shard': grpc.unary_unary_rpc_method_handler(
-                    servicer.move_shard,
-                    request_deserializer=olama__pb2.MoveShardRequest.FromString,
-                    response_serializer=olama__pb2.MoveShardResponse.SerializeToString,
-            ),
-            'reset_shard': grpc.unary_unary_rpc_method_handler(
-                    servicer.reset_shard,
-                    request_deserializer=olama__pb2.ResetShardRequest.FromString,
-                    response_serializer=olama__pb2.ResetShardResponse.SerializeToString,
-            ),
-            'delete_shard': grpc.unary_unary_rpc_method_handler(
-                    servicer.delete_shard,
-                    request_deserializer=olama__pb2.DeleteShardRequest.FromString,
-                    response_serializer=olama__pb2.DeleteShardResponse.SerializeToString,
-            ),
-            'migrate_collection': grpc.unary_unary_rpc_method_handler(
-                    servicer.migrate_collection,
-                    request_deserializer=olama__pb2.MigrateRequest.FromString,
-                    response_serializer=olama__pb2.MigrateResponse.SerializeToString,
-            ),
-            'info_node': grpc.unary_unary_rpc_method_handler(
-                    servicer.info_node,
-                    request_deserializer=olama__pb2.InfoNodeRequest.FromString,
-                    response_serializer=olama__pb2.InfoNodeResponse.SerializeToString,
-            ),
-            'remove_node': grpc.unary_unary_rpc_method_handler(
-                    servicer.remove_node,
-                    request_deserializer=olama__pb2.RemoveNodeRequest.FromString,
-                    response_serializer=olama__pb2.RemoveNodeResponse.SerializeToString,
-            ),
-            'tasks': grpc.unary_unary_rpc_method_handler(
-                    servicer.tasks,
-                    request_deserializer=olama__pb2.TaskStateRequest.FromString,
-                    response_serializer=olama__pb2.TaskStateResponse.SerializeToString,
             ),
             'upsert': grpc.unary_unary_rpc_method_handler(
                     servicer.upsert,
@@ -558,11 +342,6 @@ def add_SearchEngineServicer_to_server(servicer, server):
                     request_deserializer=olama__pb2.SortRequest.FromString,
                     response_serializer=olama__pb2.SortResponse.SerializeToString,
             ),
-            'explain': grpc.unary_unary_rpc_method_handler(
-                    servicer.explain,
-                    request_deserializer=olama__pb2.ExplainRequest.FromString,
-                    response_serializer=olama__pb2.ExplainResponse.SerializeToString,
-            ),
             'createDatabase': grpc.unary_unary_rpc_method_handler(
                     servicer.createDatabase,
                     request_deserializer=olama__pb2.DatabaseRequest.FromString,
@@ -592,40 +371,6 @@ def add_SearchEngineServicer_to_server(servicer, server):
  # This class is part of an EXPERIMENTAL API.
 class SearchEngine(object):
     """Missing associated documentation comment in .proto file."""
-
-    @staticmethod
-    def cluster_setting(request,
-            target,
-            options=(),
-            channel_credentials=None,
-            call_credentials=None,
-            insecure=False,
-            compression=None,
-            wait_for_ready=None,
-            timeout=None,
-            metadata=None):
-        return grpc.experimental.unary_unary(request, target, '/olama.SearchEngine/cluster_setting',
-            olama__pb2.UpdateClusterSettingRequest.SerializeToString,
-            olama__pb2.UpdateClusterSettingResponse.FromString,
-            options, channel_credentials,
-            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
-
-    @staticmethod
-    def get_cluster_state(request,
-            target,
-            options=(),
-            channel_credentials=None,
-            call_credentials=None,
-            insecure=False,
-            compression=None,
-            wait_for_ready=None,
-            timeout=None,
-            metadata=None):
-        return grpc.experimental.unary_unary(request, target, '/olama.SearchEngine/get_cluster_state',
-            olama__pb2.GetClusterStateRequest.SerializeToString,
-            olama__pb2.GetClusterStateResponse.FromString,
-            options, channel_credentials,
-            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
     @staticmethod
     def setAlias(request,
@@ -764,57 +509,6 @@ class SearchEngine(object):
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
     @staticmethod
-    def save_index_model(request,
-            target,
-            options=(),
-            channel_credentials=None,
-            call_credentials=None,
-            insecure=False,
-            compression=None,
-            wait_for_ready=None,
-            timeout=None,
-            metadata=None):
-        return grpc.experimental.unary_unary(request, target, '/olama.SearchEngine/save_index_model',
-            olama__pb2.SaveIndexModelRequest.SerializeToString,
-            olama__pb2.SaveIndexModelResponse.FromString,
-            options, channel_credentials,
-            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
-
-    @staticmethod
-    def get_index_model(request,
-            target,
-            options=(),
-            channel_credentials=None,
-            call_credentials=None,
-            insecure=False,
-            compression=None,
-            wait_for_ready=None,
-            timeout=None,
-            metadata=None):
-        return grpc.experimental.unary_unary(request, target, '/olama.SearchEngine/get_index_model',
-            olama__pb2.GetIndexModelRequest.SerializeToString,
-            olama__pb2.GetIndexModelResponse.FromString,
-            options, channel_credentials,
-            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
-
-    @staticmethod
-    def updateCollection(request,
-            target,
-            options=(),
-            channel_credentials=None,
-            call_credentials=None,
-            insecure=False,
-            compression=None,
-            wait_for_ready=None,
-            timeout=None,
-            metadata=None):
-        return grpc.experimental.unary_unary(request, target, '/olama.SearchEngine/updateCollection',
-            olama__pb2.UpdateCollectionRequest.SerializeToString,
-            olama__pb2.UpdateCollectionResponse.FromString,
-            options, channel_credentials,
-            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
-
-    @staticmethod
     def rebuildIndex(request,
             target,
             options=(),
@@ -828,125 +522,6 @@ class SearchEngine(object):
         return grpc.experimental.unary_unary(request, target, '/olama.SearchEngine/rebuildIndex',
             olama__pb2.RebuildIndexRequest.SerializeToString,
             olama__pb2.RebuildIndexResponse.FromString,
-            options, channel_credentials,
-            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
-
-    @staticmethod
-    def move_shard(request,
-            target,
-            options=(),
-            channel_credentials=None,
-            call_credentials=None,
-            insecure=False,
-            compression=None,
-            wait_for_ready=None,
-            timeout=None,
-            metadata=None):
-        return grpc.experimental.unary_unary(request, target, '/olama.SearchEngine/move_shard',
-            olama__pb2.MoveShardRequest.SerializeToString,
-            olama__pb2.MoveShardResponse.FromString,
-            options, channel_credentials,
-            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
-
-    @staticmethod
-    def reset_shard(request,
-            target,
-            options=(),
-            channel_credentials=None,
-            call_credentials=None,
-            insecure=False,
-            compression=None,
-            wait_for_ready=None,
-            timeout=None,
-            metadata=None):
-        return grpc.experimental.unary_unary(request, target, '/olama.SearchEngine/reset_shard',
-            olama__pb2.ResetShardRequest.SerializeToString,
-            olama__pb2.ResetShardResponse.FromString,
-            options, channel_credentials,
-            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
-
-    @staticmethod
-    def delete_shard(request,
-            target,
-            options=(),
-            channel_credentials=None,
-            call_credentials=None,
-            insecure=False,
-            compression=None,
-            wait_for_ready=None,
-            timeout=None,
-            metadata=None):
-        return grpc.experimental.unary_unary(request, target, '/olama.SearchEngine/delete_shard',
-            olama__pb2.DeleteShardRequest.SerializeToString,
-            olama__pb2.DeleteShardResponse.FromString,
-            options, channel_credentials,
-            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
-
-    @staticmethod
-    def migrate_collection(request,
-            target,
-            options=(),
-            channel_credentials=None,
-            call_credentials=None,
-            insecure=False,
-            compression=None,
-            wait_for_ready=None,
-            timeout=None,
-            metadata=None):
-        return grpc.experimental.unary_unary(request, target, '/olama.SearchEngine/migrate_collection',
-            olama__pb2.MigrateRequest.SerializeToString,
-            olama__pb2.MigrateResponse.FromString,
-            options, channel_credentials,
-            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
-
-    @staticmethod
-    def info_node(request,
-            target,
-            options=(),
-            channel_credentials=None,
-            call_credentials=None,
-            insecure=False,
-            compression=None,
-            wait_for_ready=None,
-            timeout=None,
-            metadata=None):
-        return grpc.experimental.unary_unary(request, target, '/olama.SearchEngine/info_node',
-            olama__pb2.InfoNodeRequest.SerializeToString,
-            olama__pb2.InfoNodeResponse.FromString,
-            options, channel_credentials,
-            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
-
-    @staticmethod
-    def remove_node(request,
-            target,
-            options=(),
-            channel_credentials=None,
-            call_credentials=None,
-            insecure=False,
-            compression=None,
-            wait_for_ready=None,
-            timeout=None,
-            metadata=None):
-        return grpc.experimental.unary_unary(request, target, '/olama.SearchEngine/remove_node',
-            olama__pb2.RemoveNodeRequest.SerializeToString,
-            olama__pb2.RemoveNodeResponse.FromString,
-            options, channel_credentials,
-            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
-
-    @staticmethod
-    def tasks(request,
-            target,
-            options=(),
-            channel_credentials=None,
-            call_credentials=None,
-            insecure=False,
-            compression=None,
-            wait_for_ready=None,
-            timeout=None,
-            metadata=None):
-        return grpc.experimental.unary_unary(request, target, '/olama.SearchEngine/tasks',
-            olama__pb2.TaskStateRequest.SerializeToString,
-            olama__pb2.TaskStateResponse.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
@@ -1070,23 +645,6 @@ class SearchEngine(object):
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
     @staticmethod
-    def explain(request,
-            target,
-            options=(),
-            channel_credentials=None,
-            call_credentials=None,
-            insecure=False,
-            compression=None,
-            wait_for_ready=None,
-            timeout=None,
-            metadata=None):
-        return grpc.experimental.unary_unary(request, target, '/olama.SearchEngine/explain',
-            olama__pb2.ExplainRequest.SerializeToString,
-            olama__pb2.ExplainResponse.FromString,
-            options, channel_credentials,
-            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
-
-    @staticmethod
     def createDatabase(request,
             target,
             options=(),
@@ -1151,67 +709,5 @@ class SearchEngine(object):
         return grpc.experimental.unary_unary(request, target, '/olama.SearchEngine/describeDatabase',
             olama__pb2.DescribeDatabaseRequest.SerializeToString,
             olama__pb2.DescribeDatabaseResponse.FromString,
-            options, channel_credentials,
-            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
-
-
-class ProxyEngineStub(object):
-    """Missing associated documentation comment in .proto file."""
-
-    def __init__(self, channel):
-        """Constructor.
-
-        Args:
-            channel: A grpc.Channel.
-        """
-        self.proxy = channel.unary_unary(
-                '/olama.ProxyEngine/proxy',
-                request_serializer=olama__pb2.HttpRequest.SerializeToString,
-                response_deserializer=olama__pb2.HttpResponse.FromString,
-                )
-
-
-class ProxyEngineServicer(object):
-    """Missing associated documentation comment in .proto file."""
-
-    def proxy(self, request, context):
-        """proxy
-        """
-        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details('Method not implemented!')
-        raise NotImplementedError('Method not implemented!')
-
-
-def add_ProxyEngineServicer_to_server(servicer, server):
-    rpc_method_handlers = {
-            'proxy': grpc.unary_unary_rpc_method_handler(
-                    servicer.proxy,
-                    request_deserializer=olama__pb2.HttpRequest.FromString,
-                    response_serializer=olama__pb2.HttpResponse.SerializeToString,
-            ),
-    }
-    generic_handler = grpc.method_handlers_generic_handler(
-            'olama.ProxyEngine', rpc_method_handlers)
-    server.add_generic_rpc_handlers((generic_handler,))
-
-
- # This class is part of an EXPERIMENTAL API.
-class ProxyEngine(object):
-    """Missing associated documentation comment in .proto file."""
-
-    @staticmethod
-    def proxy(request,
-            target,
-            options=(),
-            channel_credentials=None,
-            call_credentials=None,
-            insecure=False,
-            compression=None,
-            wait_for_ready=None,
-            timeout=None,
-            metadata=None):
-        return grpc.experimental.unary_unary(request, target, '/olama.ProxyEngine/proxy',
-            olama__pb2.HttpRequest.SerializeToString,
-            olama__pb2.HttpResponse.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
