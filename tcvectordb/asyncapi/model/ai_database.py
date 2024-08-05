@@ -32,6 +32,8 @@ class AsyncAIDatabase(AIDatabase):
             timeout: Optional[float] = None,
             expected_file_num: Optional[int] = None,
             average_file_size: Optional[int] = None,
+            shard: Optional[int] = None,
+            replicas: Optional[int] = None,
     ) -> AsyncCollectionView:
         cv = super().create_collection_view(name=name,
                                             description=description,
@@ -41,6 +43,8 @@ class AsyncAIDatabase(AIDatabase):
                                             timeout=timeout,
                                             expected_file_num=expected_file_num,
                                             average_file_size=average_file_size,
+                                            shard=shard,
+                                            replicas=replicas,
                                             )
         return cv_convert(cv)
 
@@ -87,5 +91,9 @@ def cv_convert(coll: CollectionView) -> AsyncCollectionView:
         description=coll.description,
         embedding=coll.embedding,
         splitter_process=coll.splitter_process,
-        index=coll.index
+        index=coll.index,
+        expected_file_num=coll.expected_file_num,
+        average_file_size=coll.average_file_size,
+        shard=coll.shard,
+        replicas=coll.replicas,
     )

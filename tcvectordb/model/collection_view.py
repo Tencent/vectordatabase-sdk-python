@@ -72,6 +72,8 @@ class CollectionView:
                  index: Optional[Index] = None,
                  expected_file_num: Optional[int] = None,
                  average_file_size: Optional[int] = None,
+                 shard: Optional[int] = None,
+                 replicas: Optional[int] = None,
                  ):
         self.db = db
         self.name: str = name
@@ -81,6 +83,8 @@ class CollectionView:
         self.index: Optional[Index] = index
         self.expected_file_num: Optional[int] = expected_file_num
         self.average_file_size: Optional[int] = average_file_size
+        self.shard : Optional[int] = shard
+        self.replicas: Optional[int] = replicas
         self.create_time: Optional[str] = None
         self.stats: Optional[dict] = None
         self.alias: Optional[list] = None
@@ -109,6 +113,10 @@ class CollectionView:
             res_dict['expectedFileNum'] = self.expected_file_num
         if self.average_file_size is not None:
             res_dict['averageFileSize'] = self.average_file_size
+        if self.shard is not None:
+            res_dict['shardNum'] = self.shard
+        if self.replicas is not None:
+            res_dict['replicaNum'] = self.replicas
         return res_dict
 
     def load_fields(self, fields: dict):
@@ -139,6 +147,10 @@ class CollectionView:
             self.expected_file_num = fields.get('expectedFileNum')
         if 'averageFileSize' in fields:
             self.average_file_size = fields.get('averageFileSize')
+        if 'shardNum' in fields:
+            self.shard = fields.get('shardNum')
+        if 'replicaNum' in fields:
+            self.replicas = fields.get('replicaNum')
 
     # The following is the document API
 

@@ -65,6 +65,8 @@ class AIDatabase:
             timeout: Optional[float] = None,
             expected_file_num: Optional[int] = None,
             average_file_size: Optional[int] = None,
+            shard: Optional[int] = None,
+            replicas: Optional[int] = None,
     ) -> CollectionView:
         """Create a collection view.
 
@@ -78,6 +80,11 @@ class AIDatabase:
                               When timeout is set to None, will use the connect timeout.
             expected_file_num: Expected total number of documents
             average_file_size: Estimate the average document size
+            shard            : The shard number of the collection.
+                               Shard will divide a large dataset into smaller subsets.
+            replicas         : The replicas number of the collection.
+                               Replicas refers to the number of identical copies of each primary shard,
+                               used for disaster recovery and load balancing.
         Returns:
             CollectionView
         """
@@ -90,6 +97,8 @@ class AIDatabase:
             index=index,
             expected_file_num=expected_file_num,
             average_file_size=average_file_size,
+            shard=shard,
+            replicas=replicas,
         )
         self.conn.post('/ai/collectionView/create', vars(coll), timeout)
         return coll

@@ -16,13 +16,21 @@ class AsyncCollectionView(CollectionView):
                  embedding: Optional[Embedding] = None,
                  splitter_process: Optional[SplitterProcess] = None,
                  index: Optional[Index] = None,
+                 expected_file_num: Optional[int] = None,
+                 average_file_size: Optional[int] = None,
+                 shard: Optional[int] = None,
+                 replicas: Optional[int] = None,
                  ):
         super().__init__(db,
                          name,
                          description,
                          embedding,
                          splitter_process,
-                         index)
+                         index,
+                         expected_file_num=expected_file_num,
+                         average_file_size=average_file_size,
+                         shard=shard,
+                         replicas=replicas)
 
     async def load_and_split_text(self,
                                   local_file_path: str,
