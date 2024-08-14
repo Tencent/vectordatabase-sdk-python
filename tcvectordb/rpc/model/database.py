@@ -99,6 +99,8 @@ def coll_convert(coll: Collection, rpc_client) -> RPCCollection:
 def db_convert(db: Database, rpc_client) -> Union[RPCDatabase, AIDatabase]:
     if isinstance(db, AIDatabase):
         return db
+    if isinstance(db, RPCDatabase):
+        return db
     read_consistency = db.__getattribute__('_read_consistency')
     return RPCDatabase(
         conn=db.conn,

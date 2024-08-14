@@ -1,4 +1,4 @@
-from typing import Optional, List
+from typing import Optional, List, Union
 
 from cachetools import cached, TTLCache
 from requests.adapters import HTTPAdapter
@@ -48,7 +48,7 @@ class RPCVectorDBClient(VectorDBClient):
         return sdbs
 
     @cached(cache=TTLCache(maxsize=1024, ttl=3))
-    def database(self, database: str) -> RPCDatabase:
+    def database(self, database: str) -> Union[RPCDatabase, AIDatabase]:
         sdb = super().database(database)
         return db_convert(sdb, self.rpc_client)
 
