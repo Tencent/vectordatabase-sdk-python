@@ -235,13 +235,14 @@ class VdbClient:
 
     def _doc2pb(self, doc: Union[Document, Dict]) -> olama_pb2.Document:
         doc_dict = doc if isinstance(doc, dict) else vars(doc)
-        doc_dict = copy.deepcopy(doc_dict)
         d = olama_pb2.Document()
-        if 'id' in doc_dict:
-            d.id = doc_dict.pop('id')
-        if 'vector' in doc_dict:
-            d.vector.extend(doc_dict.pop('vector'))
         for k, v in doc_dict.items():
+            if 'id' == k:
+                d.id = v
+                continue
+            if 'vector' == k:
+                d.vector.extend(v)
+                continue
             if isinstance(v, int):
                 d.fields[k].val_u64 = v
             elif isinstance(v, str):
