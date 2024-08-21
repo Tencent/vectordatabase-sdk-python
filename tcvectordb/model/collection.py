@@ -1,4 +1,4 @@
-from typing import Dict, List, Optional, Any
+from typing import Dict, List, Optional, Any, Union
 
 from tcvectordb import exceptions
 from .document import Document, Filter
@@ -303,7 +303,7 @@ class Collection():
 
     def upsert(
             self,
-            documents: List[Document],
+            documents: List[Union[Document, Dict]],
             timeout: Optional[float] = None,
             build_index: bool = True,
             **kwargs
@@ -336,8 +336,10 @@ class Collection():
             'documents': []
         }
         for doc in documents:
-            body['documents'].append(vars(doc))
-
+            if isinstance(doc, dict):
+                body['documents'].append(doc)
+            else:
+                body['documents'].append(vars(doc))
         res = self._conn.post('/document/upsert', body, timeout)
         return res.data()
 
@@ -612,7 +614,10 @@ class Collection():
         res = self._conn.post('/document/delete', body, timeout)
         return res.data()
 
-    def update(self, data: Document, filter: Optional[Filter] = None, document_ids: Optional[List[str]] = None,
+    def update(self,
+               data: Union[Document, Dict],
+               filter: Optional[Filter] = None,
+               document_ids: Optional[List[str]] = None,
                timeout: Optional[float] = None):
         if data is None:
             raise exceptions.ParamError(code=-1, message='data is None')
@@ -620,7 +625,10 @@ class Collection():
         update_query = UpdateQuery(document_ids=document_ids, filter=filter)
         return self.__base_update(update_query=update_query, document=data, timeout=timeout)
 
-    def __base_update(self, update_query: UpdateQuery, document: Document, timeout: Optional[float] = None) -> Dict:
+    def __base_update(self,
+                      update_query: UpdateQuery,
+                      document: Union[Document, Dict],
+                      timeout: Optional[float] = None) -> Dict:
         if not self.database_name or not self.collection_name:
             raise exceptions.ParamError(message="database_name or collection_name is blank")
 
@@ -635,7 +643,7 @@ class Collection():
             'collection': self.collection_name,
             'query': vars(update_query)
         }
-        body["update"] = vars(document)
+        body["update"] = document if isinstance(document, dict) else vars(document)
         postRes = self._conn.post('/document/update', body, timeout)
         resBody = postRes.body
         res = {}

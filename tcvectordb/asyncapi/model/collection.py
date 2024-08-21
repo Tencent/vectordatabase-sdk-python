@@ -1,4 +1,4 @@
-from typing import Dict, List, Optional, Any
+from typing import Dict, List, Optional, Any, Union
 
 from tcvectordb.model.collection import Collection
 from tcvectordb.model.collection_view import Embedding
@@ -31,7 +31,7 @@ class AsyncCollection(Collection):
                          **kwargs)
 
     async def upsert(self,
-                     documents: List[Document],
+                     documents: List[Union[Document, Dict]],
                      timeout: Optional[float] = None,
                      build_index: bool = True,
                      **kwargs
@@ -117,7 +117,7 @@ class AsyncCollection(Collection):
         return super().delete(document_ids, filter, timeout)
 
     async def update(self,
-                     data: Document,
+                     data: Union[Document, Dict],
                      filter: Optional[Filter] = None,
                      document_ids: Optional[List[str]] = None,
                      timeout: Optional[float] = None):

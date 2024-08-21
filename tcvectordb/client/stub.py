@@ -1,4 +1,4 @@
-from typing import List, Optional, Union
+from typing import List, Optional, Union, Dict, Any
 from requests.adapters import HTTPAdapter
 
 from tcvectordb.model.enum import ReadConsistency
@@ -7,6 +7,8 @@ from .httpclient import HTTPClient
 from tcvectordb.model.database import Database
 from tcvectordb import exceptions
 from tcvectordb.model.ai_database import AIDatabase
+from ..model.collection import Collection
+from ..model.document import Document, Filter
 
 
 class VectorDBClient:
@@ -125,3 +127,156 @@ class VectorDBClient:
         if self._conn:
             self._conn.close()
             self._conn = None
+
+    def upsert(self,
+               database_name: str,
+               collection_name: str,
+               documents: List[Union[Document, Dict]],
+               timeout: Optional[float] = None,
+               build_index: bool = True,
+               **kwargs):
+        return Collection(
+            db=Database(conn=self._conn, name=database_name),
+            name=collection_name,
+            read_consistency=self._read_consistency,
+        ).upsert(
+            documents=documents,
+            timeout=timeout,
+            build_index=build_index,
+            **kwargs
+        )
+
+    def delete(self,
+               database_name: str,
+               collection_name: str,
+               document_ids: List[str] = None,
+               filter: Filter = None,
+               timeout: Optional[float] = None):
+        return Collection(
+            db=Database(conn=self._conn, name=database_name),
+            name=collection_name,
+            read_consistency=self._read_consistency,
+        ).delete(
+            document_ids=document_ids,
+            filter=filter,
+            timeout=timeout,
+        )
+
+    def update(self,
+               database_name: str,
+               collection_name: str,
+               data: Union[Document, Dict],
+               filter: Optional[Filter] = None,
+               document_ids: Optional[List[str]] = None,
+               timeout: Optional[float] = None):
+        return Collection(
+            db=Database(conn=self._conn, name=database_name),
+            name=collection_name,
+            read_consistency=self._read_consistency,
+        ).update(
+            data=data,
+            filter=filter,
+            document_ids=document_ids,
+            timeout=timeout,
+        )
+
+    def query(self,
+              database_name: str,
+              collection_name: str,
+              document_ids: Optional[List] = None,
+              retrieve_vector: bool = False,
+              limit: Optional[int] = None,
+              offset: Optional[int] = None,
+              filter: Optional[Filter] = None,
+              output_fields: Optional[List[str]] = None,
+              timeout: Optional[float] = None,
+              ) -> List[Dict]:
+        return Collection(
+            db=Database(conn=self._conn, name=database_name),
+            name=collection_name,
+            read_consistency=self._read_consistency,
+        ).query(
+            document_ids=document_ids,
+            retrieve_vector=retrieve_vector,
+            limit=limit,
+            offset=offset,
+            filter=filter,
+            output_fields=output_fields,
+            timeout=timeout,
+        )
+
+    def search(self,
+               database_name: str,
+               collection_name: str,
+               vectors: List[List[float]],
+               filter: Filter = None,
+               params=None,
+               retrieve_vector: bool = False,
+               limit: int = 10,
+               output_fields: Optional[List[str]] = None,
+               timeout: Optional[float] = None,
+               ) -> List[List[Dict]]:
+        return Collection(
+            db=Database(conn=self._conn, name=database_name),
+            name=collection_name,
+            read_consistency=self._read_consistency,
+        ).search(
+            vectors=vectors,
+            filter=filter,
+            params=params,
+            retrieve_vector=retrieve_vector,
+            limit=limit,
+            output_fields=output_fields,
+            timeout=timeout,
+        )
+
+    def search_by_id(self,
+                     database_name: str,
+                     collection_name: str,
+                     document_ids: List[str],
+                     filter: Filter = None,
+                     params=None,
+                     retrieve_vector: bool = False,
+                     limit: int = 10,
+                     output_fields: Optional[List[str]] = None,
+                     timeout: Optional[float] = None,
+                     ) -> List[List[Dict]]:
+        return Collection(
+            db=Database(conn=self._conn, name=database_name),
+            name=collection_name,
+            read_consistency=self._read_consistency,
+        ).searchById(
+            document_ids=document_ids,
+            filter=filter,
+            params=params,
+            retrieve_vector=retrieve_vector,
+            limit=limit,
+            timeout=timeout,
+            output_fields=output_fields,
+        )
+
+    def search_by_text(self,
+                       database_name: str,
+                       collection_name: str,
+                       embedding_items: List[str],
+                       filter: Filter = None,
+                       params=None,
+                       retrieve_vector: bool = False,
+                       limit: int = 10,
+                       output_fields: Optional[List[str]] = None,
+                       timeout: Optional[float] = None,
+                       ) -> Dict[str, Any]:
+
+        return Collection(
+            db=Database(conn=self._conn, name=database_name),
+            name=collection_name,
+            read_consistency=self._read_consistency,
+        ).searchByText(
+            embeddingItems=embedding_items,
+            filter=filter,
+            params=params,
+            retrieve_vector=retrieve_vector,
+            limit=limit,
+            output_fields=output_fields,
+            timeout=timeout,
+        )

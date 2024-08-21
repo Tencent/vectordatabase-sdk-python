@@ -17,11 +17,11 @@ DebugEnable = False
 def Debug(msg, *args):
     if DebugEnable:
         if isinstance(msg, dict):
-            msg = json.dumps(msg, indent=2)
+            msg = json.dumps(msg, indent=2, ensure_ascii=False)
         _log.debug(msg, *args)
 
 
 def Warning(msg, *args):
     if isinstance(msg, dict):
-        msg = json.dumps(msg, indent=2)
+        msg = json.dumps(msg, indent=2, ensure_ascii=False)
     _log.warning(msg, *args)

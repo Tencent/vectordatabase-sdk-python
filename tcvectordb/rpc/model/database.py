@@ -17,13 +17,13 @@ class RPCDatabase(Database):
                  conn: Union[HTTPClient, None],
                  name: str = '',
                  read_consistency: ReadConsistency = ReadConsistency.EVENTUAL_CONSISTENCY,
-                 rpc_client=None) -> None:
+                 vdb_client=None) -> None:
         super().__init__(conn, name, read_consistency)
-        self.rpc_client = rpc_client
+        self.vdb_client = vdb_client
 
     def create_database(self, database_name='', timeout: Optional[float] = None):
         sdb = super().create_database(database_name=database_name, timeout=timeout)
-        return db_convert(sdb, self.rpc_client)
+        return db_convert(sdb, self.vdb_client)
 
     def list_databases(self, timeout: Optional[float] = None) -> List:
         sdbs = super().list_databases(timeout=timeout)
@@ -32,7 +32,7 @@ class RPCDatabase(Database):
             if isinstance(sdb, AIDatabase):
                 dbs.append(sdb)
             else:
-                dbs.append(db_convert(sdb, self.rpc_client))
+                dbs.append(db_convert(sdb, self.vdb_client))
         return sdbs
 
     def create_collection(self,
@@ -53,32 +53,32 @@ class RPCDatabase(Database):
             embedding=embedding,
             timeout=timeout,
         )
-        return coll_convert(coll, self.rpc_client)
+        return coll_convert(coll, self.vdb_client)
 
     def list_collections(self, timeout: Optional[float] = None) -> List[RPCCollection]:
         colls = super().list_collections(timeout=timeout)
         res = []
         for coll in colls:
-            res.append(coll_convert(coll, self.rpc_client))
+            res.append(coll_convert(coll, self.vdb_client))
         return res
 
     def describe_collection(self, name: str, timeout: Optional[float] = None) -> RPCCollection:
         coll = super().describe_collection(name=name, timeout=timeout)
-        return coll_convert(coll, self.rpc_client)
+        return coll_convert(coll, self.vdb_client)
 
     @cached(cache=TTLCache(maxsize=1024, ttl=3))
     def collection(self, name: str) -> RPCCollection:
         coll = super().collection(name)
-        return coll_convert(coll, self.rpc_client)
+        return coll_convert(coll, self.vdb_client)
 
 
-def coll_convert(coll: Collection, rpc_client) -> RPCCollection:
+def coll_convert(coll: Collection, vdb_client) -> RPCCollection:
     read_consistency = coll.__getattribute__('_read_consistency')
     a_coll = RPCCollection(
         db=RPCDatabase(conn=coll.__getattribute__('_conn'),
                        name=coll.database_name,
                        read_consistency=read_consistency,
-                       rpc_client=rpc_client),
+                       vdb_client=vdb_client),
         name=coll.collection_name,
         shard=coll.shard,
         replicas=coll.replicas,
@@ -86,7 +86,7 @@ def coll_convert(coll: Collection, rpc_client) -> RPCCollection:
         index=coll.index,
         embedding=coll.embedding,
         read_consistency=read_consistency,
-        rpc_client=rpc_client,
+        vdb_client=vdb_client,
         createTime=coll.create_time,
         documentCount=coll.document_count,
         alias=coll.alias,
@@ -96,7 +96,7 @@ def coll_convert(coll: Collection, rpc_client) -> RPCCollection:
     return a_coll
 
 
-def db_convert(db: Database, rpc_client) -> Union[RPCDatabase, AIDatabase]:
+def db_convert(db: Database, vdb_client) -> Union[RPCDatabase, AIDatabase]:
     if isinstance(db, AIDatabase):
         return db
     if isinstance(db, RPCDatabase):
@@ -106,5 +106,5 @@ def db_convert(db: Database, rpc_client) -> Union[RPCDatabase, AIDatabase]:
         conn=db.conn,
         name=db.database_name,
         read_consistency=read_consistency,
-        rpc_client=rpc_client,
+        vdb_client=vdb_client,
     )

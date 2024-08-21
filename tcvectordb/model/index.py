@@ -176,7 +176,7 @@ class Index:
         pass
     
     @property
-    def indexes(self):
+    def indexes(self) -> Dict[str, Union[FilterIndex, VectorIndex]]:
         return self._indexes
 
     def add(self, index: Union[FilterIndex, VectorIndex, None] = None, **kwargs):

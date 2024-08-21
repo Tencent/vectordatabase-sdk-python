@@ -1,4 +1,4 @@
-from typing import Optional, List, Union
+from typing import Optional, List, Union, Dict
 
 from cachetools import cached, TTLCache
 from requests.adapters import HTTPAdapter
@@ -6,8 +6,10 @@ from requests.adapters import HTTPAdapter
 from tcvectordb import VectorDBClient
 from tcvectordb.model.ai_database import AIDatabase
 from tcvectordb.model.database import Database
+from tcvectordb.model.document import Document, Filter
 from tcvectordb.model.enum import ReadConsistency
 from tcvectordb.rpc.client.rpcclient import RPCClient
+from tcvectordb.rpc.client.vdbclient import VdbClient
 from tcvectordb.rpc.model.database import RPCDatabase, db_convert
 
 
@@ -27,15 +29,16 @@ class RPCVectorDBClient(VectorDBClient):
                  channel_ready_check: bool = True,
                  ):
         super().__init__(url, username, key, read_consistency, timeout, adapter, pool_size=pool_size)
-        self.rpc_client = RPCClient(url=url,
-                                    username=username,
-                                    key=key,
-                                    timeout=timeout,
-                                    channel_ready_check=channel_ready_check)
+        rpc_client = RPCClient(url=url,
+                               username=username,
+                               key=key,
+                               timeout=timeout,
+                               channel_ready_check=channel_ready_check)
+        self.vdb_client = VdbClient(client=rpc_client, read_consistency=read_consistency)
 
     def create_database(self, database_name: str, timeout: Optional[float] = None) -> RPCDatabase:
         sdb = super().create_database(database_name=database_name, timeout=timeout)
-        return db_convert(sdb, self.rpc_client)
+        return db_convert(sdb, self.vdb_client)
 
     def list_databases(self, timeout: Optional[float] = None) -> List[Database]:
         sdbs = super().list_databases(timeout=timeout)
@@ -44,14 +47,152 @@ class RPCVectorDBClient(VectorDBClient):
             if isinstance(sdb, AIDatabase):
                 dbs.append(sdb)
             else:
-                dbs.append(db_convert(sdb, self.rpc_client))
+                dbs.append(db_convert(sdb, self.vdb_client))
         return sdbs
 
     @cached(cache=TTLCache(maxsize=1024, ttl=3))
     def database(self, database: str) -> Union[RPCDatabase, AIDatabase]:
         sdb = super().database(database)
-        return db_convert(sdb, self.rpc_client)
+        return db_convert(sdb, self.vdb_client)
 
     def close(self):
         super().close()
-        self.rpc_client.close()
+        self.vdb_client.close()
+
+    def upsert(self,
+               database_name: str,
+               collection_name: str,
+               documents: List[Union[Document, Dict]],
+               timeout: Optional[float] = None,
+               build_index: bool = True,
+               **kwargs):
+        return self.vdb_client.upsert(
+            database_name=database_name,
+            collection_name=collection_name,
+            documents=documents,
+            timeout=timeout,
+            build_index=build_index,
+            **kwargs
+        )
+
+    def delete(self,
+               database_name: str,
+               collection_name: str,
+               document_ids: List[str] = None,
+               filter: Filter = None,
+               timeout: Optional[float] = None):
+        return self.vdb_client.delete(
+            database_name=database_name,
+            collection_name=collection_name,
+            document_ids=document_ids,
+            filter=filter,
+            timeout=timeout,
+        )
+
+    def update(self,
+               database_name: str,
+               collection_name: str,
+               data: Union[Document, Dict],
+               filter: Optional[Filter] = None,
+               document_ids: Optional[List[str]] = None,
+               timeout: Optional[float] = None):
+        return self.vdb_client.update(
+            database_name=database_name,
+            collection_name=collection_name,
+            data=data,
+            filter=filter,
+            document_ids=document_ids,
+            timeout=timeout,
+        )
+
+    def query(self,
+              database_name: str,
+              collection_name: str,
+              document_ids: Optional[List] = None,
+              retrieve_vector: bool = False,
+              limit: Optional[int] = None,
+              offset: Optional[int] = None,
+              filter: Optional[Filter] = None,
+              output_fields: Optional[List[str]] = None,
+              timeout: Optional[float] = None,
+              ) -> List[Dict]:
+        return self.vdb_client.query(
+            database_name=database_name,
+            collection_name=collection_name,
+            document_ids=document_ids,
+            retrieve_vector=retrieve_vector,
+            limit=limit,
+            offset=offset,
+            filter=filter,
+            output_fields=output_fields,
+            timeout=timeout,
+        )
+
+    def search(self,
+               database_name: str,
+               collection_name: str,
+               vectors: List[List[float]],
+               filter: Filter = None,
+               params=None,
+               retrieve_vector: bool = False,
+               limit: int = 10,
+               output_fields: Optional[List[str]] = None,
+               timeout: Optional[float] = None,
+               ) -> List[List[Dict]]:
+        return self.vdb_client.search(
+            database_name=database_name,
+            collection_name=collection_name,
+            vectors=vectors,
+            filter=filter,
+            params=params,
+            retrieve_vector=retrieve_vector,
+            limit=limit,
+            output_fields=output_fields,
+            timeout=timeout,
+        )
+
+    def search_by_id(self,
+                     database_name: str,
+                     collection_name: str,
+                     document_ids: List[str],
+                     filter: Filter = None,
+                     params=None,
+                     retrieve_vector: bool = False,
+                     limit: int = 10,
+                     output_fields: Optional[List[str]] = None,
+                     timeout: Optional[float] = None,
+                     ) -> List[List[Dict]]:
+        return self.vdb_client.search(
+            database_name=database_name,
+            collection_name=collection_name,
+            document_ids=document_ids,
+            filter=filter,
+            params=params,
+            retrieve_vector=retrieve_vector,
+            limit=limit,
+            output_fields=output_fields,
+            timeout=timeout,
+        )
+
+    def search_by_text(self,
+                       database_name: str,
+                       collection_name: str,
+                       embedding_items: List[str],
+                       filter: Filter = None,
+                       params=None,
+                       retrieve_vector: bool = False,
+                       limit: int = 10,
+                       output_fields: Optional[List[str]] = None,
+                       timeout: Optional[float] = None,
+                       ) -> List[List[Dict]]:
+        return self.vdb_client.search(
+            database_name=database_name,
+            collection_name=collection_name,
+            embedding_items=embedding_items,
+            filter=filter,
+            params=params,
+            retrieve_vector=retrieve_vector,
+            limit=limit,
+            output_fields=output_fields,
+            timeout=timeout,
+        )

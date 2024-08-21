@@ -5,7 +5,7 @@ import grpc
 from tcvectordb import debug
 from tcvectordb.exceptions import ServerInternalError, GrpcException
 from tcvectordb.rpc.proto import olama_pb2_grpc, olama_pb2
-# from google.protobuf import json_format
+from google.protobuf import json_format
 
 
 class RPCClient:
@@ -36,12 +36,12 @@ class RPCClient:
         return url.replace('http://', '').replace('https://', '')
 
     def upsert(self, req: olama_pb2.UpsertRequest, timeout: Optional[float] = None) -> olama_pb2.UpsertResponse:
-        # print(json_format.MessageToDict(req))
+        self._print_req(req)
         if timeout is None:
             timeout = self.timeout
         try:
             ret: olama_pb2.UpsertResponse = self.stub.upsert(req, metadata=self.headers, timeout=timeout)
-            self._result_check(ret.code, ret.msg, ret.warning)
+            self._result_check(ret, ret.warning)
             return ret
         except ServerInternalError as se:
             raise se
@@ -49,12 +49,12 @@ class RPCClient:
             raise GrpcException(message=str(e))
 
     def search(self, req: olama_pb2.SearchRequest, timeout: Optional[float] = None) -> olama_pb2.SearchResponse:
-        # print(json_format.MessageToDict(req))
+        self._print_req(req)
         if timeout is None:
             timeout = self.timeout
         try:
             ret: olama_pb2.SearchResponse = self.stub.search(req, metadata=self.headers, timeout=timeout)
-            self._result_check(ret.code, ret.msg, ret.warning)
+            self._result_check(ret, ret.warning)
             return ret
         except ServerInternalError as se:
             raise se
@@ -62,12 +62,12 @@ class RPCClient:
             raise GrpcException(message=str(e))
 
     def query(self, req: olama_pb2.QueryRequest, timeout: Optional[float] = None) -> olama_pb2.QueryResponse:
-        # print(json_format.MessageToDict(req))
+        self._print_req(req)
         if timeout is None:
             timeout = self.timeout
         try:
             ret: olama_pb2.QueryResponse = self.stub.query(req, metadata=self.headers, timeout=timeout)
-            self._result_check(ret.code, ret.msg)
+            self._result_check(ret)
             return ret
         except ServerInternalError as se:
             raise se
@@ -75,12 +75,12 @@ class RPCClient:
             raise GrpcException(message=str(e))
 
     def delete(self, req: olama_pb2.DeleteRequest, timeout: Optional[float] = None) -> olama_pb2.DeleteResponse:
-        # print(json_format.MessageToDict(req))
+        self._print_req(req)
         if timeout is None:
             timeout = self.timeout
         try:
             ret: olama_pb2.DeleteResponse = self.stub.dele(req, metadata=self.headers, timeout=timeout)
-            self._result_check(ret.code, ret.msg)
+            self._result_check(ret)
             return ret
         except ServerInternalError as se:
             raise se
@@ -88,12 +88,12 @@ class RPCClient:
             raise GrpcException(message=str(e))
 
     def update(self, req: olama_pb2.UpdateRequest, timeout: Optional[float] = None) -> olama_pb2.UpdateResponse:
-        # print(json_format.MessageToDict(req))
+        self._print_req(req)
         if timeout is None:
             timeout = self.timeout
         try:
             ret: olama_pb2.UpdateResponse = self.stub.update(req, metadata=self.headers, timeout=timeout)
-            self._result_check(ret.code, ret.msg, ret.warning)
+            self._result_check(ret, ret.warning)
             return ret
         except ServerInternalError as se:
             raise se
@@ -102,17 +102,34 @@ class RPCClient:
 
     def list_databases(self, req: olama_pb2.DatabaseRequest,
                        timeout: Optional[float] = None) -> olama_pb2.DatabaseResponse:
+        self._print_req(req)
         if timeout is None:
             timeout = self.timeout
         try:
-            return self.stub.listDatabases(req, metadata=self.headers, timeout=timeout)
+            ret: olama_pb2.DatabaseResponse = self.stub.listDatabases(req, metadata=self.headers, timeout=timeout)
+            self._result_check(ret)
+            return ret
         except ServerInternalError as se:
             raise se
         except Exception as e:
             raise GrpcException(message=str(e))
 
-    def _result_check(self, code: int, msg: str, warning: str = None):
+    def _print_req(self, req):
+        if debug.DebugEnable:
+            debug.Debug('%s body=%s', req.__class__.__name__, json_format.MessageToDict(req))
+
+    # def _result_check(self, code: int, msg: str, warning: str = None):
+    #     if warning:
+    #         debug.Warning(warning)
+    #     if code != 0:
+    #         raise ServerInternalError(code=code, message=msg)
+
+    def _result_check(self, ret, warning: str = None):
+        code = ret.code
+        msg = ret.msg
         if warning:
             debug.Warning(warning)
         if code != 0:
             raise ServerInternalError(code=code, message=msg)
+        if debug.DebugEnable:
+            debug.Debug('%s response=%s', ret.__class__.__name__, json_format.MessageToDict(ret))

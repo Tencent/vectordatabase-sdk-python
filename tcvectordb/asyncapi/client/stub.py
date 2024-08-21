@@ -1,10 +1,11 @@
-from typing import List, Optional, Union
+from typing import List, Optional, Union, Dict, Any
 
 from requests.adapters import HTTPAdapter
 
 from tcvectordb import VectorDBClient, exceptions
 from tcvectordb.asyncapi.model.ai_database import AsyncAIDatabase
 from tcvectordb.asyncapi.model.database import AsyncDatabase
+from tcvectordb.model.document import Document, Filter
 from tcvectordb.model.enum import ReadConsistency
 
 
@@ -48,3 +49,139 @@ class AsyncVectorDBClient(VectorDBClient):
                 return db
         raise exceptions.ParamError(message='Database not exist: {}'.format(database))
 
+    async def upsert(self,
+                     database_name: str,
+                     collection_name: str,
+                     documents: List[Union[Document, Dict]],
+                     timeout: Optional[float] = None,
+                     build_index: bool = True,
+                     **kwargs):
+        return super().upsert(
+            database_name=database_name,
+            collection_name=collection_name,
+            documents=documents,
+            timeout=timeout,
+            build_index=build_index,
+            **kwargs)
+
+    async def delete(self,
+                     database_name: str,
+                     collection_name: str,
+                     document_ids: List[str] = None,
+                     filter: Filter = None,
+                     timeout: Optional[float] = None):
+        return super().delete(
+            database_name=database_name,
+            collection_name=collection_name,
+            document_ids=document_ids,
+            filter=filter,
+            timeout=timeout,
+        )
+
+    async def update(self,
+                     database_name: str,
+                     collection_name: str,
+                     data: Union[Document, Dict],
+                     filter: Optional[Filter] = None,
+                     document_ids: Optional[List[str]] = None,
+                     timeout: Optional[float] = None):
+        return super().update(
+            database_name=database_name,
+            collection_name=collection_name,
+            data=data,
+            filter=filter,
+            document_ids=document_ids,
+            timeout=timeout,
+        )
+
+    async def query(self,
+                    database_name: str,
+                    collection_name: str,
+                    document_ids: Optional[List] = None,
+                    retrieve_vector: bool = False,
+                    limit: Optional[int] = None,
+                    offset: Optional[int] = None,
+                    filter: Optional[Filter] = None,
+                    output_fields: Optional[List[str]] = None,
+                    timeout: Optional[float] = None,
+                    ) -> List[Dict]:
+        return super().query(
+            database_name=database_name,
+            collection_name=collection_name,
+            document_ids=document_ids,
+            retrieve_vector=retrieve_vector,
+            limit=limit,
+            offset=offset,
+            filter=filter,
+            output_fields=output_fields,
+            timeout=timeout,
+        )
+
+    async def search(self,
+                     database_name: str,
+                     collection_name: str,
+                     vectors: List[List[float]],
+                     filter: Filter = None,
+                     params=None,
+                     retrieve_vector: bool = False,
+                     limit: int = 10,
+                     output_fields: Optional[List[str]] = None,
+                     timeout: Optional[float] = None,
+                     ) -> List[List[Dict]]:
+        return super().search(
+            database_name=database_name,
+            collection_name=collection_name,
+            vectors=vectors,
+            filter=filter,
+            params=params,
+            retrieve_vector=retrieve_vector,
+            limit=limit,
+            output_fields=output_fields,
+            timeout=timeout,
+        )
+
+    async def search_by_id(self,
+                           database_name: str,
+                           collection_name: str,
+                           document_ids: List[str],
+                           filter: Filter = None,
+                           params=None,
+                           retrieve_vector: bool = False,
+                           limit: int = 10,
+                           output_fields: Optional[List[str]] = None,
+                           timeout: Optional[float] = None,
+                           ) -> List[List[Dict]]:
+        return super().search_by_id(
+            database_name=database_name,
+            collection_name=collection_name,
+            document_ids=document_ids,
+            filter=filter,
+            params=params,
+            retrieve_vector=retrieve_vector,
+            limit=limit,
+            output_fields=output_fields,
+            timeout=timeout,
+        )
+
+    async def search_by_text(self,
+                             database_name: str,
+                             collection_name: str,
+                             embedding_items: List[str],
+                             filter: Filter = None,
+                             params=None,
+                             retrieve_vector: bool = False,
+                             limit: int = 10,
+                             output_fields: Optional[List[str]] = None,
+                             timeout: Optional[float] = None,
+                             ) -> Dict[str, Any]:
+        return super().search_by_text(
+            database_name=database_name,
+            collection_name=collection_name,
+            embedding_items=embedding_items,
+            filter=filter,
+            params=params,
+            retrieve_vector=retrieve_vector,
+            limit=limit,
+            output_fields=output_fields,
+            timeout=timeout,
+        )
