@@ -187,8 +187,8 @@ class CollectionView:
         if splitter_process is None or splitter_process.chunk_splitter is None:
             return
         _, extension = os.path.splitext(local_file_path)
-        if extension.lower() in {'.pdf', '.docx', '.pptx'}:
-            Warning("The splitter_process.chunk_splitter parameter is valid only for markdown files")
+        if extension.lower() in {'.pdf', '.pptx'}:
+            Warning("The splitter_process.chunk_splitter parameter is valid only for markdown and word files")
 
     def load_and_split_text(self,
                             local_file_path: str,
