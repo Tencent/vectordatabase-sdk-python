@@ -26,8 +26,10 @@ class RPCVectorDBClient(VectorDBClient):
                  timeout=10,
                  adapter: HTTPAdapter = None,
                  pool_size: int = 10,
+                 proxies: Optional[dict] = None,
                  **kwargs):
-        super().__init__(url, username, key, read_consistency, timeout, adapter, pool_size=pool_size)
+        super().__init__(url, username, key, read_consistency, timeout, adapter,
+                         pool_size=pool_size, proxies=proxies)
         rpc_client = RPCClient(url=url,
                                username=username,
                                key=key,

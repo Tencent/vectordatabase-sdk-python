@@ -20,9 +20,14 @@ class VectorDBClient:
                  read_consistency: ReadConsistency = ReadConsistency.EVENTUAL_CONSISTENCY,
                  timeout=10,
                  adapter: HTTPAdapter = None,
-                 pool_size: int = 10):
-        self._conn = HTTPClient(url, username, key, timeout, adapter, pool_size=pool_size)
+                 pool_size: int = 10,
+                 proxies: Optional[dict] = None):
+        self._conn = HTTPClient(url, username, key, timeout, adapter, pool_size=pool_size, proxies=proxies)
         self._read_consistency = read_consistency
+
+    @property
+    def http_client(self):
+        return self._conn
 
     def create_database(self, database_name: str, timeout: Optional[float] = None) -> Database:
         """Creates a database.

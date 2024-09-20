@@ -116,14 +116,15 @@ class VectorIndex(IndexField):
     def __init__(
         self,
         name: str,
-        dimension: int,
-        index_type: IndexType,
-        metric_type: MetricType,
+        dimension: Optional[int] = None,
+        index_type: Optional[IndexType] = None,
+        metric_type: Optional[MetricType] = None,
         params=None,
+        field_type: FieldType = FieldType.Vector,
         **kwargs
     ):
         super().__init__(name=name,
-                         field_type=FieldType.Vector,
+                         field_type=field_type,
                          index_type=index_type,
                          metric_type=metric_type)
         self._dimension = dimension
@@ -144,7 +145,8 @@ class VectorIndex(IndexField):
     @property
     def __dict__(self):
         obj = super().__dict__
-        obj['dimension'] = self.dimension
+        if self.dimension is not None:
+            obj['dimension'] = self.dimension
         if self.param:
             obj['params'] = vars(self.param) if hasattr(
                 self.param, '__dict__') else self.param
@@ -202,19 +204,21 @@ class Index:
     def add(self, index: Union[IndexField, None] = None, **kwargs):
         if not index and kwargs:
             metric_type = kwargs.pop('metricType', None)
-            if kwargs.get('fieldType', '') == FieldType.Vector.value:
+            field_type = kwargs.pop('fieldType', '')
+            if field_type in (FieldType.Vector.value, FieldType.SparseVector.value):
                 index = VectorIndex(
                     kwargs.pop('fieldName', ''),
-                    kwargs.pop('dimension', 0),
+                    kwargs.pop('dimension', None),
                     IndexType(kwargs.pop('indexType', None)),
                     metric_type=None if metric_type is None else MetricType(metric_type),
                     params=kwargs.pop('params', None),
+                    field_type=FieldType(field_type),
                     **kwargs,
                 )
             else:
                 index = FilterIndex(
                     kwargs.pop('fieldName', ''),
-                    FieldType(kwargs.pop('fieldType', '')),
+                    FieldType(field_type),
                     IndexType(kwargs.pop('indexType', None)),
                     metric_type=None if metric_type is None else MetricType(metric_type),
                     **kwargs,

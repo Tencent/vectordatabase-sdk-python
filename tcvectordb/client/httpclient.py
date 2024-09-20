@@ -58,7 +58,8 @@ class HTTPClient:
     def __init__(self, url: str, username: str, key: str,
                  timeout: int = 10,
                  adapter: HTTPAdapter = None,
-                 pool_size: int = 10):
+                 pool_size: int = 10,
+                 proxies: Optional[dict] = None):
         """
         Create a httpclient session.
         Args:
@@ -76,6 +77,8 @@ class HTTPClient:
         }
         self.pool_size = pool_size
         self.session = requests.Session()
+        if proxies:
+            self.session.proxies = proxies
         self._set_adapter(adapter)
         self.direct = False
 
