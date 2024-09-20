@@ -1,16 +1,16 @@
 import platform
+from typing import Optional
+
 import requests
 import socket
 from urllib3.connection import HTTPConnection
 from requests.adapters import HTTPAdapter
 from requests.adapters import PoolManager
 from urllib import parse
-import json
 
 from tcvectordb.exceptions import ParamError
 from tcvectordb.exceptions import ServerInternalError
-from tcvectordb import exceptions
-from tcvectordb.debug import Debug
+from tcvectordb import exceptions, debug
 
 
 class Response():
@@ -31,8 +31,7 @@ class Response():
             self._message = response.get('msg', '')
             self._body = response
             # print debug message if set DebugEnable is True
-            Debug("RESPONSE: %s", path)
-            Debug(response)
+            debug.Debug("Response %s, content=%s", path, response)
         except Exception as e:
             raise exceptions.ServerInternalError(
                 code=-1, message=str(res.content)+' ' + str(e))
@@ -68,10 +67,6 @@ class HTTPClient:
             key(str): account api key from console
             timeout(int): default http timeout by second, if set 0, means no timeout
         """
-        parse_result = parse.urlparse(url)
-        self.scheme = parse_result.scheme
-        if self.scheme == 'https':
-            raise ParamError
         self.url = url
         self.username = username
         self.key = key
@@ -82,6 +77,20 @@ class HTTPClient:
         self.pool_size = pool_size
         self.session = requests.Session()
         self._set_adapter(adapter)
+        self.direct = False
+
+    def _get_headers(self, ai: Optional[bool] = False):
+        if ai is None:
+            return self.header
+        backend = "vdb"
+        if not self.direct and ai:
+            backend = "ai"
+        header = {
+            'backend-service': backend
+        }
+        header.update(self.header)
+        debug.Debug("Backend %s", backend)
+        return header
 
     def _set_adapter(self, adapter: HTTPAdapter = None):
         if not adapter:
@@ -103,7 +112,6 @@ class HTTPClient:
     def _authorization(self):
         if not self.username or not self.key:
             raise ParamError
-
         return 'account={0}&api_key={1}'.format(self.username, self.key)
 
     def _get_url(self, path):
@@ -111,20 +119,22 @@ class HTTPClient:
             raise ParamError
         return self.url + path
 
-    """ wrap the requests get method
-    Raise: ServerInternalError when response code is not 0
-    """
+    def _warning(self, headers):
+        if not headers:
+            return
+        warn = headers.get('Warning')
+        if warn:
+            Warning(warn)
 
-    def get(self, path, params=None, timeout=None) -> Response:
+    def get(self, path, params=None, timeout=None, ai: Optional[bool] = False) -> Response:
         if not timeout:
             timeout = self.timeout
         if timeout is not None and timeout <= 0:
             timeout = None
-        Debug("GET %s", path)
-        Debug(params)
+        debug.Debug("GET %s, params=%s", path, params)
         res = self.session.get(self._get_url(
-            path), params=params, headers=self.header, timeout=timeout)
-
+            path), params=params, headers=self._get_headers(ai), timeout=timeout)
+        self._warning(res.headers)
         response = Response(path, res)
         if response.code != 0:
             raise ServerInternalError(
@@ -135,16 +145,15 @@ class HTTPClient:
     Raise: ServerInternalError when response code is not 0
     """
 
-    def post(self, path, body, timeout=None) -> Response:
+    def post(self, path, body, timeout=None, ai: Optional[bool] = False) -> Response:
         if not timeout:
             timeout = self.timeout
         if timeout is not None and timeout <= 0:
             timeout = None
-        Debug('POST %s', path)
-        Debug(body)
+        debug.Debug('POST %s, body=%s', path, body)
         res = self.session.post(self._get_url(
-            path), json=body, headers=self.header, timeout=timeout)
-
+            path), json=body, headers=self._get_headers(ai), timeout=timeout)
+        self._warning(res.headers)
         response = Response(path, res)
         if response.code != 0:
             raise ServerInternalError(

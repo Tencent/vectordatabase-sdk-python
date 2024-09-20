@@ -17,8 +17,9 @@ class RPCDatabase(Database):
                  conn: Union[HTTPClient, None],
                  name: str = '',
                  read_consistency: ReadConsistency = ReadConsistency.EVENTUAL_CONSISTENCY,
-                 vdb_client=None) -> None:
-        super().__init__(conn, name, read_consistency)
+                 vdb_client=None,
+                 db_type: Optional[str] = None) -> None:
+        super().__init__(conn, name, read_consistency, db_type=db_type)
         self.vdb_client = vdb_client
 
     def create_database(self, database_name='', timeout: Optional[float] = None):
@@ -39,8 +40,8 @@ class RPCDatabase(Database):
                           name: str,
                           shard: int,
                           replicas: int,
-                          description: str,
-                          index: Index,
+                          description: str = None,
+                          index: Index = None,
                           embedding: Embedding = None,
                           timeout: float = None,
     ) -> RPCCollection:
@@ -107,4 +108,5 @@ def db_convert(db: Database, vdb_client) -> Union[RPCDatabase, AIDatabase]:
         name=db.database_name,
         read_consistency=read_consistency,
         vdb_client=vdb_client,
+        db_type=db.db_type,
     )

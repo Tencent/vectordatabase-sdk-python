@@ -37,7 +37,7 @@ class ConnectError(VectorDBException):
 
 
 class ServerInternalError(VectorDBException):
-    """database core errorr"""
+    """database core error"""
 
 
 class IndexTypeException(VectorDBException):

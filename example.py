@@ -20,9 +20,9 @@ tcvectordb.debug.DebugEnable = False
 def print_object(obj):
     for elem in obj:
         if hasattr(elem, '__dict__'):
-            print(json.dumps(vars(elem), indent=2))
+            print(json.dumps(vars(elem), indent=2, ensure_ascii=False))
         else:
-            print(json.dumps(elem, indent=2))
+            print(json.dumps(elem, indent=2, ensure_ascii=False))
 
 
 class TestVDB:

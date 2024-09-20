@@ -1,7 +1,9 @@
 from typing import Dict, List, Optional, Any, Union
 
+from tcvectordb.model.index import IndexField, VectorIndex, FilterIndex
+
 from tcvectordb import exceptions
-from .document import Document, Filter
+from .document import Document, Filter, AnnSearch, KeywordSearch, Rerank
 from .enum import EmbeddingModel, ReadConsistency
 from .index import Index
 
@@ -174,15 +176,11 @@ class Search:
                  ):
         self._retrieve_vector = retrieve_vector
         self._limit = limit
-
-        if vectors is not None:
-            self._vectors = vectors
-
+        self.vectors = vectors
         if document_ids is not None:
             self._document_ids = document_ids
 
-        if embedding_items is not None:
-            self._embedding_items = embedding_items
+        self.embedding_items = embedding_items
 
         if params is not None:
             self._params = params
@@ -200,14 +198,14 @@ class Search:
             "limit": self._limit,
         }
 
-        if hasattr(self, "_vectors"):
-            res["vectors"] = self._vectors
+        if self.vectors is not None:
+            res["vectors"] = self.vectors
 
         if hasattr(self, "_document_ids"):
             res["documentIds"] = self._document_ids
 
-        if hasattr(self, "_embedding_items"):
-            res["embeddingItems"] = self._embedding_items
+        if self.embedding_items is not None:
+            res["embeddingItems"] = self.embedding_items
 
         if hasattr(self, "_params"):
             res["params"] = vars(self._params)
@@ -275,6 +273,10 @@ class Collection():
         return self._index
 
     @property
+    def indexes(self) -> List[Union[IndexField, VectorIndex, FilterIndex]]:
+        return list(self.index.indexes.values())
+
+    @property
     def embedding(self):
         return self._embedding
 
@@ -335,12 +337,18 @@ class Collection():
             'buildIndex': res_build_index,
             'documents': []
         }
+        ai = False
+        if len(documents) > 0:
+            if isinstance(documents[0], dict):
+                ai = isinstance(documents[0].get('vector'), str)
+            else:
+                ai = isinstance(vars(documents[0]).get('vector'), str)
         for doc in documents:
             if isinstance(doc, dict):
                 body['documents'].append(doc)
             else:
                 body['documents'].append(vars(doc))
-        res = self._conn.post('/document/upsert', body, timeout)
+        res = self._conn.post('/document/upsert', body, timeout, ai=ai)
         return res.data()
 
     def query(
@@ -539,7 +547,11 @@ class Collection():
             'readConsistency': read_consistency.value,
             'search': vars(search)
         }
-        res = self._conn.post('/document/search', body, timeout)
+        ai = False
+        if isinstance(search.vectors, list) and \
+                len(search.vectors) > 0 and isinstance(search.vectors[0], str):
+            ai = True
+        res = self._conn.post('/document/search', body, timeout, ai=ai)
 
         warn_msg = ""
         if res.body.get("warning", None) is not None and len(res.body.get("warning", None)) > 0:
@@ -564,6 +576,95 @@ class Collection():
             'warning': warn_msg,
             'documents': documents_res
         }
+
+    def hybrid_search(self,
+                      ann: Optional[List[AnnSearch]] = None,
+                      match: Optional[List[KeywordSearch]] = None,
+                      filter: Optional[Filter] = None,
+                      rerank: Optional[Rerank] = None,
+                      retrieve_vector: Optional[bool] = None,
+                      output_fields: Optional[List[str]] = None,
+                      limit: Optional[int] = None,
+                      timeout: Optional[float] = None,
+                      **kwargs) -> List[List[Dict]]:
+        """hybrid search
+
+        :param match: ann params for search.
+        :type match : List[KeywordSearch]
+
+        :param ann: sparse vector search params.
+        :type ann : List[AnnSearch]
+
+        :param filter: The optional filter condition of the scalar index field.
+        :type filter: Filter
+
+        :param rerank: rerank params for search.
+        :type rerank : Rerank
+
+        :param output_fields: document's fields to return.
+        :type output_fields: list[str]
+
+        :param retrieve_vector: Whether to return vector values.
+        :type retrieve_vector: bool
+
+        :param limit: the limit of the query result, not support now
+        :type: int
+
+        :param timeout: An optional duration of time in seconds to allow for the request. When timeout
+                        is set to None, will use the connect timeout.
+        :type  timeout: float
+
+        :return Documents, the list of the document
+        :rtype: List[List[Dict]]
+        """
+        search = {}
+        ai = False
+        if ann:
+            search['ann'] = []
+            for a in ann:
+                search['ann'].append(vars(a))
+            if len(ann) > 0 and ann[0].data is not None:
+                if isinstance(ann[0].data, str):
+                    ai = True
+                elif len(ann[0].data) > 0 and isinstance(ann[0].data[0], str):
+                    ai = True
+        if match:
+            search['match'] = []
+            for m in match:
+                search['match'].append(vars(m))
+        if filter:
+            search['filter'] = vars(filter)
+        if rerank:
+            # if rerank.method == "wordsEmbedding":
+            #     ai = True
+            search['rerank'] = vars(rerank)
+        if retrieve_vector is not None:
+            search['retrieveVector'] = retrieve_vector
+        if output_fields:
+            search['outputFields'] = output_fields
+        if limit is not None:
+            search['limit'] = limit
+        search.update(kwargs)
+        body = {
+            'database': self.database_name,
+            'collection': self.collection_name,
+            'readConsistency': self._read_consistency.value,
+            'search': search,
+        }
+        res = self._conn.post('/document/hybridSearch', body, timeout, ai=ai)
+        if 'warning' in res.body:
+            Warning(res.body.get('warning'))
+        documents = res.body.get('documents', None)
+        if not documents:
+            return []
+        documents_res = []
+        for arr in documents:
+            tmp = []
+            for elem in arr:
+                tmp.append(elem)
+            if tmp:
+                documents_res.append(tmp)
+        return documents_res
 
     def delete(
             self,
@@ -637,14 +738,18 @@ class Collection():
 
         if document is None:
             raise exceptions.ParamError(code=-1, message='document is None')
-
         body = {
             'database': self.database_name,
             'collection': self.collection_name,
             'query': vars(update_query)
         }
+        ai = False
+        if isinstance(document, dict):
+            ai = isinstance(document.get('vector'), str)
+        else:
+            ai = isinstance(vars(document).get('vector'), str)
         body["update"] = document if isinstance(document, dict) else vars(document)
-        postRes = self._conn.post('/document/update', body, timeout)
+        postRes = self._conn.post('/document/update', body, timeout, ai=ai)
         resBody = postRes.body
         res = {}
 

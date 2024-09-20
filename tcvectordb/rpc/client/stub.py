@@ -6,7 +6,7 @@ from requests.adapters import HTTPAdapter
 from tcvectordb import VectorDBClient
 from tcvectordb.model.ai_database import AIDatabase
 from tcvectordb.model.database import Database
-from tcvectordb.model.document import Document, Filter
+from tcvectordb.model.document import Document, Filter, AnnSearch, KeywordSearch, Rerank
 from tcvectordb.model.enum import ReadConsistency
 from tcvectordb.rpc.client.rpcclient import RPCClient
 from tcvectordb.rpc.client.vdbclient import VdbClient
@@ -26,14 +26,13 @@ class RPCVectorDBClient(VectorDBClient):
                  timeout=10,
                  adapter: HTTPAdapter = None,
                  pool_size: int = 10,
-                 channel_ready_check: bool = True,
-                 ):
+                 **kwargs):
         super().__init__(url, username, key, read_consistency, timeout, adapter, pool_size=pool_size)
         rpc_client = RPCClient(url=url,
                                username=username,
                                key=key,
                                timeout=timeout,
-                               channel_ready_check=channel_ready_check)
+                               **kwargs)
         self.vdb_client = VdbClient(client=rpc_client, read_consistency=read_consistency)
 
     def create_database(self, database_name: str, timeout: Optional[float] = None) -> RPCDatabase:
@@ -196,3 +195,28 @@ class RPCVectorDBClient(VectorDBClient):
             output_fields=output_fields,
             timeout=timeout,
         )
+
+    def hybrid_search(self,
+                      database_name: str,
+                      collection_name: str,
+                      ann: Optional[List[AnnSearch]] = None,
+                      match: Optional[List[KeywordSearch]] = None,
+                      filter: Optional[Filter] = None,
+                      rerank: Optional[Rerank] = None,
+                      retrieve_vector: Optional[bool] = None,
+                      output_fields: Optional[List[str]] = None,
+                      limit: Optional[int] = None,
+                      timeout: Optional[float] = None,
+                      **kwargs) -> List[List[Dict]]:
+        return self.vdb_client.hybrid_search(
+            database_name=database_name,
+            collection_name=collection_name,
+            ann=ann,
+            match=match,
+            filter=filter,
+            rerank=rerank,
+            retrieve_vector=retrieve_vector,
+            output_fields=output_fields,
+            limit=limit,
+            timeout=timeout,
+            **kwargs)

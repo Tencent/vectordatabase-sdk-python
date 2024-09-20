@@ -2,7 +2,7 @@ from typing import Dict, List, Optional, Any, Union
 
 from tcvectordb.model.collection import Collection
 from tcvectordb.model.collection_view import Embedding
-from tcvectordb.model.document import Document, Filter
+from tcvectordb.model.document import Document, Filter, AnnSearch, KeywordSearch, Rerank
 from tcvectordb.model.enum import ReadConsistency
 from tcvectordb.model.index import Index
 
@@ -108,6 +108,27 @@ class AsyncCollection(Collection):
                                     limit,
                                     output_fields,
                                     timeout)
+
+    async def hybrid_search(self,
+                            ann: Optional[List[AnnSearch]] = None,
+                            match: Optional[List[KeywordSearch]] = None,
+                            filter: Optional[Filter] = None,
+                            rerank: Optional[Rerank] = None,
+                            retrieve_vector: Optional[bool] = None,
+                            output_fields: Optional[List[str]] = None,
+                            limit: Optional[int] = None,
+                            timeout: Optional[float] = None,
+                            **kwargs) -> List[List[Dict]]:
+        return super().hybrid_search(
+            ann=ann,
+            match=match,
+            filter=filter,
+            rerank=rerank,
+            retrieve_vector=retrieve_vector,
+            output_fields=output_fields,
+            limit=limit,
+            timeout=timeout,
+            **kwargs)
 
     async def delete(self,
                      document_ids: List[str] = None,

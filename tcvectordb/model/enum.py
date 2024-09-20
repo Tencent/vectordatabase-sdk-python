@@ -13,6 +13,8 @@ class FieldType(Enum):
 
     # vector field type
     Vector = "vector"
+    # sparse vector type
+    SparseVector = "sparseVector"
 
 
 @unique
@@ -39,6 +41,7 @@ class IndexType(Enum):
     # scalar index type
     PRIMARY_KEY = "primaryKey"
     FILTER = "filter"
+    SPARSE_INVERTED = "inverted"
 
 
 @unique

@@ -235,8 +235,10 @@ class CollectionView:
         upload_path = res.body.get('uploadPath')
         cos_endpoint = res.body.get('cosEndpoint')
         bucket = cos_endpoint.split('.')[0].replace('https://', '').replace('http://', '')
-        region = cos_endpoint.split('.')[2]
-        config = CosConfig(Region=region,
+        # region = cos_endpoint.split('.')[2]
+        endpoint = cos_endpoint.split('.', 1)[1]
+        config = CosConfig(#Region=region,
+                           Endpoint=endpoint,
                            SecretId=credentials.get('TmpSecretId'),
                            SecretKey=credentials.get('TmpSecretKey'),
                            Token=credentials.get('Token'))

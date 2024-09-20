@@ -1,4 +1,7 @@
+from abc import ABC
 from typing import Dict, List, Optional, Union
+
+from tcvectordb.model.index import SparseVector
 
 
 class Filter:
@@ -86,6 +89,146 @@ class SearchParams(HNSWSearchParams):
             res["nprobe"] = self._nprobe
         if hasattr(self, "_radius"):
             res["radius"] = self._radius
+        return res
+
+
+class AnnSearch:
+    """ann search params"""
+
+    def __init__(self,
+                 field_name: Optional[str] = None,
+                 document_ids: Optional[List[str]] = None,
+                 data: Optional[Union[List[float], str]] = None,
+                 params: Optional[Union[HNSWSearchParams, SearchParams, dict]] = None,
+                 limit: Optional[int] = None,
+                 **kwargs
+                 ):
+        self.field_name = field_name
+        self.document_ids = document_ids
+        self.data = data
+        self.params = params
+        self.limit = limit
+        self.kwargs = kwargs
+
+    @property
+    def __dict__(self):
+        res = {}
+        if self.field_name is not None:
+            res['fieldName'] = self.field_name
+        if self.document_ids is not None:
+            res['documentIds'] = self.document_ids
+        if self.data is not None:
+            # hybrid_search sdk暂时不提供batch，但接口是batch
+            if isinstance(self.data, str):
+                res['data'] = [self.data]
+            elif len(self.data) > 0 and (isinstance(self.data[0], str) or isinstance(self.data[0], list)):
+                res['data'] = self.data
+            else:
+                res['data'] = [self.data]
+        if self.params:
+            if isinstance(self.params, dict):
+                res['params'] = self.params
+            else:
+                res['params'] = vars(self.params)
+        if self.limit is not None:
+            res['limit'] = self.limit
+        res.update(self.kwargs)
+        return res
+
+
+class KeywordSearch:
+    """sparse vector search params"""
+
+    def __init__(self,
+                 field_name: Optional[str] = None,
+                 data: Optional[SparseVector] = None,
+                 limit: Optional[int] = None,
+                 **kwargs
+                 ):
+        self.field_name = field_name
+        self.data = data
+        self.limit = limit
+        self.kwargs = kwargs
+
+    @property
+    def __dict__(self):
+        res = {}
+        if self.field_name is not None:
+            res['fieldName'] = self.field_name
+        if self.data is not None:
+            if isinstance(self.data[0][0], list):
+                res['data'] = self.data
+            else:
+                res['data'] = [self.data]
+        if self.limit is not None:
+            res['limit'] = self.limit
+        res.update(self.kwargs)
+        return res
+
+
+class Rerank(ABC):
+    def __init__(self,
+                 method: Optional[str] = None,
+                 ):
+        self.method = method
+
+
+class WeightedRerank(Rerank):
+    def __init__(self,
+                 field_list: Optional[List[str]] = None,
+                 weight: Optional[List[float]] = None,
+                 **kwargs
+                 ):
+        super().__init__(method="weighted")
+        self.field_list = field_list
+        self.weight = weight
+        self.kwargs = kwargs
+
+    @staticmethod
+    def weight_normalization(weights: List[float]) -> List[float]:
+        total = sum(weights)
+        if total == 0:
+            return weights
+        all_zero = True
+        n_weights = []
+        for w in weights:
+            if w < 0:
+                return weights
+            if w != 0:
+                all_zero = False
+            n_weights.append(w / total)
+        return weights if all_zero else n_weights
+
+    @property
+    def __dict__(self):
+        res = {}
+        if self.method is not None:
+            res['method'] = self.method
+        if self.field_list is not None:
+            res['fieldList'] = self.field_list
+        if self.weight is not None:
+            res['weight'] = self.weight
+        res.update(self.kwargs)
+        return res
+
+
+class RRFRerank(Rerank):
+    def __init__(self,
+                 k: Optional[int] = None,
+                 **kwargs
+                 ):
+        super().__init__(method="rrf")
+        self.k = k
+        self.kwargs = kwargs
+
+    @property
+    def __dict__(self):
+        res = {}
+        if self.method is not None:
+            res['method'] = self.method
+        if self.k is not None:
+            res['k'] = self.k
+        res.update(self.kwargs)
         return res
 
 

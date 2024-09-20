@@ -14,10 +14,12 @@ class Database:
     def __init__(self,
                  conn: Union[HTTPClient, None],
                  name: str = '',
-                 read_consistency: ReadConsistency = ReadConsistency.EVENTUAL_CONSISTENCY) -> None:
+                 read_consistency: ReadConsistency = ReadConsistency.EVENTUAL_CONSISTENCY,
+                 db_type: Optional[str] = None) -> None:
         self._dbname = name
         self._conn = conn
         self._read_consistency = read_consistency
+        self.db_type = db_type
 
     @property
     def conn(self):
@@ -97,9 +99,11 @@ class Database:
         for db_name in databases:
             db_type = db_info.get(db_name, {}).get('dbType', 'BASE_DB')
             if db_type in ('AI_DOC', 'AI_DB'):
-                res.append(AIDatabase(conn=self.conn, name=db_name, read_consistency=self._read_consistency))
+                res.append(AIDatabase(conn=self.conn, name=db_name,
+                                      read_consistency=self._read_consistency, db_type=db_type))
             else:
-                res.append(Database(conn=self.conn, name=db_name, read_consistency=self._read_consistency))
+                res.append(Database(conn=self.conn, name=db_name,
+                                    read_consistency=self._read_consistency, db_type=db_type))
         return res
 
     def create_collection(
@@ -107,8 +111,8 @@ class Database:
             name: str,
             shard: int,
             replicas: int,
-            description: str,
-            index: Index,
+            description: str = None,
+            index: Index = None,
             embedding: Embedding = None,
             timeout: float = None,
     ) -> Collection:
@@ -144,23 +148,18 @@ class Database:
         """
         if not self.database_name:
             raise exceptions.ParamError(message='database not found')
-        if not name:
-            raise exceptions.ParamError(
-                message='collection name param not found')
-        if not index:
-            raise exceptions.ParamError(code=-1, message='must set index')
-
         body = {
             'database': self.database_name,
             'collection': name,
             'shardNum': shard,
             'replicaNum': replicas,
-            'description': description,
             'embedding': vars(embedding) if embedding else {},
-            'indexes': index.list()
         }
+        if description is not None:
+            body['description'] = description
+        if index is not None:
+            body['indexes'] = index.list()
         self._conn.post('/collection/create', body, timeout)
-
         return Collection(self, name, shard, replicas, description, index, embedding=embedding,
                           read_consistency=self._read_consistency)
 

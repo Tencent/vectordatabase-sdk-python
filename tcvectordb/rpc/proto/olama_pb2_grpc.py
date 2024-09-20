@@ -79,13 +79,18 @@ class SearchEngineStub(object):
                 request_serializer=olama__pb2.SearchRequest.SerializeToString,
                 response_deserializer=olama__pb2.SearchResponse.FromString,
                 )
+        self.hybrid_search = channel.unary_unary(
+                '/document/hybridSearch',
+                request_serializer=olama__pb2.SearchRequest.SerializeToString,
+                response_deserializer=olama__pb2.SearchResponse.FromString,
+                )
         self.dele = channel.unary_unary(
                 '/document/delete',
                 request_serializer=olama__pb2.DeleteRequest.SerializeToString,
                 response_deserializer=olama__pb2.DeleteResponse.FromString,
                 )
         self.range_search = channel.unary_unary(
-                '/document/range_search',
+                '/olama.SearchEngine/range_search',
                 request_serializer=olama__pb2.SearchRequest.SerializeToString,
                 response_deserializer=olama__pb2.SearchResponse.FromString,
                 )
@@ -113,6 +118,11 @@ class SearchEngineStub(object):
                 '/olama.SearchEngine/describeDatabase',
                 request_serializer=olama__pb2.DescribeDatabaseRequest.SerializeToString,
                 response_deserializer=olama__pb2.DescribeDatabaseResponse.FromString,
+                )
+        self.get_version = channel.unary_unary(
+                '/olama.SearchEngine/get_version',
+                request_serializer=olama__pb2.GetVersionRequest.SerializeToString,
+                response_deserializer=olama__pb2.GetVersionResponse.FromString,
                 )
 
 
@@ -210,6 +220,13 @@ class SearchEngineServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def hybrid_search(self, request, context):
+        """混合搜索
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
     def dele(self, request, context):
         """删除向量
         """
@@ -254,6 +271,13 @@ class SearchEngineServicer(object):
 
     def describeDatabase(self, request, context):
         """显示数据库
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def get_version(self, request, context):
+        """获取版本（api升级兼容性考虑）
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -327,6 +351,11 @@ def add_SearchEngineServicer_to_server(servicer, server):
                     request_deserializer=olama__pb2.SearchRequest.FromString,
                     response_serializer=olama__pb2.SearchResponse.SerializeToString,
             ),
+            'hybrid_search': grpc.unary_unary_rpc_method_handler(
+                    servicer.hybrid_search,
+                    request_deserializer=olama__pb2.SearchRequest.FromString,
+                    response_serializer=olama__pb2.SearchResponse.SerializeToString,
+            ),
             'dele': grpc.unary_unary_rpc_method_handler(
                     servicer.dele,
                     request_deserializer=olama__pb2.DeleteRequest.FromString,
@@ -361,6 +390,11 @@ def add_SearchEngineServicer_to_server(servicer, server):
                     servicer.describeDatabase,
                     request_deserializer=olama__pb2.DescribeDatabaseRequest.FromString,
                     response_serializer=olama__pb2.DescribeDatabaseResponse.SerializeToString,
+            ),
+            'get_version': grpc.unary_unary_rpc_method_handler(
+                    servicer.get_version,
+                    request_deserializer=olama__pb2.GetVersionRequest.FromString,
+                    response_serializer=olama__pb2.GetVersionResponse.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -594,6 +628,23 @@ class SearchEngine(object):
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
     @staticmethod
+    def hybrid_search(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/olama.SearchEngine/hybrid_search',
+            olama__pb2.SearchRequest.SerializeToString,
+            olama__pb2.SearchResponse.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
     def dele(request,
             target,
             options=(),
@@ -709,5 +760,22 @@ class SearchEngine(object):
         return grpc.experimental.unary_unary(request, target, '/olama.SearchEngine/describeDatabase',
             olama__pb2.DescribeDatabaseRequest.SerializeToString,
             olama__pb2.DescribeDatabaseResponse.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def get_version(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/olama.SearchEngine/get_version',
+            olama__pb2.GetVersionRequest.SerializeToString,
+            olama__pb2.GetVersionResponse.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)

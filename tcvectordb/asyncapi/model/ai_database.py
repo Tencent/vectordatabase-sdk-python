@@ -13,8 +13,9 @@ class AsyncAIDatabase(AIDatabase):
     def __init__(self,
                  conn: HTTPClient,
                  name: str,
-                 read_consistency: ReadConsistency = ReadConsistency.EVENTUAL_CONSISTENCY):
-        super().__init__(conn, name, read_consistency)
+                 read_consistency: ReadConsistency = ReadConsistency.EVENTUAL_CONSISTENCY,
+                 db_type: Optional[str] = None):
+        super().__init__(conn, name, read_consistency, db_type=db_type)
 
     async def create_database(self, database_name='', timeout: Optional[float] = None):
         super().create_database(database_name, timeout)

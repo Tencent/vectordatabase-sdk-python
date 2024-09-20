@@ -1,8 +1,10 @@
-
 from typing import Dict, List, Optional, Union
 from tcvectordb import exceptions
 from .enum import FieldType, MetricType, IndexType
 from enum import Enum
+
+
+SparseVector = List[List[Union[int, float]]]
 
 
 class HNSWParams:
@@ -60,29 +62,41 @@ class IVFSQ16Params(IVFSQ8Params):
 
 
 class IndexField:
-    def __init__(self, name: str, field_type: FieldType, index_type: Enum = None):
+    def __init__(self,
+                 name: str,
+                 field_type: FieldType,
+                 index_type: IndexType = None,
+                 metric_type: MetricType = None):
         self._name = name
-        self._field_type = field_type
-        self._index_type = index_type
+        self.field_type = field_type
+        self.index_type = index_type
+        self.metric_type = metric_type
 
     @property
     def __dict__(self):
         obj = {
             'fieldName': self.name,
-            'fieldType': self._field_type.value,
-            'indexType': self._index_type.value
+            'fieldType': self.field_type.value,
         }
+        if self.index_type is not None:
+            obj['indexType'] = self.index_type.value
+        if self.metric_type is not None:
+            obj['metricType'] = self.metric_type.value
         return obj
 
     @property
+    def metricType(self):
+        return self.metric_type
+
+    @property
     def indexType(self):
-        return self._index_type
+        return self.index_type
 
     def is_vector_field(self) -> bool:
-        return self._field_type == FieldType.Vector
+        return self.field_type == FieldType.Vector or self.field_type == FieldType.SparseVector
 
     def is_primary_key(self) -> bool:
-        return self._index_type == IndexType.PRIMARY_KEY
+        return self.index_type == IndexType.PRIMARY_KEY
 
     @property
     def name(self):
@@ -108,43 +122,35 @@ class VectorIndex(IndexField):
         params=None,
         **kwargs
     ):
-        super().__init__(name=name, field_type=FieldType.Vector)
+        super().__init__(name=name,
+                         field_type=FieldType.Vector,
+                         index_type=index_type,
+                         metric_type=metric_type)
         self._dimension = dimension
         self._index_type = index_type
         self._metric_type = metric_type
         self._param = params
         self.indexed_count = kwargs.pop('indexedCount', None)
-        for k, v in kwargs.items():
-            setattr(self, k, v)
+        self.kwargs = kwargs
 
     @property
     def dimension(self):
         return self._dimension
 
     @property
-    def metricType(self):
-        return self._metric_type
-
-    @property
     def param(self):
         return self._param
-
-    # @property
-    # def indexed_count(self):
-    #     return self._indexed_count
 
     @property
     def __dict__(self):
         obj = super().__dict__
-        obj.update({
-            'dimension': self.dimension,
-            'metricType': self.metricType.value,
-        })
+        obj['dimension'] = self.dimension
         if self.param:
             obj['params'] = vars(self.param) if hasattr(
                 self.param, '__dict__') else self.param
         if self.indexed_count is not None:
             obj['indexedCount'] = self.indexed_count
+        obj.update(self.kwargs)
         return obj
 
 
@@ -156,8 +162,23 @@ class FilterIndex(IndexField):
         index_type(IndexType): The scalar index type of the index.
     """
 
-    def __init__(self, name: str, field_type: FieldType, index_type: IndexType, **kwargs) -> None:
-        super().__init__(name=name, field_type=field_type, index_type=index_type)
+    def __init__(self,
+                 name: str,
+                 field_type: FieldType,
+                 index_type: IndexType,
+                 metric_type: Optional[MetricType] = None,
+                 **kwargs) -> None:
+        super().__init__(name=name,
+                         field_type=field_type,
+                         index_type=index_type,
+                         metric_type=metric_type)
+        self.kwargs = kwargs
+
+    @property
+    def __dict__(self):
+        obj = super().__dict__
+        obj.update(self.kwargs)
+        return obj
 
 
 class Index:
@@ -173,21 +194,21 @@ class Index:
                     self.add(index=index)
                 else:
                     self.add(**index)
-        pass
     
     @property
     def indexes(self) -> Dict[str, Union[FilterIndex, VectorIndex]]:
         return self._indexes
 
-    def add(self, index: Union[FilterIndex, VectorIndex, None] = None, **kwargs):
+    def add(self, index: Union[IndexField, None] = None, **kwargs):
         if not index and kwargs:
+            metric_type = kwargs.pop('metricType', None)
             if kwargs.get('fieldType', '') == FieldType.Vector.value:
                 index = VectorIndex(
                     kwargs.pop('fieldName', ''),
                     kwargs.pop('dimension', 0),
                     IndexType(kwargs.pop('indexType', None)),
-                    MetricType(kwargs.pop('metricType', None)),
-                    kwargs.pop('params', None),
+                    metric_type=None if metric_type is None else MetricType(metric_type),
+                    params=kwargs.pop('params', None),
                     **kwargs,
                 )
             else:
@@ -195,12 +216,11 @@ class Index:
                     kwargs.pop('fieldName', ''),
                     FieldType(kwargs.pop('fieldType', '')),
                     IndexType(kwargs.pop('indexType', None)),
+                    metric_type=None if metric_type is None else MetricType(metric_type),
                     **kwargs,
                 )
-
         if index.name in self._indexes:
-            raise exceptions.IndexTypeException(
-                code=-1, message='duplicate index field with {}'.format(index))
+            raise exceptions.ServerInternalError(code=15000, message='fieldName must exist and be unique')
         if index.is_primary_key():
             self._primary_field = index
         self._indexes[index.name] = index

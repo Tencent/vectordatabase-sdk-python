@@ -2,7 +2,7 @@ from typing import Dict, List, Optional, Any, Union
 
 from tcvectordb.model.collection import Collection
 from tcvectordb.model.collection_view import Embedding
-from tcvectordb.model.document import Document, Filter
+from tcvectordb.model.document import Document, Filter, AnnSearch, KeywordSearch, Rerank
 from tcvectordb.model.enum import ReadConsistency
 from tcvectordb.model.index import Index
 from tcvectordb.rpc.client.vdbclient import VdbClient
@@ -157,3 +157,27 @@ class RPCCollection(Collection):
             output_fields=output_fields,
             timeout=timeout,
         )
+
+    def hybrid_search(self,
+                      ann: Optional[List[AnnSearch]] = None,
+                      match: Optional[List[KeywordSearch]] = None,
+                      filter: Optional[Filter] = None,
+                      rerank: Optional[Rerank] = None,
+                      retrieve_vector: Optional[bool] = None,
+                      output_fields: Optional[List[str]] = None,
+                      limit: Optional[int] = None,
+                      timeout: Optional[float] = None,
+                      **kwargs) -> List[List[Dict]]:
+        return self.vdb_client.hybrid_search(
+            database_name=self.database_name,
+            collection_name=self.collection_name,
+            ann=ann,
+            match=match,
+            filter=filter,
+            rerank=rerank,
+            retrieve_vector=retrieve_vector,
+            output_fields=output_fields,
+            limit=limit,
+            timeout=timeout,
+            **kwargs)
+

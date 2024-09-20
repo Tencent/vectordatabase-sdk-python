@@ -4,15 +4,17 @@ package olama;
 option cc_generic_services = true;
 
 message Document {
-    string id                 = 1;
-    repeated float vector     = 2;
-    float score               = 3;
-    map<string, Field> fields = 4;
-    uint64 index_id           = 5;
-    string from_peer          = 6;
-    int32 shard_idx           = 7;
-    uint64 vector_offset      = 8;
-    bytes doc_info            = 9;
+    string id                              = 1;
+    repeated float vector                  = 2;
+    float score                            = 3;
+    map<string, Field> fields              = 4;
+    uint64 index_id                        = 5;
+    string from_peer                       = 6;
+    int32 shard_idx                        = 7;
+    uint64 vector_offset                   = 8;
+    bytes doc_info                         = 9;
+    repeated SparseVecItem sparse_vector   = 10;
+    string data_expr                       = 11;  // AI套件占用字段，内核不关注
 }
 
 message Field {
@@ -26,6 +28,11 @@ message Field {
         double val_double       = 3;
         StringArray val_str_arr = 4;
     }
+}
+
+message SparseVecItem {
+    int64 term_id    = 1;
+    float score      = 2;
 }
 
 enum ShardDataState {
@@ -47,8 +54,6 @@ message ShardState {
     int64 last_snapshot_time       = 9;
     int64 last_hnsw_resize_time    = 10;
     int64 last_index_rebuild_time  = 11;
-    uint64 indexed_count           = 12;
-    uint64 unindexed_count         = 13;
 }
 
 message Shard {
@@ -81,7 +86,7 @@ enum DataType {
 
 message DatabaseItem {
     int64 create_time   = 1;
-    DataType db_type  = 2;
+    DataType db_type    = 2;
 }
 
 message SnapshotRule {
@@ -179,8 +184,6 @@ message CollectionState {
     CreateCollectionRequest req          = 6;
     HealthState status                   = 7;
     ShardDataState index_state           = 8;
-    uint64 indexed_count                 = 9;  // 已经创建索引的条目数
-    uint64 unindexed_count               = 10; // 尚未创建索引的条目数
 }
 
 message AddAliasRequest {
@@ -271,8 +274,12 @@ message indexStatus {
     string status           = 1;
     string progress         = 2;
     string startTime        = 3;
-    uint64 indexed_count    = 4; // 已经创建索引的条目数
-    uint64 unindexed_count  = 5; // 尚未创建索引的条目数
+};
+
+message FilterIndexConfig {
+    bool filterAll                              = 1;
+    repeated string fieldsWithoutIndex          = 2;
+    uint32 maxStrLen                            = 3;
 };
 
 message CreateCollectionRequest {
@@ -289,6 +296,7 @@ message CreateCollectionRequest {
     EmbeddingParams embeddingParams        = 11;
     int64 version                          = 12;
     TTLConfig ttlConfig                    = 13;
+    FilterIndexConfig filterIndexConfig     = 14;
 };
 
 message CreateCollectionResponse {
@@ -399,6 +407,7 @@ message QueryCond {
     int64 limit                     = 5;
     int64 offset                    = 6;
     repeated string outputFields    = 7;
+    bool retrieveSparseVector       = 8;  // 目前用户不传，仅用于内部
 }
 
 message QueryRequest {
@@ -430,15 +439,45 @@ message VectorArray {
     repeated float vector = 1;
 }
 
+message AnnData {
+    string   fieldName                  = 1; // 字段名称
+    repeated VectorArray data           = 2; // 使用向量值检索
+    repeated string documentIds         = 3; // 使用向量id检索
+    SearchParams params                 = 4; // 搜索参数
+    uint32 limit                        = 5; // 结果数量
+    repeated string data_expr           = 6; // 表达式搜索
+}
+
+message SparseVectorArray {
+    repeated SparseVecItem sp_vector = 1;
+}
+
+message SparseData {
+    string   fieldName                  = 1; // 字段名称
+    repeated SparseVectorArray data     = 2; // 使用向量值检索
+    uint32 limit                        = 3; // 结果数量
+}
+
+message RerankParams {
+    string method                   = 1;
+    map<string, float> weights      = 2;  // for WEIGHTED: 各路检索结果分数权重, map的key对应field_name
+    int32 rrf_k                     = 3;  // for RRF: K参数
+}
+
 message SearchCond {
-    repeated VectorArray vectors      = 1; // 使用向量值检索
-    repeated string documentIds       = 2; // 使用向量id检索
+    repeated VectorArray vectors      = 1;  // 使用向量值检索
+    repeated string documentIds       = 2;  // 使用向量id检索
     SearchParams params               = 3;
-    string filter                     = 4; // 过滤条件
-    bool retrieveVector               = 5; // 是否返回原始向量，注意设置为true时会降低性能
-    uint32 limit                      = 6; // 结果数量
-    repeated string outputfields      = 7; // 输出字段
-    repeated string embeddingItems    = 8; // 使用字符串检索
+    string filter                     = 4;  // 过滤条件
+    bool retrieveVector               = 5;  // 是否返回原始向量，注意设置为true时会降低性能
+    uint32 limit                      = 6;  // 结果数量
+    repeated string outputfields      = 7;  // 输出字段
+    repeated string embeddingItems    = 8;  // 使用字符串检索
+    bool range                        = 9;  // 是否开启range搜索
+    repeated AnnData ann              = 10; // ann检索
+    repeated SparseData sparse        = 11; // 稀疏向量检索
+    RerankParams rerank_params        = 12; // rerank参数
+    bool retrieveSparseVector         = 13; // 目前用户不传，仅用于内部
 }
 
 message SearchRequest {
@@ -526,6 +565,14 @@ message DescribeDatabaseResponse {
     DatabaseItem database                   = 4;
 };
 
+message GetVersionRequest {
+};
+
+message GetVersionResponse {
+    int64 timestamp      = 1;  // 毫秒级时间戳，可用于ping-pong探活
+    int64 kernal_version = 2;  // 4段版本号拼接组成, v1.2.3.4 表示成1002003004
+};
+
 message HttpRequest {};
 
 message HttpResponse {};
@@ -560,6 +607,8 @@ service SearchEngine {
     rpc query(QueryRequest) returns (QueryResponse);
     // KNN搜索
     rpc search(SearchRequest) returns (SearchResponse);
+    // 混合搜索
+    rpc hybrid_search(SearchRequest) returns (SearchResponse);
     // 删除向量
     rpc dele(DeleteRequest) returns (DeleteResponse);
 
@@ -576,4 +625,7 @@ service SearchEngine {
     rpc listDatabases(DatabaseRequest) returns (DatabaseResponse);
     // 显示数据库
     rpc describeDatabase(DescribeDatabaseRequest) returns (DescribeDatabaseResponse);
+
+    // 获取版本（api升级兼容性考虑）
+    rpc get_version(GetVersionRequest) returns (GetVersionResponse);
 };

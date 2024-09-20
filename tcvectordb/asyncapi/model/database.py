@@ -14,8 +14,9 @@ class AsyncDatabase(Database):
     def __init__(self,
                  conn: Union[HTTPClient, None],
                  name: str = '',
-                 read_consistency: ReadConsistency = ReadConsistency.EVENTUAL_CONSISTENCY) -> None:
-        super().__init__(conn, name, read_consistency)
+                 read_consistency: ReadConsistency = ReadConsistency.EVENTUAL_CONSISTENCY,
+                 db_type: Optional[str] = None) -> None:
+        super().__init__(conn, name, read_consistency, db_type=db_type)
 
     async def create_database(self, database_name='', timeout: Optional[float] = None):
         super().create_database(database_name, timeout)
@@ -31,8 +32,8 @@ class AsyncDatabase(Database):
                                 name: str,
                                 shard: int,
                                 replicas: int,
-                                description: str,
-                                index: Index,
+                                description: str = None,
+                                index: Index = None,
                                 embedding: Embedding = None,
                                 timeout: float = None,
                                 ) -> AsyncCollection:
@@ -74,11 +75,13 @@ def db_convert(db) -> Union[AsyncDatabase, AsyncAIDatabase]:
     if isinstance(db, Database):
         return AsyncDatabase(conn=db.conn,
                              name=db.database_name,
-                             read_consistency=read_consistency)
+                             read_consistency=read_consistency,
+                             db_type=db.db_type)
     else:
         return AsyncAIDatabase(conn=db.conn,
                                name=db.database_name,
-                               read_consistency=read_consistency)
+                               read_consistency=read_consistency,
+                               db_type=db.db_type)
 
 
 def coll_convert(coll: Collection) -> AsyncCollection:

@@ -5,7 +5,7 @@ from requests.adapters import HTTPAdapter
 from tcvectordb import VectorDBClient, exceptions
 from tcvectordb.asyncapi.model.ai_database import AsyncAIDatabase
 from tcvectordb.asyncapi.model.database import AsyncDatabase
-from tcvectordb.model.document import Document, Filter
+from tcvectordb.model.document import Document, Filter, AnnSearch, KeywordSearch, Rerank
 from tcvectordb.model.enum import ReadConsistency
 
 
@@ -185,3 +185,28 @@ class AsyncVectorDBClient(VectorDBClient):
             output_fields=output_fields,
             timeout=timeout,
         )
+
+    async def hybrid_search(self,
+                            database_name: str,
+                            collection_name: str,
+                            ann: Optional[List[AnnSearch]] = None,
+                            match: Optional[List[KeywordSearch]] = None,
+                            filter: Optional[Filter] = None,
+                            rerank: Optional[Rerank] = None,
+                            retrieve_vector: Optional[bool] = None,
+                            output_fields: Optional[List[str]] = None,
+                            limit: Optional[int] = None,
+                            timeout: Optional[float] = None,
+                            **kwargs) -> List[List[Dict]]:
+        return super().hybrid_search(
+            database_name=database_name,
+            collection_name=collection_name,
+            ann=ann,
+            match=match,
+            filter=filter,
+            rerank=rerank,
+            retrieve_vector=retrieve_vector,
+            output_fields=output_fields,
+            limit=limit,
+            timeout=timeout,
+            **kwargs)

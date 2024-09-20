@@ -1,0 +1,4 @@
+numpy
+tqdm
+mmh3
+jieba>=0.42.1

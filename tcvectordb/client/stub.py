@@ -8,7 +8,7 @@ from tcvectordb.model.database import Database
 from tcvectordb import exceptions
 from tcvectordb.model.ai_database import AIDatabase
 from ..model.collection import Collection
-from ..model.document import Document, Filter
+from ..model.document import Document, Filter, AnnSearch, KeywordSearch, Rerank
 
 
 class VectorDBClient:
@@ -280,3 +280,32 @@ class VectorDBClient:
             output_fields=output_fields,
             timeout=timeout,
         )
+
+    def hybrid_search(self,
+                      database_name: str,
+                      collection_name: str,
+                      ann: Optional[List[AnnSearch]] = None,
+                      match: Optional[List[KeywordSearch]] = None,
+                      filter: Optional[Filter] = None,
+                      rerank: Optional[Rerank] = None,
+                      retrieve_vector: Optional[bool] = None,
+                      output_fields: Optional[List[str]] = None,
+                      limit: Optional[int] = None,
+                      timeout: Optional[float] = None,
+                      **kwargs) -> List[List[Dict]]:
+        return Collection(
+            db=Database(conn=self._conn, name=database_name),
+            name=collection_name,
+            read_consistency=self._read_consistency,
+        ).hybrid_search(
+            database_name=database_name,
+            collection_name=collection_name,
+            ann=ann,
+            match=match,
+            filter=filter,
+            rerank=rerank,
+            retrieve_vector=retrieve_vector,
+            output_fields=output_fields,
+            limit=limit,
+            timeout=timeout,
+            **kwargs)
