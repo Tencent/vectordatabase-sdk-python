@@ -185,49 +185,37 @@ class VdbClient:
                             timeout: Optional[float] = None,
                             ) -> Dict[str, Any]:
         search = olama_pb2.SearchCond()
-        ai = False
         if vectors is not None:
-            search, ai = self._search_cond(
-                ann=[AnnSearch(
-                    field_name="vector",
-                    # ann暂时不对外暴露batch
-                    data=vectors,
-                    params=params,
-                )],
-                filter=filter,
-                retrieve_vector=retrieve_vector,
-                limit=limit,
-                output_fields=output_fields,
-            )
-        else:
-            if document_ids is not None:
-                search.documentIds.extend(document_ids)
-            if embedding_items is not None:
-                search.embeddingItems.extend(embedding_items)
-            if params is not None:
-                if not isinstance(params, dict):
-                    params = vars(params)
-                if params.get('ef') is not None:
-                    search.params.ef = params.get('ef')
-                if params.get('nprobe') is not None:
-                    search.params.nprobe = params.get('nprobe')
-                if params.get('radius') is not None:
-                    search.params.radius = params.get('radius')
-            if filter is not None:
-                search.filter = filter.cond
-            if output_fields is not None:
-                search.outputfields.extend(output_fields)
-            if retrieve_vector is not None:
-                search.retrieveVector = retrieve_vector
-            if limit is not None:
-                search.limit = limit
+            for v in vectors:
+                search.vectors.append(olama_pb2.VectorArray(vector=v))
+        if document_ids is not None:
+            search.documentIds.extend(document_ids)
+        if embedding_items is not None:
+            search.embeddingItems.extend(embedding_items)
+        if params is not None:
+            if not isinstance(params, dict):
+                params = vars(params)
+            if params.get('ef') is not None:
+                search.params.ef = params.get('ef')
+            if params.get('nprobe') is not None:
+                search.params.nprobe = params.get('nprobe')
+            if params.get('radius') is not None:
+                search.params.radius = params.get('radius')
+        if filter is not None:
+            search.filter = filter.cond
+        if output_fields is not None:
+            search.outputfields.extend(output_fields)
+        if retrieve_vector is not None:
+            search.retrieveVector = retrieve_vector
+        if limit is not None:
+            search.limit = limit
         request = olama_pb2.SearchRequest(
             database=database_name,
             collection=collection_name,
             readConsistency=self.read_consistency.value,
             search=search,
         )
-        res: olama_pb2.SearchResponse = self.rpc_client.search(request, timeout=timeout, ai=ai)
+        res: olama_pb2.SearchResponse = self.rpc_client.search(request, timeout=timeout)
         rtl = []
         for r in res.results:
             docs = []
