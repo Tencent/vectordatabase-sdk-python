@@ -6,7 +6,7 @@ from tcvectordb.model.collection import Collection
 from tcvectordb.model.database import Database
 from tcvectordb.model.document import Document, AnnSearch, WeightedRerank, RRFRerank, KeywordSearch
 from tcvectordb.model.enum import FieldType, IndexType, MetricType, ReadConsistency
-from tcvectordb.model.index import Index, VectorIndex, FilterIndex, HNSWParams, SparseVector
+from tcvectordb.model.index import Index, VectorIndex, FilterIndex, HNSWParams, SparseVector, SparseIndex
 from tcvdb_text.encoder import BM25Encoder
 import numpy as np
 
@@ -56,7 +56,7 @@ class Example:
         index.add(FilterIndex('id', FieldType.String, IndexType.PRIMARY_KEY))
         index.add(VectorIndex('vector', 768, IndexType.HNSW, MetricType.IP,
                               HNSWParams(m=16, efconstruction=200)))
-        index.add(VectorIndex(name='sparse_vector',
+        index.add(SparseIndex(name='sparse_vector',
                               field_type=FieldType.SparseVector,
                               index_type=IndexType.SPARSE_INVERTED,
                               metric_type=MetricType.IP,

@@ -65,12 +65,10 @@ class IndexField:
     def __init__(self,
                  name: str,
                  field_type: FieldType,
-                 index_type: IndexType = None,
-                 metric_type: MetricType = None):
+                 index_type: IndexType = None):
         self._name = name
         self.field_type = field_type
         self.index_type = index_type
-        self.metric_type = metric_type
 
     @property
     def __dict__(self):
@@ -80,20 +78,17 @@ class IndexField:
         }
         if self.index_type is not None:
             obj['indexType'] = self.index_type.value
-        if self.metric_type is not None:
-            obj['metricType'] = self.metric_type.value
         return obj
-
-    @property
-    def metricType(self):
-        return self.metric_type
 
     @property
     def indexType(self):
         return self.index_type
 
     def is_vector_field(self) -> bool:
-        return self.field_type == FieldType.Vector or self.field_type == FieldType.SparseVector
+        return self.field_type == FieldType.Vector
+
+    def is_sparse_vector_field(self) -> bool:
+        return self.field_type == FieldType.SparseVector
 
     def is_primary_key(self) -> bool:
         return self.index_type == IndexType.PRIMARY_KEY
@@ -116,20 +111,18 @@ class VectorIndex(IndexField):
     def __init__(
         self,
         name: str,
-        dimension: Optional[int] = None,
-        index_type: Optional[IndexType] = None,
-        metric_type: Optional[MetricType] = None,
+        dimension: int,
+        index_type: IndexType,
+        metric_type: MetricType,
         params=None,
-        field_type: FieldType = FieldType.Vector,
         **kwargs
     ):
         super().__init__(name=name,
-                         field_type=field_type,
-                         index_type=index_type,
-                         metric_type=metric_type)
+                         field_type=FieldType.Vector,
+                         index_type=index_type)
         self._dimension = dimension
         self._index_type = index_type
-        self._metric_type = metric_type
+        self.metric_type = metric_type
         self._param = params
         self.indexed_count = kwargs.pop('indexedCount', None)
         self.kwargs = kwargs
@@ -137,6 +130,10 @@ class VectorIndex(IndexField):
     @property
     def dimension(self):
         return self._dimension
+
+    @property
+    def metricType(self):
+        return self.metric_type
 
     @property
     def param(self):
@@ -150,6 +147,8 @@ class VectorIndex(IndexField):
         if self.param:
             obj['params'] = vars(self.param) if hasattr(
                 self.param, '__dict__') else self.param
+        if self.metric_type is not None:
+            obj['metricType'] = self.metricType.value
         if self.indexed_count is not None:
             obj['indexedCount'] = self.indexed_count
         obj.update(self.kwargs)
@@ -168,17 +167,48 @@ class FilterIndex(IndexField):
                  name: str,
                  field_type: FieldType,
                  index_type: IndexType,
-                 metric_type: Optional[MetricType] = None,
                  **kwargs) -> None:
         super().__init__(name=name,
                          field_type=field_type,
-                         index_type=index_type,
-                         metric_type=metric_type)
+                         index_type=index_type)
         self.kwargs = kwargs
 
     @property
     def __dict__(self):
         obj = super().__dict__
+        obj.update(self.kwargs)
+        return obj
+
+
+class SparseIndex(IndexField):
+    """
+    Args:
+        name(str): The field name of the index.
+        field_type(FieldType): The scalar field type of the index.
+        index_type(IndexType): The scalar index type of the index.
+        metric_type(MetricType): The metric type of the vector index.
+    """
+
+    def __init__(self,
+                 name: str = "sparse_vector",
+                 field_type: FieldType = FieldType.SparseVector,
+                 index_type: IndexType = IndexType.SPARSE_INVERTED,
+                 metric_type: MetricType = MetricType.IP,
+                 **kwargs) -> None:
+        super().__init__(name=name,
+                         field_type=field_type,
+                         index_type=index_type)
+        self.kwargs = kwargs
+        self.metric_type=metric_type
+
+    @property
+    def metricType(self):
+        return self.metric_type
+
+    @property
+    def __dict__(self):
+        obj = super().__dict__
+        obj['metricType'] = self.metric_type.value
         obj.update(self.kwargs)
         return obj
 
@@ -205,14 +235,21 @@ class Index:
         if not index and kwargs:
             metric_type = kwargs.pop('metricType', None)
             field_type = kwargs.pop('fieldType', '')
-            if field_type in (FieldType.Vector.value, FieldType.SparseVector.value):
+            if field_type == FieldType.Vector.value:
                 index = VectorIndex(
                     kwargs.pop('fieldName', ''),
                     kwargs.pop('dimension', None),
                     IndexType(kwargs.pop('indexType', None)),
                     metric_type=None if metric_type is None else MetricType(metric_type),
                     params=kwargs.pop('params', None),
+                    **kwargs,
+                )
+            elif field_type == FieldType.SparseVector.value:
+                index = SparseIndex(
+                    name=kwargs.pop('fieldName', ''),
                     field_type=FieldType(field_type),
+                    index_type=IndexType(kwargs.pop('indexType', None)),
+                    metric_type=None if metric_type is None else MetricType(metric_type),
                     **kwargs,
                 )
             else:
@@ -220,7 +257,6 @@ class Index:
                     kwargs.pop('fieldName', ''),
                     FieldType(field_type),
                     IndexType(kwargs.pop('indexType', None)),
-                    metric_type=None if metric_type is None else MetricType(metric_type),
                     **kwargs,
                 )
         if index.name in self._indexes:
