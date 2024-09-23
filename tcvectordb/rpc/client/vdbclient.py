@@ -301,7 +301,7 @@ class VdbClient:
                     data = a.data
                     if isinstance(data, str):
                         data = [data]
-                    elif isinstance(data, list) and len(data) > 0 and isinstance(data[0], float):
+                    elif isinstance(data, list) and len(data) > 0 and type(data[0]) in (int, float, complex):
                         data = [data]
                     for v in data:
                         if isinstance(v, str):
@@ -336,8 +336,8 @@ class VdbClient:
     def hybrid_search(self,
                       database_name: str,
                       collection_name: str,
-                      ann: Optional[List[AnnSearch]] = None,
-                      match: Optional[List[KeywordSearch]] = None,
+                      ann: Optional[Union[List[AnnSearch], AnnSearch]] = None,
+                      match: Optional[Union[List[KeywordSearch], KeywordSearch]] = None,
                       filter: Optional[Filter] = None,
                       rerank: Optional[Rerank] = None,
                       retrieve_vector: Optional[bool] = None,
@@ -346,6 +346,15 @@ class VdbClient:
                       timeout: Optional[float] = None,
                       embedding_items: List[str] = None,
                       **kwargs) -> List[List[Dict]]:
+        single = True
+        if isinstance(ann, List):
+            single = False
+        else:
+            ann = [ann]
+        if isinstance(match, List):
+            single = False
+        else:
+            match = [match]
         search, ai = self._search_cond(
             ann=ann,
             match=match,
@@ -373,6 +382,8 @@ class VdbClient:
                 docs.append(self._pb2doc(d))
             if docs:
                 rtl.append(docs)
+        if single:
+            rtl = rtl[0]
         return rtl
 
     def _pb2doc(self, d: olama_pb2.Document) -> dict:

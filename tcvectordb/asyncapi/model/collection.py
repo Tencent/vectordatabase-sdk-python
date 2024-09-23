@@ -110,8 +110,8 @@ class AsyncCollection(Collection):
                                     timeout)
 
     async def hybrid_search(self,
-                            ann: Optional[List[AnnSearch]] = None,
-                            match: Optional[List[KeywordSearch]] = None,
+                            ann: Optional[Union[List[AnnSearch], AnnSearch]] = None,
+                            match: Optional[Union[List[KeywordSearch], KeywordSearch]] = None,
                             filter: Optional[Filter] = None,
                             rerank: Optional[Rerank] = None,
                             retrieve_vector: Optional[bool] = None,

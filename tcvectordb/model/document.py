@@ -96,7 +96,7 @@ class AnnSearch:
     """ann search params"""
 
     def __init__(self,
-                 field_name: Optional[str] = None,
+                 field_name: Optional[str] = "vector",
                  document_ids: Optional[List[str]] = None,
                  data: Optional[Union[List[float], str]] = None,
                  params: Optional[Union[HNSWSearchParams, SearchParams, dict]] = None,
@@ -140,7 +140,7 @@ class KeywordSearch:
     """sparse vector search params"""
 
     def __init__(self,
-                 field_name: Optional[str] = None,
+                 field_name: Optional[str] = "sparse_vector",
                  data: Optional[SparseVector] = None,
                  limit: Optional[int] = None,
                  **kwargs

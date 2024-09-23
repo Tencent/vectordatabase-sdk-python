@@ -578,8 +578,8 @@ class Collection():
         }
 
     def hybrid_search(self,
-                      ann: Optional[List[AnnSearch]] = None,
-                      match: Optional[List[KeywordSearch]] = None,
+                      ann: Optional[Union[List[AnnSearch], AnnSearch]] = None,
+                      match: Optional[Union[List[KeywordSearch], KeywordSearch]] = None,
                       filter: Optional[Filter] = None,
                       rerank: Optional[Rerank] = None,
                       retrieve_vector: Optional[bool] = None,
@@ -617,6 +617,15 @@ class Collection():
         :return Documents, the list of the document
         :rtype: List[List[Dict]]
         """
+        single = True
+        if isinstance(ann, List):
+            single = False
+        else:
+            ann = [ann]
+        if isinstance(match, List):
+            single = False
+        else:
+            match = [match]
         search = {}
         ai = False
         if ann:
@@ -664,6 +673,8 @@ class Collection():
                 tmp.append(elem)
             if tmp:
                 documents_res.append(tmp)
+        if single:
+            documents_res = documents_res[0]
         return documents_res
 
     def delete(
