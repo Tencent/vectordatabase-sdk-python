@@ -570,8 +570,7 @@ class Collection():
             tmp = []
             for elem in arr:
                 tmp.append(elem)
-            if tmp:
-                documents_res.append(tmp)
+            documents_res.append(tmp)
         return {
             'warning': warn_msg,
             'documents': documents_res
@@ -671,8 +670,7 @@ class Collection():
             tmp = []
             for elem in arr:
                 tmp.append(elem)
-            if tmp:
-                documents_res.append(tmp)
+            documents_res.append(tmp)
         if single:
             documents_res = documents_res[0]
         return documents_res

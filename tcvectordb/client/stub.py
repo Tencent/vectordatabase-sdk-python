@@ -29,6 +29,20 @@ class VectorDBClient:
     def http_client(self):
         return self._conn
 
+    def exists_db(self, database_name: str) -> bool:
+        """Check if the database exists.
+
+        Args:
+            database_name (str): The name of the database to check.
+
+        Returns:
+            Bool: True if database exists else False.
+        """
+        for db in self.list_databases():
+            if db.database_name == database_name:
+                return True
+        return False
+
     def create_database(self, database_name: str, timeout: Optional[float] = None) -> Database:
         """Creates a database.
 
@@ -47,6 +61,24 @@ class VectorDBClient:
         db = Database(conn=self._conn, name=database_name, read_consistency=self._read_consistency)
         db.create_database(timeout=timeout)
         return db
+
+    def create_database_if_not_exists(self, database_name: str, timeout: Optional[float] = None) -> Database:
+        """Create the database if it doesn't exist.
+
+        Args:
+            database_name (str): The name of the database. A database name can only include
+                numbers, letters, and underscores, and must not begin with a letter, and length
+                must between 1 and 128
+            timeout (float): An optional duration of time in seconds to allow for the request. When timeout
+                is set to None, will use the connect timeout.
+
+        Returns:
+            Database: A database object.
+        """
+        for db in self.list_databases(timeout=timeout):
+            if db.database_name == database_name:
+                return db
+        return self.create_database(database_name=database_name, timeout=timeout)
 
     def create_ai_database(self, database_name: str, timeout: Optional[float] = None) -> AIDatabase:
         """Creates an AI doc database.
@@ -132,6 +164,20 @@ class VectorDBClient:
         if self._conn:
             self._conn.close()
             self._conn = None
+
+    def exists_collection(self,
+                          database_name: str,
+                          collection_name: str) -> bool:
+        """Check if the collection exists.
+
+        Args:
+            database_name (str): The name of the database where the collection resides.
+            collection_name (str): The name of the collection to check.
+
+        Returns:
+            Bool: True if collection exists else False.
+        """
+        return Database(conn=self._conn, name=database_name).exists_collection(collection_name)
 
     def upsert(self,
                database_name: str,

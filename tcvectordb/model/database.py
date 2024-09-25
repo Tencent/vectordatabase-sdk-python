@@ -316,3 +316,62 @@ class Database:
         :rtype: Collection class
         """
         return self.describe_collection(name)
+
+    def exists_collection(self, collection_name: str) -> bool:
+        """Check if the collection exists.
+
+        Args:
+            collection_name (str): The name of the collection to check.
+
+        Returns:
+            Bool: True if collection exists else False.
+        """
+        try:
+            self.collection(name=collection_name)
+            return True
+        except exceptions.ServerInternalError as e:
+            if e.code == 15302:
+                return False
+            raise e
+
+    def create_collection_if_not_exists(self,
+                                        name: str,
+                                        shard: int,
+                                        replicas: int,
+                                        description: str = None,
+                                        index: Index = None,
+                                        embedding: Embedding = None,
+                                        timeout: float = None,
+                                        ) -> Collection:
+        """Create the collection if it doesn't exist.
+
+        Args:
+            name (str): The name of the collection. A collection name can only include
+                numbers, letters, and underscores, and must not begin with a letter, and length
+                must between 1 and 128
+            shard (int): The shard number of the collection. Shard will divide a large dataset into smaller subsets.
+            replicas (int): The replicas number of the collection. Replicas refers to the number of identical copies
+                of each primary shard, used for disaster recovery and load balancing.
+            description (str): An optional description of the collection.
+            index (Index): A list of the index properties for the documents in a collection.
+            embedding (``Embedding``): An optional embedding for embedding text when upsert documents.
+            timeout (float): An optional duration of time in seconds to allow for the request. When timeout
+                is set to None, will use the connect timeout.
+
+        Returns:
+            Collection: A collection object.
+        """
+        try:
+            return self.collection(name=name)
+        except exceptions.ServerInternalError as e:
+            if e.code != 15302:
+                raise e
+        return self.create_collection(
+            name=name,
+            shard=shard,
+            replicas=replicas,
+            description=description,
+            index=index,
+            embedding=embedding,
+            timeout=timeout,
+        )

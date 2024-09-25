@@ -221,8 +221,7 @@ class VdbClient:
             docs = []
             for d in r.documents:
                 docs.append(self._pb2doc(d))
-            if docs:
-                rtl.append(docs)
+            rtl.append(docs)
         return {
             'warning': res.warning,
             'documents': rtl
@@ -380,8 +379,7 @@ class VdbClient:
             docs = []
             for d in r.documents:
                 docs.append(self._pb2doc(d))
-            if docs:
-                rtl.append(docs)
+            rtl.append(docs)
         if single:
             rtl = rtl[0]
         return rtl
