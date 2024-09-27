@@ -1,4 +1,6 @@
 from typing import List, Optional, Union, Dict, Any
+
+from numpy import ndarray
 from requests.adapters import HTTPAdapter
 
 from tcvectordb.model.enum import ReadConsistency
@@ -201,7 +203,7 @@ class VectorDBClient:
                database_name: str,
                collection_name: str,
                document_ids: List[str] = None,
-               filter: Filter = None,
+               filter: Union[Filter, str] = None,
                timeout: Optional[float] = None):
         return Collection(
             db=Database(conn=self._conn, name=database_name),
@@ -217,7 +219,7 @@ class VectorDBClient:
                database_name: str,
                collection_name: str,
                data: Union[Document, Dict],
-               filter: Optional[Filter] = None,
+               filter: Union[Filter, str] = None,
                document_ids: Optional[List[str]] = None,
                timeout: Optional[float] = None):
         return Collection(
@@ -238,7 +240,7 @@ class VectorDBClient:
               retrieve_vector: bool = False,
               limit: Optional[int] = None,
               offset: Optional[int] = None,
-              filter: Optional[Filter] = None,
+              filter: Union[Filter, str] = None,
               output_fields: Optional[List[str]] = None,
               timeout: Optional[float] = None,
               ) -> List[Dict]:
@@ -259,8 +261,8 @@ class VectorDBClient:
     def search(self,
                database_name: str,
                collection_name: str,
-               vectors: List[List[float]],
-               filter: Filter = None,
+               vectors: Union[List[List[float]], ndarray],
+               filter: Union[Filter, str] = None,
                params=None,
                retrieve_vector: bool = False,
                limit: int = 10,
@@ -285,7 +287,7 @@ class VectorDBClient:
                      database_name: str,
                      collection_name: str,
                      document_ids: List[str],
-                     filter: Filter = None,
+                     filter: Union[Filter, str] = None,
                      params=None,
                      retrieve_vector: bool = False,
                      limit: int = 10,
@@ -310,7 +312,7 @@ class VectorDBClient:
                        database_name: str,
                        collection_name: str,
                        embedding_items: List[str],
-                       filter: Filter = None,
+                       filter: Union[Filter, str] = None,
                        params=None,
                        retrieve_vector: bool = False,
                        limit: int = 10,
@@ -337,7 +339,7 @@ class VectorDBClient:
                       collection_name: str,
                       ann: Optional[Union[List[AnnSearch], AnnSearch]] = None,
                       match: Optional[Union[List[KeywordSearch], KeywordSearch]] = None,
-                      filter: Optional[Filter] = None,
+                      filter: Union[Filter, str] = None,
                       rerank: Optional[Rerank] = None,
                       retrieve_vector: Optional[bool] = None,
                       output_fields: Optional[List[str]] = None,

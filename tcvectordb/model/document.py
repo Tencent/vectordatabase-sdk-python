@@ -1,6 +1,8 @@
 from abc import ABC
 from typing import Dict, List, Optional, Union
 
+from numpy import ndarray
+
 from tcvectordb.model.index import SparseVector
 
 
@@ -98,14 +100,14 @@ class AnnSearch:
     def __init__(self,
                  field_name: Optional[str] = "vector",
                  document_ids: Optional[List[str]] = None,
-                 data: Optional[Union[List[float], str]] = None,
+                 data: Optional[Union[List[float], ndarray, str]] = None,
                  params: Optional[Union[HNSWSearchParams, SearchParams, dict]] = None,
                  limit: Optional[int] = None,
                  **kwargs
                  ):
         self.field_name = field_name
         self.document_ids = document_ids
-        self.data = data
+        self.data = data.tolist() if isinstance(data, ndarray) else data
         self.params = params
         self.limit = limit
         self.kwargs = kwargs
@@ -241,6 +243,9 @@ class Document:
     def __init__(self, **kwargs) -> None:
         if 'score' in kwargs:
             self._score = kwargs.pop('score')
+        if 'vector' in kwargs:
+            if isinstance(kwargs.get('vector', None), ndarray):
+                kwargs['vector'] = kwargs.get('vector').tolist()
         self._data = kwargs
 
     @property

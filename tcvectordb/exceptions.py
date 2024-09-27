@@ -51,5 +51,19 @@ class DescribeCollectionException(VectorDBException):
 class AIUnsupportedException(VectorDBException):
     """Raise when method unsupported"""
 
+
 class GrpcException(VectorDBException):
     """Raise when grpc exception"""
+    def __init__(self, code: int = ErrorCode.UNEXPECTED_ERROR, message: str = "") -> None:
+        if 'StatusCode.UNAVAILABLE' in message:
+            message = f'{message}\n{ERROR_MESSAGE_NETWORK_OR_AUTH}'
+        super().__init__(code=code, message=message)
+
+
+ERROR_MESSAGE_NETWORK_OR_AUTH = '''
+Possible Reasons:
+1. Incorrect url. Example: http://10.x.x.x
+2. Incorrect API key. Example: Tc73SW**********************************
+3. Incorrect username. Example: root
+4. Network unreachable.
+'''

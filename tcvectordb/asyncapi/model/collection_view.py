@@ -50,7 +50,7 @@ class AsyncCollectionView(CollectionView):
                      document_set_name: Optional[List[str]] = None,
                      expand_chunk: Optional[list] = None,
                      rerank: Optional[Rerank] = None,
-                     filter: Optional[Filter] = None,
+                     filter: Union[Filter, str] = None,
                      limit: Optional[int] = None,
                      timeout: Optional[float] = None,
                      ) -> List[SearchResult]:
@@ -65,7 +65,7 @@ class AsyncCollectionView(CollectionView):
     async def query(self,
                     document_set_id: Optional[List] = None,
                     document_set_name: Optional[List[str]] = None,
-                    filter: Optional[Filter] = None,
+                    filter: Union[Filter, str] = None,
                     limit: Optional[int] = None,
                     offset: Optional[int] = None,
                     output_fields: Optional[List[str]] = None,
@@ -94,7 +94,7 @@ class AsyncCollectionView(CollectionView):
     async def delete(self,
                      document_set_id: Union[str, List[str]] = None,
                      document_set_name: Union[str, List[str]] = None,
-                     filter: Filter = None,
+                     filter: Union[Filter, str] = None,
                      timeout: float = None,
                      ):
         return super().delete(document_set_id,
@@ -106,7 +106,7 @@ class AsyncCollectionView(CollectionView):
                      data: Document,
                      document_set_id: Union[str, List[str]] = None,
                      document_set_name: Union[str, List[str]] = None,
-                     filter: Filter = None,
+                     filter: Union[Filter, str] = None,
                      timeout: float = None,
                      ):
         return super().update(data,

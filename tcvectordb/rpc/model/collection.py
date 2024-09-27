@@ -1,5 +1,7 @@
 from typing import Dict, List, Optional, Any, Union
 
+from numpy import ndarray
+
 from tcvectordb.model.collection import Collection
 from tcvectordb.model.collection_view import Embedding
 from tcvectordb.model.document import Document, Filter, AnnSearch, KeywordSearch, Rerank
@@ -20,6 +22,7 @@ class RPCCollection(Collection):
                  embedding: Embedding = None,
                  read_consistency: ReadConsistency = ReadConsistency.EVENTUAL_CONSISTENCY,
                  vdb_client=None,
+                 ttl_config: dict = None,
                  **kwargs):
         super().__init__(db,
                          name,
@@ -29,6 +32,7 @@ class RPCCollection(Collection):
                          index,
                          embedding,
                          read_consistency,
+                         ttl_config=ttl_config,
                          **kwargs)
         self.vdb_client: VdbClient = vdb_client
 
@@ -51,7 +55,7 @@ class RPCCollection(Collection):
               retrieve_vector: bool = False,
               limit: Optional[int] = None,
               offset: Optional[int] = None,
-              filter: Optional[Filter] = None,
+              filter: Union[Filter, str] = None,
               output_fields: Optional[List[str]] = None,
               timeout: Optional[float] = None,
               ) -> List[Dict]:
@@ -69,7 +73,7 @@ class RPCCollection(Collection):
 
     def delete(self,
                document_ids: List[str] = None,
-               filter: Filter = None,
+               filter: Union[Filter, str] = None,
                timeout: float = None,
                ):
         return self.vdb_client.delete(
@@ -82,7 +86,7 @@ class RPCCollection(Collection):
 
     def update(self,
                data: Union[Document, Dict],
-               filter: Optional[Filter] = None,
+               filter: Union[Filter, str] = None,
                document_ids: Optional[List[str]] = None,
                timeout: Optional[float] = None,
                ):
@@ -96,8 +100,8 @@ class RPCCollection(Collection):
         )
 
     def search(self,
-               vectors: List[List[float]],
-               filter: Filter = None,
+               vectors: Union[List[List[float]], ndarray],
+               filter: Union[Filter, str] = None,
                params=None,
                retrieve_vector: bool = False,
                limit: int = 10,
@@ -118,7 +122,7 @@ class RPCCollection(Collection):
 
     def searchById(self,
                    document_ids: List,
-                   filter: Filter = None,
+                   filter: Union[Filter, str] = None,
                    params=None,
                    retrieve_vector: bool = False,
                    limit: int = 10,
@@ -139,7 +143,7 @@ class RPCCollection(Collection):
 
     def searchByText(self,
                      embeddingItems: List[str],
-                     filter: Filter = None,
+                     filter: Union[Filter, str] = None,
                      params=None,
                      retrieve_vector: bool = False,
                      limit: int = 10,
@@ -161,7 +165,7 @@ class RPCCollection(Collection):
     def hybrid_search(self,
                       ann: Optional[Union[List[AnnSearch], AnnSearch]] = None,
                       match: Optional[Union[List[KeywordSearch], KeywordSearch]] = None,
-                      filter: Optional[Filter] = None,
+                      filter: Union[Filter, str] = None,
                       rerank: Optional[Rerank] = None,
                       retrieve_vector: Optional[bool] = None,
                       output_fields: Optional[List[str]] = None,

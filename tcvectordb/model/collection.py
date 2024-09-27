@@ -1,5 +1,7 @@
 from typing import Dict, List, Optional, Any, Union
 
+from numpy import ndarray
+
 from tcvectordb.model.index import IndexField, VectorIndex, FilterIndex
 
 from tcvectordb import exceptions
@@ -66,7 +68,7 @@ class BaseQuery:
     """
 
     def __init__(self,
-                 filter: Optional[Filter] = None,
+                 filter: Union[Filter, str] = None,
                  document_ids: Optional[List[str]] = None
                  ):
         if filter is not None:
@@ -80,7 +82,7 @@ class BaseQuery:
         res = {}
 
         if hasattr(self, "_filter"):
-            res["filter"] = self._filter.cond
+            res["filter"] = self._filter if isinstance(self._filter, str) else self._filter.cond
 
         if hasattr(self, "_document_ids"):
             res["documentIds"] = self._document_ids
@@ -113,7 +115,7 @@ class Query(BaseQuery):
                  limit: Optional[int] = None,
                  offset: Optional[int] = None,
                  retrieve_vector: bool = False,
-                 filter: Optional[Filter] = None,
+                 filter: Union[Filter, str] = None,
                  document_ids: Optional[List] = None,
                  output_fields: Optional[List[str]] = None
                  ):
@@ -143,7 +145,7 @@ class Query(BaseQuery):
 
 class DeleteQuery(BaseQuery):
     def __init__(self,
-                 filter: Optional[Filter] = None,
+                 filter: Union[Filter, str] = None,
                  document_ids: Optional[List[str]] = None):
         super().__init__(filter, document_ids)
 
@@ -154,7 +156,7 @@ class DeleteQuery(BaseQuery):
 
 class UpdateQuery(BaseQuery):
     def __init__(self,
-                 filter: Optional[Filter] = None,
+                 filter: Union[Filter, str] = None,
                  document_ids: Optional[List[str]] = None):
         super().__init__(filter, document_ids)
 
@@ -167,11 +169,11 @@ class Search:
     def __init__(self,
                  retrieve_vector: bool = False,
                  limit: int = 10,
-                 vectors: Optional[List[List[float]]] = None,
+                 vectors: Union[List[List[float]], ndarray] = None,
                  document_ids: Optional[List[str]] = None,
                  embedding_items: Optional[List[str]] = None,
                  params: Optional[Any] = None,
-                 filter: Optional[Filter] = None,
+                 filter: Union[Filter, str] = None,
                  output_fields: Optional[List[str]] = None
                  ):
         self._retrieve_vector = retrieve_vector
@@ -199,7 +201,7 @@ class Search:
         }
 
         if self.vectors is not None:
-            res["vectors"] = self.vectors
+            res["vectors"] = self.vectors.tolist() if isinstance(self.vectors, ndarray) else self.vectors
 
         if hasattr(self, "_document_ids"):
             res["documentIds"] = self._document_ids
@@ -211,7 +213,7 @@ class Search:
             res["params"] = vars(self._params)
 
         if hasattr(self, "_filter"):
-            res["filter"] = vars(self._filter)
+            res["filter"] = self._filter if isinstance(self._filter, str) else self._filter.cond
 
         if hasattr(self, "_output_fields"):
             res["outputFields"] = self._output_fields
@@ -243,6 +245,7 @@ class Collection():
             index: Index = None,
             embedding: Embedding = None,
             read_consistency: ReadConsistency = ReadConsistency.EVENTUAL_CONSISTENCY,
+            ttl_config: dict = None,
             **kwargs
     ):
         self._conn = db.conn
@@ -253,6 +256,7 @@ class Collection():
         self.description = description
         self._embedding = embedding
         self._index = index
+        self.ttl_config = ttl_config
         self.create_time = kwargs.pop('createTime', None)
         self.document_count = kwargs.pop("documentCount", None)
         self.alias = kwargs.pop("alias", None)
@@ -301,6 +305,9 @@ class Collection():
             res_dict['alias'] = self.alias
         if self.index_status is not None:
             res_dict['indexStatus'] = self.index_status
+        if self.ttl_config is not None:
+            res_dict['ttlConfig'] = self.ttl_config
+        res_dict.update(self.kwargs)
         return res_dict
 
     def upsert(
@@ -357,7 +364,7 @@ class Collection():
             retrieve_vector: bool = False,
             limit: Optional[int] = None,
             offset: Optional[int] = None,
-            filter: Optional[Filter] = None,
+            filter: Union[Filter, str] = None,
             output_fields: Optional[List[str]] = None,
             timeout: Optional[float] = None,
     ) -> List[Dict]:
@@ -409,8 +416,8 @@ class Collection():
 
     def search(
             self,
-            vectors: List[List[float]],
-            filter: Filter = None,
+            vectors: Union[List[List[float]], ndarray],
+            filter: Union[Filter, str] = None,
             params=None,
             retrieve_vector: bool = False,
             limit: int = 10,
@@ -449,7 +456,7 @@ class Collection():
     def searchById(
             self,
             document_ids: List,
-            filter: Filter = None,
+            filter: Union[Filter, str] = None,
             params=None,
             retrieve_vector: bool = False,
             limit: int = 10,
@@ -490,7 +497,7 @@ class Collection():
 
     def searchByText(self,
                      embeddingItems: List[str],
-                     filter: Filter = None,
+                     filter: Union[Filter, str] = None,
                      params=None,
                      retrieve_vector: bool = False,
                      limit: int = 10,
@@ -579,7 +586,7 @@ class Collection():
     def hybrid_search(self,
                       ann: Optional[Union[List[AnnSearch], AnnSearch]] = None,
                       match: Optional[Union[List[KeywordSearch], KeywordSearch]] = None,
-                      filter: Optional[Filter] = None,
+                      filter: Union[Filter, str] = None,
                       rerank: Optional[Rerank] = None,
                       retrieve_vector: Optional[bool] = None,
                       output_fields: Optional[List[str]] = None,
@@ -641,7 +648,7 @@ class Collection():
             for m in match:
                 search['match'].append(vars(m))
         if filter:
-            search['filter'] = vars(filter)
+            search['filter'] = filter if isinstance(filter, str) else filter.cond
         if rerank:
             # if rerank.method == "wordsEmbedding":
             #     ai = True
@@ -678,7 +685,7 @@ class Collection():
     def delete(
             self,
             document_ids: List[str] = None,
-            filter: Filter = None,
+            filter: Union[Filter, str] = None,
             timeout: float = None,
     ):
         """Delete document by document id list.
@@ -726,7 +733,7 @@ class Collection():
 
     def update(self,
                data: Union[Document, Dict],
-               filter: Optional[Filter] = None,
+               filter: Union[Filter, str] = None,
                document_ids: Optional[List[str]] = None,
                timeout: Optional[float] = None):
         if data is None:

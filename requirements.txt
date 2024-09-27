@@ -5,3 +5,4 @@ grpcio-tools
 cachetools
 urllib3
 tcvdb-text
+numpy

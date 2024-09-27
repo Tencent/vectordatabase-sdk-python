@@ -1,5 +1,7 @@
 from typing import List, Union, Dict, Optional, Any
 
+from numpy import ndarray
+
 from tcvectordb.exceptions import ServerInternalError
 from tcvectordb.model.document import Document, Filter, AnnSearch, KeywordSearch, Rerank, WeightedRerank, RRFRerank
 from tcvectordb.model.enum import ReadConsistency
@@ -56,13 +58,13 @@ class VdbClient:
                database_name: str,
                collection_name: str,
                document_ids: List[str] = None,
-               filter: Filter = None,
+               filter: Union[Filter, str] = None,
                timeout: float = None):
         query = olama_pb2.QueryCond()
         if document_ids is not None:
             query.documentIds.extend(document_ids)
         if filter is not None:
-            query.filter = filter.cond
+            query.filter = filter if isinstance(filter, str) else filter.cond
         request = olama_pb2.DeleteRequest(
             database=database_name,
             collection=collection_name,
@@ -79,14 +81,14 @@ class VdbClient:
                database_name: str,
                collection_name: str,
                data: Union[Document, Dict],
-               filter: Optional[Filter] = None,
+               filter: Union[Filter, str] = None,
                document_ids: Optional[List[str]] = None,
                timeout: Optional[float] = None):
         query = olama_pb2.QueryCond()
         if document_ids is not None:
             query.documentIds.extend(document_ids)
         if filter is not None:
-            query.filter = filter.cond
+            query.filter = filter if isinstance(filter, str) else filter.cond
         ai = False
         if isinstance(data, dict):
             ai = isinstance(data.get('vector'), str)
@@ -114,7 +116,7 @@ class VdbClient:
               retrieve_vector: bool = False,
               limit: Optional[int] = None,
               offset: Optional[int] = None,
-              filter: Optional[Filter] = None,
+              filter: Union[Filter, str] = None,
               output_fields: Optional[List[str]] = None,
               timeout: Optional[float] = None) -> List[Dict]:
         query = olama_pb2.QueryCond(
@@ -123,7 +125,7 @@ class VdbClient:
         if document_ids is not None:
             query.documentIds.extend(document_ids)
         if filter is not None:
-            query.filter = filter.cond
+            query.filter = filter if isinstance(filter, str) else filter.cond
         if retrieve_vector is not None:
             query.retrieveVector = retrieve_vector
         if limit is not None:
@@ -148,9 +150,9 @@ class VdbClient:
                database_name: str,
                collection_name: str,
                document_ids: Optional[List[str]] = None,
-               vectors: Optional[List[List[float]]] = None,
+               vectors: Union[List[List[float]], ndarray] = None,
                embedding_items: List[str] = None,
-               filter: Filter = None,
+               filter: Union[Filter, str] = None,
                params=None,
                retrieve_vector: bool = False,
                limit: int = 10,
@@ -175,9 +177,9 @@ class VdbClient:
                             database_name: str,
                             collection_name: str,
                             document_ids: Optional[List[str]] = None,
-                            vectors: Optional[List[List[float]]] = None,
+                            vectors: Union[List[List[float]], ndarray] = None,
                             embedding_items: List[str] = None,
-                            filter: Filter = None,
+                            filter: Union[Filter, str] = None,
                             params=None,
                             retrieve_vector: bool = False,
                             limit: int = 10,
@@ -186,6 +188,8 @@ class VdbClient:
                             ) -> Dict[str, Any]:
         search = olama_pb2.SearchCond()
         if vectors is not None:
+            if isinstance(vectors, ndarray):
+                vectors = vectors.tolist()
             for v in vectors:
                 search.vectors.append(olama_pb2.VectorArray(vector=v))
         if document_ids is not None:
@@ -202,7 +206,7 @@ class VdbClient:
             if params.get('radius') is not None:
                 search.params.radius = params.get('radius')
         if filter is not None:
-            search.filter = filter.cond
+            search.filter = filter if isinstance(filter, str) else filter.cond
         if output_fields is not None:
             search.outputfields.extend(output_fields)
         if retrieve_vector is not None:
@@ -230,7 +234,7 @@ class VdbClient:
     def _search_cond(self,
                      ann: Optional[List[AnnSearch]] = None,
                      match: Optional[List[KeywordSearch]] = None,
-                     filter: Optional[Filter] = None,
+                     filter: Union[Filter, str] = None,
                      rerank: Optional[Rerank] = None,
                      retrieve_vector: Optional[bool] = None,
                      output_fields: Optional[List[str]] = None,
@@ -271,7 +275,7 @@ class VdbClient:
                     md.data.append(sva)
                 search.sparse.append(md)
         if filter is not None:
-            search.filter = filter.cond
+            search.filter = filter if isinstance(filter, str) else filter.cond
         if output_fields is not None:
             search.outputfields.extend(output_fields)
         if retrieve_vector is not None:
@@ -337,7 +341,7 @@ class VdbClient:
                       collection_name: str,
                       ann: Optional[Union[List[AnnSearch], AnnSearch]] = None,
                       match: Optional[Union[List[KeywordSearch], KeywordSearch]] = None,
-                      filter: Optional[Filter] = None,
+                      filter: Union[Filter, str] = None,
                       rerank: Optional[Rerank] = None,
                       retrieve_vector: Optional[bool] = None,
                       output_fields: Optional[List[str]] = None,

@@ -115,6 +115,7 @@ class Database:
             index: Index = None,
             embedding: Embedding = None,
             timeout: float = None,
+            ttl_config: dict = None,
     ) -> Collection:
         """Create a collection.
 
@@ -143,6 +144,10 @@ class Database:
                         is set to None, will use the connect timeout.
         :type  timeout: float
 
+        :param ttl_config: TTL configuration, when set {'enable': True, 'timeField': 'expire_at'} means that
+                           ttl is enabled and automatically removed when the time set in the expire_at field expires
+        :type  ttl_config: dict
+
         :return: The Collection object. You can use the collection object to manipulate documents.
         :rtype: Collection class
         """
@@ -159,9 +164,11 @@ class Database:
             body['description'] = description
         if index is not None:
             body['indexes'] = index.list()
+        if ttl_config is not None:
+            body['ttlConfig'] = ttl_config
         self._conn.post('/collection/create', body, timeout)
         return Collection(self, name, shard, replicas, description, index, embedding=embedding,
-                          read_consistency=self._read_consistency)
+                          ttl_config=ttl_config, read_consistency=self._read_consistency)
 
     def _generate_collection(self, col):
         index = Index()
@@ -179,6 +186,7 @@ class Database:
             description=col.pop('description', None),
             index=index,
             embedding=ebd,
+            ttl_config=col.pop('ttlConfig', None),
             read_consistency=self._read_consistency,
             **col,
         )
@@ -342,6 +350,7 @@ class Database:
                                         index: Index = None,
                                         embedding: Embedding = None,
                                         timeout: float = None,
+                                        ttl_config: dict = None,
                                         ) -> Collection:
         """Create the collection if it doesn't exist.
 
@@ -357,6 +366,8 @@ class Database:
             embedding (``Embedding``): An optional embedding for embedding text when upsert documents.
             timeout (float): An optional duration of time in seconds to allow for the request. When timeout
                 is set to None, will use the connect timeout.
+            ttl_config (dict): TTL configuration, when set {'enable': True, 'timeField': 'expire_at'} means
+                that ttl is enabled and automatically removed when the time set in the expire_at field expires
 
         Returns:
             Collection: A collection object.
@@ -374,4 +385,5 @@ class Database:
             index=index,
             embedding=embedding,
             timeout=timeout,
+            ttl_config=ttl_config,
         )

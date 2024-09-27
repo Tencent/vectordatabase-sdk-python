@@ -1,5 +1,5 @@
 from enum import Enum, unique
-from typing import Dict, Any, Optional, List
+from typing import Dict, Any, Optional, List, Union
 
 from tcvectordb.model.document import Filter
 
@@ -199,7 +199,7 @@ class SearchParam:
                  document_set_name: Optional[List[str]] = None,
                  expand_chunk: Optional[List] = None,
                  rerank: Optional[Rerank] = None,
-                 filter: Optional[Filter] = None,
+                 filter: Union[Filter, str] = None,
                  limit: Optional[int] = None,
                  ):
         self.content = content
@@ -221,7 +221,7 @@ class SearchParam:
             options['rerank'] = vars(self.rerank)
         res["options"] = options
         if self.filter:
-            res["filter"] = vars(self.filter)
+            res["filter"] = self.filter if isinstance(self.filter, str) else self.filter.cond
         if self.limit:
             res["limit"] = self.limit
         return res
@@ -306,7 +306,7 @@ class QueryParam:
     def __init__(self,
                  document_set_id: Optional[List[str]] = None,
                  document_set_name: Optional[List[str]] = None,
-                 filter: Filter = None,
+                 filter: Union[Filter, str] = None,
                  ):
         self.document_set_id = document_set_id
         self.document_set_name = document_set_name
@@ -320,5 +320,5 @@ class QueryParam:
         if self.document_set_name:
             res["documentSetName"] = self.document_set_name
         if self.filter:
-            res["filter"] = vars(self.filter)
+            res["filter"] = self.filter if isinstance(self.filter, str) else self.filter.cond
         return res

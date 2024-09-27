@@ -6,7 +6,6 @@ import socket
 from urllib3.connection import HTTPConnection
 from requests.adapters import HTTPAdapter
 from requests.adapters import PoolManager
-from urllib import parse
 
 from tcvectordb.exceptions import ParamError
 from tcvectordb.exceptions import ServerInternalError
@@ -23,8 +22,11 @@ class Response():
         """
         if not res.ok:
             if ('code' not in res.text) or ('msg' not in res.text):
+                message = res.text
+                if res.status_code >= 500:
+                    message = f'{message}\n{exceptions.ERROR_MESSAGE_NETWORK_OR_AUTH}'
                 raise exceptions.ServerInternalError(code=res.status_code,
-                                                     message='{}: {}'.format(res.reason, res.text))
+                                                     message='{}: {}'.format(res.reason, message))
         try:
             response = res.json()
             self._code = int(response.get('code', 0))
@@ -135,8 +137,12 @@ class HTTPClient:
         if timeout is not None and timeout <= 0:
             timeout = None
         debug.Debug("GET %s, params=%s", path, params)
-        res = self.session.get(self._get_url(
-            path), params=params, headers=self._get_headers(ai), timeout=timeout)
+        try:
+            res = self.session.get(self._get_url(
+                path), params=params, headers=self._get_headers(ai), timeout=timeout)
+        except requests.exceptions.ConnectionError as e:
+            raise exceptions.ConnectError(
+                message='{}: {}'.format(str(e), exceptions.ERROR_MESSAGE_NETWORK_OR_AUTH))
         self._warning(res.headers)
         response = Response(path, res)
         if response.code != 0:
@@ -154,8 +160,12 @@ class HTTPClient:
         if timeout is not None and timeout <= 0:
             timeout = None
         debug.Debug('POST %s, body=%s', path, body)
-        res = self.session.post(self._get_url(
-            path), json=body, headers=self._get_headers(ai), timeout=timeout)
+        try:
+            res = self.session.post(self._get_url(
+                path), json=body, headers=self._get_headers(ai), timeout=timeout)
+        except requests.exceptions.ConnectionError as e:
+            raise exceptions.ConnectError(
+                message='{}: {}'.format(str(e), exceptions.ERROR_MESSAGE_NETWORK_OR_AUTH))
         self._warning(res.headers)
         response = Response(path, res)
         if response.code != 0:

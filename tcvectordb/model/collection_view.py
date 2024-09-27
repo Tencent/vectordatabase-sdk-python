@@ -268,7 +268,7 @@ class CollectionView:
                document_set_name: Optional[List[str]] = None,
                expand_chunk: Optional[list] = None,
                rerank: Optional[Rerank] = None,
-               filter: Optional[Filter] = None,
+               filter: Union[Filter, str] = None,
                limit: Optional[int] = None,
                timeout: Optional[float] = None,
                ) -> List[SearchResult]:
@@ -311,7 +311,7 @@ class CollectionView:
     def query(self,
               document_set_id: Optional[List] = None,
               document_set_name: Optional[List[str]] = None,
-              filter: Optional[Filter] = None,
+              filter: Union[Filter, str] = None,
               limit: Optional[int] = None,
               offset: Optional[int] = None,
               output_fields: Optional[List[str]] = None,
@@ -345,7 +345,7 @@ class CollectionView:
         if offset is not None:
             query['offset'] = offset
         if filter is not None:
-            query['filter'] = vars(filter)
+            query['filter'] = filter if isinstance(filter, str) else filter.cond
         if output_fields:
             query['outputFields'] = output_fields
         body['query'] = query
@@ -403,7 +403,7 @@ class CollectionView:
     def delete(self,
                document_set_id: Union[str, List[str]] = None,
                document_set_name: Union[str, List[str]] = None,
-               filter: Filter = None,
+               filter: Union[Filter, str] = None,
                timeout: float = None,
                ):
         """Get a document set by document_set_id or document_set_name.
@@ -436,7 +436,7 @@ class CollectionView:
                data: Document,
                document_set_id: Union[str, List[str]] = None,
                document_set_name: Union[str, List[str]] = None,
-               filter: Filter = None,
+               filter: Union[Filter, str] = None,
                timeout: float = None,
                ):
         """Update a document set.

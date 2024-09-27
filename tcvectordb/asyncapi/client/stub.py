@@ -1,5 +1,6 @@
 from typing import List, Optional, Union, Dict, Any
 
+from numpy import ndarray
 from requests.adapters import HTTPAdapter
 
 from tcvectordb import VectorDBClient, exceptions
@@ -26,6 +27,25 @@ class AsyncVectorDBClient(VectorDBClient):
     async def create_database(self, database_name: str, timeout: Optional[float] = None) -> AsyncDatabase:
         db = AsyncDatabase(conn=self._conn, name=database_name, read_consistency=self._read_consistency)
         await db.create_database(timeout=timeout)
+        return db
+
+    async def create_database_if_not_exists(self, database_name: str,
+                                            timeout: Optional[float] = None,
+                                            ) -> AsyncDatabase:
+        """Create the database if it doesn't exist.
+
+        Args:
+            database_name (str): The name of the database. A database name can only include
+                numbers, letters, and underscores, and must not begin with a letter, and length
+                must between 1 and 128
+            timeout (float): An optional duration of time in seconds to allow for the request. When timeout
+                is set to None, will use the connect timeout.
+
+        Returns:
+            AsyncDatabase: A database object.
+        """
+        db = AsyncDatabase(conn=self._conn, name=database_name, read_consistency=self._read_consistency)
+        super().create_database_if_not_exists(database_name, timeout)
         return db
 
     async def create_ai_database(self, database_name: str, timeout: Optional[float] = None) -> AsyncAIDatabase:
@@ -70,7 +90,7 @@ class AsyncVectorDBClient(VectorDBClient):
                      database_name: str,
                      collection_name: str,
                      document_ids: List[str] = None,
-                     filter: Filter = None,
+                     filter: Union[Filter, str] = None,
                      timeout: Optional[float] = None):
         return super().delete(
             database_name=database_name,
@@ -84,7 +104,7 @@ class AsyncVectorDBClient(VectorDBClient):
                      database_name: str,
                      collection_name: str,
                      data: Union[Document, Dict],
-                     filter: Optional[Filter] = None,
+                     filter: Union[Filter, str] = None,
                      document_ids: Optional[List[str]] = None,
                      timeout: Optional[float] = None):
         return super().update(
@@ -103,7 +123,7 @@ class AsyncVectorDBClient(VectorDBClient):
                     retrieve_vector: bool = False,
                     limit: Optional[int] = None,
                     offset: Optional[int] = None,
-                    filter: Optional[Filter] = None,
+                    filter: Union[Filter, str] = None,
                     output_fields: Optional[List[str]] = None,
                     timeout: Optional[float] = None,
                     ) -> List[Dict]:
@@ -122,8 +142,8 @@ class AsyncVectorDBClient(VectorDBClient):
     async def search(self,
                      database_name: str,
                      collection_name: str,
-                     vectors: List[List[float]],
-                     filter: Filter = None,
+                     vectors: Union[List[List[float]], ndarray],
+                     filter: Union[Filter, str] = None,
                      params=None,
                      retrieve_vector: bool = False,
                      limit: int = 10,
@@ -146,7 +166,7 @@ class AsyncVectorDBClient(VectorDBClient):
                            database_name: str,
                            collection_name: str,
                            document_ids: List[str],
-                           filter: Filter = None,
+                           filter: Union[Filter, str] = None,
                            params=None,
                            retrieve_vector: bool = False,
                            limit: int = 10,
@@ -169,7 +189,7 @@ class AsyncVectorDBClient(VectorDBClient):
                              database_name: str,
                              collection_name: str,
                              embedding_items: List[str],
-                             filter: Filter = None,
+                             filter: Union[Filter, str] = None,
                              params=None,
                              retrieve_vector: bool = False,
                              limit: int = 10,
@@ -193,7 +213,7 @@ class AsyncVectorDBClient(VectorDBClient):
                             collection_name: str,
                             ann: Optional[Union[List[AnnSearch], AnnSearch]] = None,
                             match: Optional[Union[List[KeywordSearch], KeywordSearch]] = None,
-                            filter: Optional[Filter] = None,
+                            filter: Union[Filter, str] = None,
                             rerank: Optional[Rerank] = None,
                             retrieve_vector: Optional[bool] = None,
                             output_fields: Optional[List[str]] = None,
