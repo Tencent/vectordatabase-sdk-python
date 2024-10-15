@@ -15,47 +15,47 @@ class SearchEngineStub(object):
             channel: A grpc.Channel.
         """
         self.setAlias = channel.unary_unary(
-                '/olama.SearchEngine/setAlias',
+                '/alias/set',
                 request_serializer=olama__pb2.AddAliasRequest.SerializeToString,
                 response_deserializer=olama__pb2.UpdateAliasResponse.FromString,
                 )
         self.getAlias = channel.unary_unary(
-                '/olama.SearchEngine/getAlias',
+                '/alias/delete',
                 request_serializer=olama__pb2.GetAliasRequest.SerializeToString,
                 response_deserializer=olama__pb2.GetAliasResponse.FromString,
                 )
         self.deleteAlias = channel.unary_unary(
-                '/olama.SearchEngine/deleteAlias',
+                '/alias/delete',
                 request_serializer=olama__pb2.RemoveAliasRequest.SerializeToString,
                 response_deserializer=olama__pb2.UpdateAliasResponse.FromString,
                 )
         self.createCollection = channel.unary_unary(
-                '/olama.SearchEngine/createCollection',
+                '/collection/create',
                 request_serializer=olama__pb2.CreateCollectionRequest.SerializeToString,
                 response_deserializer=olama__pb2.CreateCollectionResponse.FromString,
                 )
         self.dropCollection = channel.unary_unary(
-                '/olama.SearchEngine/dropCollection',
+                '/collection/drop',
                 request_serializer=olama__pb2.DropCollectionRequest.SerializeToString,
                 response_deserializer=olama__pb2.DropCollectionResponse.FromString,
                 )
         self.truncateCollection = channel.unary_unary(
-                '/olama.SearchEngine/truncateCollection',
+                '/collection/truncate',
                 request_serializer=olama__pb2.TruncateCollectionRequest.SerializeToString,
                 response_deserializer=olama__pb2.TruncateCollectionResponse.FromString,
                 )
         self.describeCollection = channel.unary_unary(
-                '/olama.SearchEngine/describeCollection',
+                '/collection/describe',
                 request_serializer=olama__pb2.DescribeCollectionRequest.SerializeToString,
                 response_deserializer=olama__pb2.DescribeCollectionResponse.FromString,
                 )
         self.listCollections = channel.unary_unary(
-                '/olama.SearchEngine/listCollections',
+                '/collection/list',
                 request_serializer=olama__pb2.ListCollectionsRequest.SerializeToString,
                 response_deserializer=olama__pb2.ListCollectionsResponse.FromString,
                 )
         self.rebuildIndex = channel.unary_unary(
-                '/olama.SearchEngine/rebuildIndex',
+                '/index/rebuild',
                 request_serializer=olama__pb2.RebuildIndexRequest.SerializeToString,
                 response_deserializer=olama__pb2.RebuildIndexResponse.FromString,
                 )
@@ -100,12 +100,12 @@ class SearchEngineStub(object):
                 response_deserializer=olama__pb2.SortResponse.FromString,
                 )
         self.createDatabase = channel.unary_unary(
-                '/olama.SearchEngine/createDatabase',
+                '/database/create',
                 request_serializer=olama__pb2.DatabaseRequest.SerializeToString,
                 response_deserializer=olama__pb2.DatabaseResponse.FromString,
                 )
         self.dropDatabase = channel.unary_unary(
-                '/olama.SearchEngine/dropDatabase',
+                '/database/drop',
                 request_serializer=olama__pb2.DatabaseRequest.SerializeToString,
                 response_deserializer=olama__pb2.DatabaseResponse.FromString,
                 )

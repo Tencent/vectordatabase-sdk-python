@@ -3,9 +3,14 @@ from typing import List, Union, Dict, Optional, Any
 from numpy import ndarray
 
 from tcvectordb.exceptions import ServerInternalError
+from tcvectordb.model.ai_database import AIDatabase
+from tcvectordb.model.collection import Embedding
 from tcvectordb.model.document import Document, Filter, AnnSearch, KeywordSearch, Rerank, WeightedRerank, RRFRerank
-from tcvectordb.model.enum import ReadConsistency
+from tcvectordb.model.enum import ReadConsistency, FieldType, IndexType, MetricType
+from tcvectordb.model.index import Index
 from tcvectordb.rpc.client.rpcclient import RPCClient
+from tcvectordb.rpc.model.collection import RPCCollection
+from tcvectordb.rpc.model.database import RPCDatabase
 from tcvectordb.rpc.proto import olama_pb2
 
 
@@ -262,9 +267,12 @@ class VdbClient:
                     md.limit = m.limit
                 data = m.data
                 # hybrid_search sdk暂时不提供batch，但接口是batch
-                if isinstance(data, list) and len(data) > 0 and isinstance(data[0], list) \
+                if isinstance(data, list):
+                    if len(data) == 0:
+                        data = [data]
+                    elif isinstance(data[0], list) \
                         and len(data[0]) > 0 and type(data[0][0]) == int:
-                    data = [data]
+                        data = [data]
                 for item in data:
                     sva = olama_pb2.SparseVectorArray()
                     for pair in item:
@@ -350,14 +358,16 @@ class VdbClient:
                       embedding_items: List[str] = None,
                       **kwargs) -> List[List[Dict]]:
         single = True
-        if isinstance(ann, List):
-            single = False
-        else:
-            ann = [ann]
-        if isinstance(match, List):
-            single = False
-        else:
-            match = [match]
+        if ann:
+            if isinstance(ann, List):
+                single = False
+            else:
+                ann = [ann]
+        if match:
+            if isinstance(match, List):
+                single = False
+            else:
+                match = [match]
         search, ai = self._search_cond(
             ann=ann,
             match=match,
@@ -443,3 +453,242 @@ class VdbClient:
                     al.append(bytes(arr, encoding='utf-8'))
                 d.fields[k].val_str_arr.str_arr.extend(al)
         return d
+
+    def create_database(self, database_name: str, timeout: Optional[float] = None) -> RPCDatabase:
+        req = olama_pb2.DatabaseRequest(database=database_name)
+        rsp: olama_pb2.DatabaseResponse = self.rpc_client.create_database(req=req, timeout=timeout)
+        return RPCDatabase(
+            name=database_name,
+            read_consistency=self.read_consistency,
+            vdb_client=self,
+            db_type='BASE',
+        )
+
+    def drop_database(self, database_name: str, timeout: Optional[float] = None) -> dict:
+        req = olama_pb2.DatabaseRequest(database=database_name)
+        rsp: olama_pb2.DatabaseResponse = self.rpc_client.drop_database(req=req, timeout=timeout)
+        return {
+            "code": rsp.code,
+            "msg": rsp.msg,
+            "affectedCount": rsp.affectedCount,
+        }
+
+    def list_databases(self, timeout: Optional[float] = None) -> List[Union[RPCDatabase, AIDatabase]]:
+        req = olama_pb2.DatabaseRequest()
+        rsp: olama_pb2.DatabaseResponse = self.rpc_client.list_databases(req=req, timeout=timeout)
+        dbs = []
+        for db_name in rsp.databases:
+            info = rsp.info.get(db_name)
+            if info.db_type == olama_pb2.DataType.BASE:
+                dbs.append(RPCDatabase(name=db_name,
+                                       vdb_client=self,
+                                       read_consistency=self.read_consistency,
+                                       db_type='BASE'))
+            else:
+                dbs.append(AIDatabase(name=db_name,
+                                      conn=None,
+                                      read_consistency=self.read_consistency,
+                                      db_type='AI_DOC'))
+        return dbs
+
+    def set_alias(self,
+                  database_name: str,
+                  collection_name: str,
+                  collection_alias: str) -> Dict[str, Any]:
+        req = olama_pb2.AddAliasRequest(database=database_name,
+                                        collection=collection_name,
+                                        alias=collection_alias)
+        rsp: olama_pb2.UpdateAliasResponse = self.rpc_client.set_alias(req=req)
+        return {
+            "code": rsp.code,
+            "msg": rsp.msg,
+            'affectedCount': rsp.affectedCount
+        }
+
+    def delete_alias(self, database_name: str, alias: str) -> Dict[str, Any]:
+        req = olama_pb2.RemoveAliasRequest(database=database_name,
+                                           alias=alias)
+        rsp: olama_pb2.UpdateAliasResponse = self.rpc_client.delete_alias(req=req)
+        return {
+            "code": rsp.code,
+            "msg": rsp.msg,
+            'affectedCount': rsp.affectedCount
+        }
+
+    def rebuild_index(self,
+                      database_name: str,
+                      collection_name: str,
+                      drop_before_rebuild: bool = False,
+                      throttle: int = 0,
+                      timeout: Optional[float] = None):
+        req = olama_pb2.RebuildIndexRequest(database=database_name,
+                                            collection=collection_name,
+                                            dropBeforeRebuild=drop_before_rebuild,
+                                            throttle=throttle)
+        self.rpc_client.rebuild_index(req=req, timeout=timeout)
+
+    def create_collection(self,
+                          database_name: str,
+                          collection_name: str,
+                          shard: int,
+                          replicas: int,
+                          description: str = None,
+                          index: Index = None,
+                          embedding: Embedding = None,
+                          timeout: float = None,
+                          ttl_config: dict = None,
+                          ) -> RPCCollection:
+        req = olama_pb2.CreateCollectionRequest(database=database_name,
+                                                collection=collection_name,
+                                                shardNum=shard,
+                                                replicaNum=replicas)
+        if description is not None:
+            req.description = description
+        if index is not None:
+            for f_name, f_item in index.indexes.items():
+                column = req.indexes[f_name]
+                column.fieldName = f_item.name
+                column.fieldType = f_item.field_type.value
+                column.indexType = f_item.indexType.value
+                if f_item.field_type == FieldType.Vector:
+                    column.dimension = f_item.dimension
+                    param = f_item.param if f_item.param else {}
+                    param = vars(param) if hasattr(param, '__dict__') else param
+                    column.params.M = param.get('M', 0)
+                    column.params.efConstruction = param.get('efConstruction', 0)
+                    column.params.nprobe = param.get('nprobe', 0)
+                    column.params.nlist = param.get('nlist', 0)
+                if f_item.field_type in (FieldType.Vector, FieldType.SparseVector):
+                    column.metricType = f_item.metricType.value
+        if embedding is not None:
+            emb = vars(embedding)
+            req.embeddingParams.field = emb.get('field')
+            req.embeddingParams.vector_field = emb.get('vectorField')
+            req.embeddingParams.model_name = emb.get('model')
+        if ttl_config is not None:
+            req.ttlConfig.enable = ttl_config.get('enable')
+            req.ttlConfig.timeField = ttl_config.get('timeField')
+        rsp: olama_pb2.CreateCollectionResponse = self.rpc_client.create_collection(req=req, timeout=timeout)
+        return RPCCollection(
+            db=RPCDatabase(name=database_name,
+                           read_consistency=self.read_consistency,
+                           vdb_client=self),
+            name=collection_name,
+            shard=shard,
+            replicas=replicas,
+            description=description,
+            index=index,
+            embedding=embedding,
+            read_consistency=self.read_consistency,
+            ttl_config=ttl_config,
+            vdb_client=self,
+        )
+
+    def drop_collection(self,
+                        database_name: str,
+                        collection_name: str,
+                        timeout: Optional[float] = None) -> dict:
+        req = olama_pb2.DropCollectionRequest(database=database_name,
+                                              collection=collection_name)
+        rsp: olama_pb2.DropCollectionResponse = self.rpc_client.drop_collection(req=req, timeout=timeout)
+        return {
+            "code": rsp.code,
+            "msg": rsp.msg,
+            "affectedCount": rsp.affectedCount,
+        }
+
+    def list_collections(self,
+                         database_name: str,
+                         timeout: Optional[float] = None) -> List[RPCCollection]:
+        req = olama_pb2.ListCollectionsRequest(database=database_name)
+        rsp: olama_pb2.ListCollectionsResponse = self.rpc_client.list_collections(req=req, timeout=timeout)
+        colls: List[RPCCollection] = []
+        for coll in rsp.collections:
+            colls.append(self._pb2coll(coll))
+        return colls
+
+    def _pb2coll(self, pb: olama_pb2.CreateCollectionRequest) -> RPCCollection:
+        alias = pb.alias_list[0] if pb.alias_list else None
+        ttl_config = None
+        if pb.ttlConfig.enable:
+            ttl_config = {}
+            ttl_config['enable'] = pb.ttlConfig.enable
+            ttl_config['timeField'] = pb.ttlConfig.timeField
+        index = Index()
+        for f_name, f_item in pb.indexes.items():
+            field = {
+                'fieldName': f_name,
+                'fieldType': f_item.fieldType,
+                'indexType': f_item.indexType,
+            }
+            if f_item.dimension:
+                field['dimension'] = f_item.dimension
+            if f_item.metricType:
+                field['metricType'] = f_item.metricType
+            if f_item.params:
+                params = {}
+                if f_item.params.nprobe:
+                    params['nprobe'] = f_item.params.nprobe
+                if f_item.params.M:
+                    params['M'] = f_item.params.M
+                if f_item.params.nlist:
+                    params['nlist'] = f_item.params.nlist
+                if f_item.params.efConstruction:
+                    params['efConstruction'] = f_item.params.efConstruction
+                if params:
+                    field['params'] = params
+            # rpc 没有返回indexedCount
+            # if f_item.fieldType == FieldType.Vector.value:
+            #     field['indexedCount'] = f_item
+            index.add(**field)
+        embedding = None
+        if pb.embeddingParams:
+            if pb.embeddingParams.vector_field or pb.embeddingParams.field or pb.embeddingParams.model_name:
+                embedding = Embedding(
+                    vector_field=pb.embeddingParams.vector_field,
+                    field=pb.embeddingParams.field,
+                    model_name=pb.embeddingParams.model_name,
+                    status="enabled",
+                )
+        return RPCCollection(
+            db=RPCDatabase(name=pb.database,
+                           read_consistency=self.read_consistency,
+                           vdb_client=self),
+            name=pb.collection,
+            shard=pb.shardNum,
+            replicas=pb.replicaNum,
+            description=pb.description,
+            index=index,
+            embedding=embedding,
+            read_consistency=self.read_consistency,
+            ttl_config=ttl_config,
+            vdb_client=self,
+            createTime=pb.createTime,
+            documentCount=pb.size,
+            alias=alias,
+            indexStatus={
+                'indexStatus': pb.indexStatus.status,
+                'startTime': pb.indexStatus.startTime,
+            }
+        )
+
+    def describe_collection(self,
+                            database_name: str,
+                            collection_name: str,
+                            timeout: Optional[float] = None) -> RPCCollection:
+        req = olama_pb2.DescribeCollectionRequest(database=database_name,
+                                                  collection=collection_name)
+        rsp: olama_pb2.DescribeCollectionResponse = self.rpc_client.describe_collection(req=req, timeout=timeout)
+        return self._pb2coll(rsp.collection)
+
+    def truncate_collection(self,
+                            database_name: str,
+                            collection_name: str) -> dict:
+        req = olama_pb2.TruncateCollectionRequest(database=database_name,
+                                                  collection=collection_name)
+        rsp: olama_pb2.TruncateCollectionResponse = self.rpc_client.truncate_collection(req=req)
+        return {
+            "code": rsp.code,
+            "msg": rsp.msg,
+            "affectedCount": rsp.affectedCount,
+        }

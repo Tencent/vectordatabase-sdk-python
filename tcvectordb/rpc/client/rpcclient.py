@@ -149,6 +149,40 @@ class RPCClient:
         except Exception as e:
             raise GrpcException(message=str(e))
 
+    def create_database(self,
+                        req: olama_pb2.DatabaseRequest,
+                        timeout: Optional[float] = None,
+                        ai: bool = False) -> olama_pb2.DatabaseResponse:
+        self._print_req(req)
+        if timeout is None:
+            timeout = self.timeout
+        try:
+            ret: olama_pb2.DatabaseResponse = self.stub.createDatabase(
+                req, metadata=self._get_headers(ai), timeout=timeout)
+            self._result_check(ret)
+            return ret
+        except ServerInternalError as se:
+            raise se
+        except Exception as e:
+            raise GrpcException(message=str(e))
+
+    def drop_database(self,
+                      req: olama_pb2.DatabaseRequest,
+                      timeout: Optional[float] = None,
+                      ai: bool = False) -> olama_pb2.DatabaseResponse:
+        self._print_req(req)
+        if timeout is None:
+            timeout = self.timeout
+        try:
+            ret: olama_pb2.DatabaseResponse = self.stub.dropDatabase(
+                req, metadata=self._get_headers(ai), timeout=timeout)
+            self._result_check(ret)
+            return ret
+        except ServerInternalError as se:
+            raise se
+        except Exception as e:
+            raise GrpcException(message=str(e))
+
     def list_databases(self,
                        req: olama_pb2.DatabaseRequest,
                        timeout: Optional[float] = None,
@@ -158,6 +192,142 @@ class RPCClient:
             timeout = self.timeout
         try:
             ret: olama_pb2.DatabaseResponse = self.stub.listDatabases(
+                req, metadata=self._get_headers(ai), timeout=timeout)
+            self._result_check(ret)
+            return ret
+        except ServerInternalError as se:
+            raise se
+        except Exception as e:
+            raise GrpcException(message=str(e))
+
+    def set_alias(self,
+                  req: olama_pb2.AddAliasRequest,
+                  timeout: Optional[float] = None,
+                  ai: bool = False) -> olama_pb2.UpdateAliasResponse:
+        self._print_req(req)
+        if timeout is None:
+            timeout = self.timeout
+        try:
+            ret: olama_pb2.UpdateAliasResponse = self.stub.setAlias(
+                req, metadata=self._get_headers(ai), timeout=timeout)
+            self._result_check(ret)
+            return ret
+        except ServerInternalError as se:
+            raise se
+        except Exception as e:
+            raise GrpcException(message=str(e))
+
+    def delete_alias(self,
+                     req: olama_pb2.RemoveAliasRequest,
+                     timeout: Optional[float] = None,
+                     ai: bool = False) -> olama_pb2.UpdateAliasResponse:
+        self._print_req(req)
+        if timeout is None:
+            timeout = self.timeout
+        try:
+            ret: olama_pb2.UpdateAliasResponse = self.stub.deleteAlias(
+                req, metadata=self._get_headers(ai), timeout=timeout)
+            self._result_check(ret)
+            return ret
+        except ServerInternalError as se:
+            raise se
+        except Exception as e:
+            raise GrpcException(message=str(e))
+
+    def rebuild_index(self,
+                      req: olama_pb2.RebuildIndexRequest,
+                      timeout: Optional[float] = None,
+                      ai: bool = False) -> olama_pb2.RebuildIndexResponse:
+        self._print_req(req)
+        if timeout is None:
+            timeout = self.timeout
+        try:
+            ret: olama_pb2.RebuildIndexResponse = self.stub.rebuildIndex(
+                req, metadata=self._get_headers(ai), timeout=timeout)
+            self._result_check(ret)
+            return ret
+        except ServerInternalError as se:
+            raise se
+        except Exception as e:
+            raise GrpcException(message=str(e))
+
+    def create_collection(self,
+                          req: olama_pb2.CreateCollectionRequest,
+                          timeout: Optional[float] = None,
+                          ai: bool = False) -> olama_pb2.CreateCollectionResponse:
+        self._print_req(req)
+        if timeout is None:
+            timeout = self.timeout
+        try:
+            ret: olama_pb2.CreateCollectionResponse = self.stub.createCollection(
+                req, metadata=self._get_headers(ai), timeout=timeout)
+            self._result_check(ret)
+            return ret
+        except ServerInternalError as se:
+            raise se
+        except Exception as e:
+            raise GrpcException(message=str(e))
+
+    def drop_collection(self,
+                        req: olama_pb2.DropCollectionRequest,
+                        timeout: Optional[float] = None,
+                        ai: bool = False) -> olama_pb2.DropCollectionResponse:
+        self._print_req(req)
+        if timeout is None:
+            timeout = self.timeout
+        try:
+            ret: olama_pb2.DropCollectionResponse = self.stub.dropCollection(
+                req, metadata=self._get_headers(ai), timeout=timeout)
+            self._result_check(ret)
+            return ret
+        except ServerInternalError as se:
+            raise se
+        except Exception as e:
+            raise GrpcException(message=str(e))
+
+    def list_collections(self,
+                         req: olama_pb2.ListCollectionsRequest,
+                         timeout: Optional[float] = None,
+                         ai: bool = False) -> olama_pb2.ListCollectionsResponse:
+        self._print_req(req)
+        if timeout is None:
+            timeout = self.timeout
+        try:
+            ret: olama_pb2.ListCollectionsResponse = self.stub.listCollections(
+                req, metadata=self._get_headers(ai), timeout=timeout)
+            self._result_check(ret)
+            return ret
+        except ServerInternalError as se:
+            raise se
+        except Exception as e:
+            raise GrpcException(message=str(e))
+
+    def describe_collection(self,
+                            req: olama_pb2.DescribeCollectionRequest,
+                            timeout: Optional[float] = None,
+                            ai: bool = False) -> olama_pb2.DescribeCollectionResponse:
+        self._print_req(req)
+        if timeout is None:
+            timeout = self.timeout
+        try:
+            ret: olama_pb2.DescribeCollectionResponse = self.stub.describeCollection(
+                req, metadata=self._get_headers(ai), timeout=timeout)
+            self._result_check(ret)
+            return ret
+        except ServerInternalError as se:
+            raise se
+        except Exception as e:
+            raise GrpcException(message=str(e))
+
+    def truncate_collection(self,
+                            req: olama_pb2.TruncateCollectionRequest,
+                            timeout: Optional[float] = None,
+                            ai: bool = False) -> olama_pb2.TruncateCollectionResponse:
+        self._print_req(req)
+        if timeout is None:
+            timeout = self.timeout
+        try:
+            ret: olama_pb2.TruncateCollectionResponse = self.stub.truncateCollection(
                 req, metadata=self._get_headers(ai), timeout=timeout)
             self._result_check(ret)
             return ret

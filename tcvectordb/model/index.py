@@ -228,7 +228,7 @@ class Index:
                     self.add(**index)
     
     @property
-    def indexes(self) -> Dict[str, Union[FilterIndex, VectorIndex]]:
+    def indexes(self) -> Dict[str, Union[FilterIndex, VectorIndex, SparseIndex]]:
         return self._indexes
 
     def add(self, index: Union[IndexField, None] = None, **kwargs):

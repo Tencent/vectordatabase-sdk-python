@@ -624,14 +624,16 @@ class Collection():
         :rtype: List[List[Dict]]
         """
         single = True
-        if isinstance(ann, List):
-            single = False
-        else:
-            ann = [ann]
-        if isinstance(match, List):
-            single = False
-        else:
-            match = [match]
+        if ann:
+            if isinstance(ann, List):
+                single = False
+            else:
+                ann = [ann]
+        if match:
+            if isinstance(match, List):
+                single = False
+            else:
+                match = [match]
         search = {}
         ai = False
         if ann:

@@ -1,17 +1,15 @@
 from typing import Optional, List, Union, Dict
-
-from cachetools import cached, TTLCache
 from numpy import ndarray
 from requests.adapters import HTTPAdapter
 
-from tcvectordb import VectorDBClient
+from tcvectordb import VectorDBClient, exceptions
+from tcvectordb.client.httpclient import HTTPClient
 from tcvectordb.model.ai_database import AIDatabase
-from tcvectordb.model.database import Database
 from tcvectordb.model.document import Document, Filter, AnnSearch, KeywordSearch, Rerank
 from tcvectordb.model.enum import ReadConsistency
 from tcvectordb.rpc.client.rpcclient import RPCClient
 from tcvectordb.rpc.client.vdbclient import VdbClient
-from tcvectordb.rpc.model.database import RPCDatabase, db_convert
+from tcvectordb.rpc.model.database import RPCDatabase
 
 
 class RPCVectorDBClient(VectorDBClient):
@@ -29,20 +27,34 @@ class RPCVectorDBClient(VectorDBClient):
                  pool_size: int = 10,
                  proxies: Optional[dict] = None,
                  **kwargs):
-        super().__init__(url, username, key, read_consistency, timeout, adapter,
-                         pool_size=pool_size, proxies=proxies)
+        self.url = url
+        self.username = username
+        self.key = key
+        self.timeout = timeout
+        self.adapter = adapter
+        self.pool_size = pool_size
+        self.proxies = proxies
+        self.read_consistency = read_consistency
         rpc_client = RPCClient(url=url,
                                username=username,
                                key=key,
                                timeout=timeout,
                                **kwargs)
+        self.http: Optional[HTTPClient] = None
         self.vdb_client = VdbClient(client=rpc_client, read_consistency=read_consistency)
 
-    def create_database(self, database_name: str, timeout: Optional[float] = None) -> RPCDatabase:
-        sdb = super().create_database(database_name=database_name, timeout=timeout)
-        return db_convert(sdb, self.vdb_client)
+    def _get_http(self) -> HTTPClient:
+        if not self.http:
+            self.http = HTTPClient(url=self.url,
+                                   username=self.username,
+                                   key=self.key,
+                                   timeout=self.timeout,
+                                   adapter=self.adapter,
+                                   pool_size=self.pool_size,
+                                   proxies=self.proxies)
+        return self.http
 
-    def create_database_if_not_exists(self, database_name: str, timeout: Optional[float] = None) -> RPCDatabase:
+    def create_database(self, database_name: str, timeout: Optional[float] = None) -> RPCDatabase:
         """Create the database if it doesn't exist.
 
         Args:
@@ -55,27 +67,74 @@ class RPCVectorDBClient(VectorDBClient):
         Returns:
             RPCDatabase: A database object.
         """
-        sdb = super().create_database_if_not_exists(database_name=database_name, timeout=timeout)
-        return db_convert(sdb, self.vdb_client)
+        return self.vdb_client.create_database(database_name=database_name, timeout=timeout)
 
-    def list_databases(self, timeout: Optional[float] = None) -> List[Database]:
-        sdbs = super().list_databases(timeout=timeout)
-        dbs = []
-        for sdb in sdbs:
-            if isinstance(sdb, AIDatabase):
-                dbs.append(sdb)
-            else:
-                dbs.append(db_convert(sdb, self.vdb_client))
-        return sdbs
+    def list_databases(self, timeout: Optional[float] = None) -> List[Union[RPCDatabase, AIDatabase]]:
+        return self.vdb_client.list_databases(timeout=timeout)
 
-    @cached(cache=TTLCache(maxsize=1024, ttl=3))
+    def drop_database(self, database_name: str, timeout: Optional[float] = None) -> dict:
+        return self.vdb_client.drop_database(database_name=database_name,
+                                             timeout=timeout)
+
     def database(self, database: str) -> Union[RPCDatabase, AIDatabase]:
-        sdb = super().database(database)
-        return db_convert(sdb, self.vdb_client)
+        """Get database list.
+
+        :param database_name: The name of the database to delete.
+        :type  database_name: str
+
+        :return Database object
+        :rtype Database
+        """
+        for db in self.list_databases():
+            if db.database_name == database:
+                if isinstance(db, AIDatabase):
+                    db.conn = self._get_http()
+                return db
+        raise exceptions.ParamError(message='Database not exist: {}'.format(database))
+
+    def create_ai_database(self, database_name: str, timeout: Optional[float] = None) -> AIDatabase:
+        """Creates an AI doc database.
+
+        :param database_name: The name of the database. A database name can only include
+        numbers, letters, and underscores, and must not begin with a letter, and length
+        must between 1 and 128
+        :type  database_name: str
+
+        :param timeout: An optional duration of time in seconds to allow for the request. When timeout
+                        is set to None, will use the connect timeout.
+        :type  timeout: float
+
+        :return Database object
+        :rtype Database
+        """
+        db = AIDatabase(conn=self._get_http(), name=database_name, read_consistency=self.read_consistency)
+        db.create_database(timeout=timeout)
+        return db
+
+    def drop_ai_database(self, database_name: str, timeout: Optional[float] = None):
+        """Delete an AI doc database.
+
+        :param database_name: The name of the database to delete.
+        :type  database_name: str
+
+        :param timeout: An optional duration of time in seconds to allow for the request. When timeout
+                        is set to None, will use the connect timeout.
+        :type  timeout: float
+        """
+        db = AIDatabase(conn=self._get_http(), name=database_name, read_consistency=self.read_consistency)
+        return db.drop_database(timeout=timeout)
 
     def close(self):
-        super().close()
         self.vdb_client.close()
+        if self.http:
+            self.http.close()
+
+    def exists_collection(self,
+                          database_name: str,
+                          collection_name: str) -> bool:
+        return RPCDatabase(name=database_name,
+                           read_consistency=self.vdb_client.read_consistency,
+                           vdb_client=self.vdb_client).exists_collection(collection_name)
 
     def upsert(self,
                database_name: str,

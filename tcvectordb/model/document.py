@@ -158,10 +158,14 @@ class KeywordSearch:
         if self.field_name is not None:
             res['fieldName'] = self.field_name
         if self.data is not None:
-            if isinstance(self.data[0][0], list):
-                res['data'] = self.data
-            else:
-                res['data'] = [self.data]
+            if isinstance(self.data, list):
+                if len(self.data) == 0:
+                    res['data'] = [self.data]
+                elif isinstance(self.data[0], list) \
+                        and len(self.data[0]) > 0 and type(self.data[0][0]) == int:
+                    res['data'] = [self.data]
+                else:
+                    res['data'] = self.data
         if self.limit is not None:
             res['limit'] = self.limit
         res.update(self.kwargs)

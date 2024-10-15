@@ -7,10 +7,11 @@ from tcvectordb.model.collection_view import Embedding
 from tcvectordb.model.document import Document, Filter, AnnSearch, KeywordSearch, Rerank
 from tcvectordb.model.enum import ReadConsistency
 from tcvectordb.model.index import Index
-from tcvectordb.rpc.client.vdbclient import VdbClient
+# from tcvectordb.rpc.client.vdbclient import VdbClient
 
 
 class RPCCollection(Collection):
+# class RPCCollection:
 
     def __init__(self,
                  db,
@@ -34,7 +35,7 @@ class RPCCollection(Collection):
                          read_consistency,
                          ttl_config=ttl_config,
                          **kwargs)
-        self.vdb_client: VdbClient = vdb_client
+        self.vdb_client = vdb_client
 
     def upsert(self,
                documents: List[Union[Document, Dict]],
@@ -185,3 +186,12 @@ class RPCCollection(Collection):
             timeout=timeout,
             **kwargs)
 
+    def rebuild_index(self,
+                      drop_before_rebuild: bool = False,
+                      throttle: int = 0,
+                      timeout: Optional[float] = None):
+        self.vdb_client.rebuild_index(database_name=self.database_name,
+                                      collection_name=self.collection_name,
+                                      drop_before_rebuild=drop_before_rebuild,
+                                      throttle=throttle,
+                                      timeout=timeout)
