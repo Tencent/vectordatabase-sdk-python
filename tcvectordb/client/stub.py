@@ -11,6 +11,7 @@ from tcvectordb import exceptions
 from tcvectordb.model.ai_database import AIDatabase
 from ..model.collection import Collection
 from ..model.document import Document, Filter, AnnSearch, KeywordSearch, Rerank
+from ..model.index import VectorIndex, FilterIndex
 
 
 class VectorDBClient:
@@ -362,3 +363,31 @@ class VectorDBClient:
             limit=limit,
             timeout=timeout,
             **kwargs)
+
+    def add_index(self,
+                  database_name: str,
+                  collection_name: str,
+                  indexes: List[FilterIndex],
+                  build_existed_data: bool = True,
+                  timeout: Optional[float] = None) -> dict:
+        """Add scalar field index to existing collection.
+
+        Args:
+            database_name (str): The name of the database where the collection resides.
+            collection_name (str): The name of the collection
+            indexes (List[FilterIndex]): The scalar fields to add
+            build_existed_data (bool): Whether scan historical Data and build index. Default is True.
+                    If all fields are newly added, no need to scan historical data; can be set to False.
+            timeout (float): An optional duration of time in seconds to allow for the request.
+                    When timeout is set to None, will use the connect timeout.
+
+        Returns:
+            dict: The API returns a code and msg. For example: {"code": 0,  "msg": "Operation success"}
+        """
+        return Collection(
+            db=Database(conn=self._conn, name=database_name),
+            name=collection_name,
+            read_consistency=self._read_consistency,
+        ).add_index(indexes=indexes,
+                    build_existed_data=build_existed_data,
+                    timeout=timeout)

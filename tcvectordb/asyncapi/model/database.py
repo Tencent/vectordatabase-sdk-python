@@ -15,8 +15,8 @@ class AsyncDatabase(Database):
                  conn: Union[HTTPClient, None],
                  name: str = '',
                  read_consistency: ReadConsistency = ReadConsistency.EVENTUAL_CONSISTENCY,
-                 db_type: Optional[str] = None) -> None:
-        super().__init__(conn, name, read_consistency, db_type=db_type)
+                 info: Optional[dict] = None) -> None:
+        super().__init__(conn, name, read_consistency, info=info)
 
     async def create_database(self, database_name='', timeout: Optional[float] = None):
         super().create_database(database_name, timeout)

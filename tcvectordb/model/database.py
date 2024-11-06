@@ -15,11 +15,13 @@ class Database:
                  conn: Union[HTTPClient, None],
                  name: str = '',
                  read_consistency: ReadConsistency = ReadConsistency.EVENTUAL_CONSISTENCY,
-                 db_type: Optional[str] = None) -> None:
+                 info: Optional[dict] = None):
         self._dbname = name
         self._conn = conn
         self._read_consistency = read_consistency
-        self.db_type = db_type
+        self.info = info
+        self.db_type = info.get('dbType', 'BASE_DB') if info else 'BASE_DB'
+        self.collection_count = info.get('count', None) if info else 0
 
     @property
     def conn(self):
@@ -97,13 +99,14 @@ class Database:
         db_info = res.body.get('info', {})
         res = []
         for db_name in databases:
-            db_type = db_info.get(db_name, {}).get('dbType', 'BASE_DB')
+            info = db_info.get(db_name, {})
+            db_type = info.get('dbType', 'BASE_DB')
             if db_type in ('AI_DOC', 'AI_DB'):
                 res.append(AIDatabase(conn=self.conn, name=db_name,
-                                      read_consistency=self._read_consistency, db_type=db_type))
+                                      read_consistency=self._read_consistency, info=info))
             else:
                 res.append(Database(conn=self.conn, name=db_name,
-                                    read_consistency=self._read_consistency, db_type=db_type))
+                                    read_consistency=self._read_consistency, info=info))
         return res
 
     def create_collection(

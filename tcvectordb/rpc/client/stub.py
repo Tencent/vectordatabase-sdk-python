@@ -2,6 +2,9 @@ from typing import Optional, List, Union, Dict
 from numpy import ndarray
 from requests.adapters import HTTPAdapter
 
+from tcvectordb.model.index import VectorIndex, FilterIndex
+from tcvectordb.rpc.proto import olama_pb2
+
 from tcvectordb import VectorDBClient, exceptions
 from tcvectordb.client.httpclient import HTTPClient
 from tcvectordb.model.ai_database import AIDatabase
@@ -68,6 +71,24 @@ class RPCVectorDBClient(VectorDBClient):
             RPCDatabase: A database object.
         """
         return self.vdb_client.create_database(database_name=database_name, timeout=timeout)
+
+    def create_database_if_not_exists(self, database_name: str, timeout: Optional[float] = None) -> RPCDatabase:
+        """Create the database if it doesn't exist.
+
+        Args:
+            database_name (str): The name of the database. A database name can only include
+                numbers, letters, and underscores, and must not begin with a letter, and length
+                must between 1 and 128
+            timeout (float): An optional duration of time in seconds to allow for the request. When timeout
+                is set to None, will use the connect timeout.
+
+        Returns:
+            RPCDatabase: A database object.
+        """
+        for db in self.list_databases(timeout=timeout):
+            if db.database_name == database_name:
+                return db
+        return self.create_database(database_name=database_name, timeout=timeout)
 
     def list_databases(self, timeout: Optional[float] = None) -> List[Union[RPCDatabase, AIDatabase]]:
         return self.vdb_client.list_databases(timeout=timeout)
@@ -215,7 +236,8 @@ class RPCVectorDBClient(VectorDBClient):
                limit: int = 10,
                output_fields: Optional[List[str]] = None,
                timeout: Optional[float] = None,
-               ) -> List[List[Dict]]:
+               return_pd_object=False,
+               ) -> List[List[Union[Dict, olama_pb2.Document]]]:
         return self.vdb_client.search(
             database_name=database_name,
             collection_name=collection_name,
@@ -226,6 +248,7 @@ class RPCVectorDBClient(VectorDBClient):
             limit=limit,
             output_fields=output_fields,
             timeout=timeout,
+            return_pd_object=return_pd_object,
         )
 
     def search_by_id(self,
@@ -238,7 +261,8 @@ class RPCVectorDBClient(VectorDBClient):
                      limit: int = 10,
                      output_fields: Optional[List[str]] = None,
                      timeout: Optional[float] = None,
-                     ) -> List[List[Dict]]:
+                     return_pd_object=False,
+                     ) -> List[List[Union[Dict, olama_pb2.Document]]]:
         return self.vdb_client.search(
             database_name=database_name,
             collection_name=collection_name,
@@ -249,6 +273,7 @@ class RPCVectorDBClient(VectorDBClient):
             limit=limit,
             output_fields=output_fields,
             timeout=timeout,
+            return_pd_object=return_pd_object,
         )
 
     def search_by_text(self,
@@ -261,7 +286,8 @@ class RPCVectorDBClient(VectorDBClient):
                        limit: int = 10,
                        output_fields: Optional[List[str]] = None,
                        timeout: Optional[float] = None,
-                       ) -> List[List[Dict]]:
+                       return_pd_object=False,
+                       ) -> List[List[Union[Dict, olama_pb2.Document]]]:
         return self.vdb_client.search(
             database_name=database_name,
             collection_name=collection_name,
@@ -272,6 +298,7 @@ class RPCVectorDBClient(VectorDBClient):
             limit=limit,
             output_fields=output_fields,
             timeout=timeout,
+            return_pd_object=return_pd_object,
         )
 
     def hybrid_search(self,
@@ -285,7 +312,8 @@ class RPCVectorDBClient(VectorDBClient):
                       output_fields: Optional[List[str]] = None,
                       limit: Optional[int] = None,
                       timeout: Optional[float] = None,
-                      **kwargs) -> List[List[Dict]]:
+                      return_pd_object=False,
+                      **kwargs) -> List[List[Union[Dict, olama_pb2.Document]]]:
         return self.vdb_client.hybrid_search(
             database_name=database_name,
             collection_name=collection_name,
@@ -297,4 +325,33 @@ class RPCVectorDBClient(VectorDBClient):
             output_fields=output_fields,
             limit=limit,
             timeout=timeout,
+            return_pd_object=return_pd_object,
             **kwargs)
+
+    def add_index(self,
+                  database_name: str,
+                  collection_name: str,
+                  indexes: List[FilterIndex],
+                  build_existed_data: bool = True,
+                  timeout: Optional[float] = None) -> dict:
+        """Add scalar field index to existing collection.
+
+        Args:
+            database_name (str): The name of the database where the collection resides.
+            collection_name (str): The name of the collection
+            indexes (List[FilterIndex]): The scalar fields to add
+            build_existed_data (bool): Whether scan historical Data and build index. Default is True.
+                    If all fields are newly added, no need to scan historical data; can be set to False.
+            timeout (float): An optional duration of time in seconds to allow for the request.
+                    When timeout is set to None, will use the connect timeout.
+
+        Returns:
+            dict: The API returns a code and msg. For example: {"code": 0,  "msg": "Operation success"}
+        """
+        return self.vdb_client.add_index(
+            database_name=database_name,
+            collection_name=collection_name,
+            indexes=indexes,
+            build_existed_data=build_existed_data,
+            timeout=timeout,
+        )

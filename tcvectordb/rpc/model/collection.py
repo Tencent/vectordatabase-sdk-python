@@ -1,12 +1,15 @@
 from typing import Dict, List, Optional, Any, Union
 
 from numpy import ndarray
+from tcvectordb.rpc.proto import olama_pb2
 
 from tcvectordb.model.collection import Collection
 from tcvectordb.model.collection_view import Embedding
 from tcvectordb.model.document import Document, Filter, AnnSearch, KeywordSearch, Rerank
 from tcvectordb.model.enum import ReadConsistency
-from tcvectordb.model.index import Index
+from tcvectordb.model.index import Index, VectorIndex, FilterIndex
+
+
 # from tcvectordb.rpc.client.vdbclient import VdbClient
 
 
@@ -108,7 +111,8 @@ class RPCCollection(Collection):
                limit: int = 10,
                output_fields: Optional[List[str]] = None,
                timeout: Optional[float] = None,
-               ) -> List[List[Dict]]:
+               return_pd_object=False,
+               ) -> List[List[Union[Dict, olama_pb2.Document]]]:
         return self.vdb_client.search(
             database_name=self.database_name,
             collection_name=self.collection_name,
@@ -119,6 +123,7 @@ class RPCCollection(Collection):
             limit=limit,
             output_fields=output_fields,
             timeout=timeout,
+            return_pd_object=return_pd_object,
         )
 
     def searchById(self,
@@ -128,8 +133,9 @@ class RPCCollection(Collection):
                    retrieve_vector: bool = False,
                    limit: int = 10,
                    timeout: Optional[float] = None,
-                   output_fields: Optional[List[str]] = None
-    ) -> List[List[Dict]]:
+                   output_fields: Optional[List[str]] = None,
+                   return_pd_object=False,
+                   ) -> List[List[Union[Dict, olama_pb2.Document]]]:
         return self.vdb_client.search(
             database_name=self.database_name,
             collection_name=self.collection_name,
@@ -140,6 +146,7 @@ class RPCCollection(Collection):
             limit=limit,
             timeout=timeout,
             output_fields=output_fields,
+            return_pd_object=return_pd_object,
         )
 
     def searchByText(self,
@@ -150,6 +157,7 @@ class RPCCollection(Collection):
                      limit: int = 10,
                      output_fields: Optional[List[str]] = None,
                      timeout: Optional[float] = None,
+                     return_pd_object=False,
                      ) -> Dict[str, Any]:
         return self.vdb_client.search_with_warning(
             database_name=self.database_name,
@@ -161,6 +169,7 @@ class RPCCollection(Collection):
             limit=limit,
             output_fields=output_fields,
             timeout=timeout,
+            return_pd_object=return_pd_object,
         )
 
     def hybrid_search(self,
@@ -172,7 +181,8 @@ class RPCCollection(Collection):
                       output_fields: Optional[List[str]] = None,
                       limit: Optional[int] = None,
                       timeout: Optional[float] = None,
-                      **kwargs) -> List[List[Dict]]:
+                      return_pd_object=False,
+                      **kwargs) -> List[List[Union[Dict, olama_pb2.Document]]]:
         return self.vdb_client.hybrid_search(
             database_name=self.database_name,
             collection_name=self.collection_name,
@@ -184,6 +194,7 @@ class RPCCollection(Collection):
             output_fields=output_fields,
             limit=limit,
             timeout=timeout,
+            return_pd_object=return_pd_object,
             **kwargs)
 
     def rebuild_index(self,
@@ -195,3 +206,27 @@ class RPCCollection(Collection):
                                       drop_before_rebuild=drop_before_rebuild,
                                       throttle=throttle,
                                       timeout=timeout)
+
+    def add_index(self,
+                  indexes: List[FilterIndex],
+                  build_existed_data: bool = True,
+                  timeout: Optional[float] = None) -> dict:
+        """Add scalar field index to existing collection.
+
+        Args:
+            indexes (List[FilterIndex]): The scalar fields to add
+            build_existed_data (bool): Whether scan historical Data and build index. Default is True.
+                    If all fields are newly added, no need to scan historical data; can be set to False.
+            timeout (float): An optional duration of time in seconds to allow for the request.
+                    When timeout is set to None, will use the connect timeout.
+
+        Returns:
+            dict: The API returns a code and msg. For example: {"code": 0,  "msg": "Operation success"}
+        """
+        return self.vdb_client.add_index(
+            database_name=self.database_name,
+            collection_name=self.collection_name,
+            indexes=indexes,
+            build_existed_data=build_existed_data,
+            timeout=timeout,
+        )

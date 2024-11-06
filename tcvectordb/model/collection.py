@@ -793,3 +793,32 @@ class Collection():
             'throttle': throttle
         }
         self._conn.post('/index/rebuild', body, timeout)
+
+    def add_index(self,
+                  indexes: List[FilterIndex],
+                  build_existed_data: bool = True,
+                  timeout: Optional[float] = None) -> dict:
+        """Add scalar field index to existing collection.
+
+        Args:
+            indexes (List[FilterIndex]): The scalar fields to add
+            build_existed_data (bool): Whether scan historical Data and build index. Default is True.
+                    If all fields are newly added, no need to scan historical data; can be set to False.
+            timeout (float): An optional duration of time in seconds to allow for the request.
+                    When timeout is set to None, will use the connect timeout.
+
+        Returns:
+            dict: The API returns a code and msg. For example: {"code": 0,  "msg": "Operation success"}
+        """
+        if not self.database_name or not self.collection_name:
+            raise exceptions.ParamError(message="database_name or collection_name is blank")
+        indexes = [vars(item) for item in indexes]
+        body = {
+            'database': self.database_name,
+            'collection': self.collection_name,
+            'indexes': indexes,
+        }
+        if build_existed_data is not None:
+            body['buildExistedData'] = build_existed_data
+        res = self._conn.post('/index/add', body, timeout)
+        return res.data()

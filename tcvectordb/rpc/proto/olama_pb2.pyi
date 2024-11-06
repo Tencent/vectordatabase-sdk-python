@@ -180,12 +180,14 @@ class AliasItem(_message.Message):
     def __init__(self, alias: _Optional[str] = ..., collection: _Optional[str] = ...) -> None: ...
 
 class DatabaseItem(_message.Message):
-    __slots__ = ["create_time", "db_type"]
+    __slots__ = ["create_time", "db_type", "count"]
     CREATE_TIME_FIELD_NUMBER: _ClassVar[int]
     DB_TYPE_FIELD_NUMBER: _ClassVar[int]
+    COUNT_FIELD_NUMBER: _ClassVar[int]
     create_time: int
     db_type: DataType
-    def __init__(self, create_time: _Optional[int] = ..., db_type: _Optional[_Union[DataType, str]] = ...) -> None: ...
+    count: int
+    def __init__(self, create_time: _Optional[int] = ..., db_type: _Optional[_Union[DataType, str]] = ..., count: _Optional[int] = ...) -> None: ...
 
 class SnapshotRule(_message.Message):
     __slots__ = ["period_secs", "changed_docs"]
@@ -757,6 +759,32 @@ class QueryResponse(_message.Message):
     count: int
     def __init__(self, code: _Optional[int] = ..., msg: _Optional[str] = ..., redirect: _Optional[str] = ..., documents: _Optional[_Iterable[_Union[Document, _Mapping]]] = ..., count: _Optional[int] = ...) -> None: ...
 
+class ExplainRequest(_message.Message):
+    __slots__ = ["database", "collection", "query", "readConsistency"]
+    DATABASE_FIELD_NUMBER: _ClassVar[int]
+    COLLECTION_FIELD_NUMBER: _ClassVar[int]
+    QUERY_FIELD_NUMBER: _ClassVar[int]
+    READCONSISTENCY_FIELD_NUMBER: _ClassVar[int]
+    database: str
+    collection: str
+    query: QueryCond
+    readConsistency: str
+    def __init__(self, database: _Optional[str] = ..., collection: _Optional[str] = ..., query: _Optional[_Union[QueryCond, _Mapping]] = ..., readConsistency: _Optional[str] = ...) -> None: ...
+
+class ExplainResponse(_message.Message):
+    __slots__ = ["code", "msg", "redirect", "affectedTable", "affectedCount"]
+    CODE_FIELD_NUMBER: _ClassVar[int]
+    MSG_FIELD_NUMBER: _ClassVar[int]
+    REDIRECT_FIELD_NUMBER: _ClassVar[int]
+    AFFECTEDTABLE_FIELD_NUMBER: _ClassVar[int]
+    AFFECTEDCOUNT_FIELD_NUMBER: _ClassVar[int]
+    code: int
+    msg: str
+    redirect: str
+    affectedTable: _containers.RepeatedScalarFieldContainer[int]
+    affectedCount: int
+    def __init__(self, code: _Optional[int] = ..., msg: _Optional[str] = ..., redirect: _Optional[str] = ..., affectedTable: _Optional[_Iterable[int]] = ..., affectedCount: _Optional[int] = ...) -> None: ...
+
 class SearchResult(_message.Message):
     __slots__ = ["documents"]
     DOCUMENTS_FIELD_NUMBER: _ClassVar[int]
@@ -1020,6 +1048,66 @@ class GetVersionResponse(_message.Message):
     timestamp: int
     kernal_version: int
     def __init__(self, timestamp: _Optional[int] = ..., kernal_version: _Optional[int] = ...) -> None: ...
+
+class ModifyVectorIndexRequest(_message.Message):
+    __slots__ = ["database", "collection", "indexes", "rebuild", "rebuildRules"]
+    class IndexesEntry(_message.Message):
+        __slots__ = ["key", "value"]
+        KEY_FIELD_NUMBER: _ClassVar[int]
+        VALUE_FIELD_NUMBER: _ClassVar[int]
+        key: str
+        value: IndexColumn
+        def __init__(self, key: _Optional[str] = ..., value: _Optional[_Union[IndexColumn, _Mapping]] = ...) -> None: ...
+    DATABASE_FIELD_NUMBER: _ClassVar[int]
+    COLLECTION_FIELD_NUMBER: _ClassVar[int]
+    INDEXES_FIELD_NUMBER: _ClassVar[int]
+    REBUILD_FIELD_NUMBER: _ClassVar[int]
+    REBUILDRULES_FIELD_NUMBER: _ClassVar[int]
+    database: str
+    collection: str
+    indexes: _containers.MessageMap[str, IndexColumn]
+    rebuild: bool
+    rebuildRules: RebuildIndexRequest
+    def __init__(self, database: _Optional[str] = ..., collection: _Optional[str] = ..., indexes: _Optional[_Mapping[str, IndexColumn]] = ..., rebuild: bool = ..., rebuildRules: _Optional[_Union[RebuildIndexRequest, _Mapping]] = ...) -> None: ...
+
+class ModifyVectorIndexResponse(_message.Message):
+    __slots__ = ["code", "msg", "redirect"]
+    CODE_FIELD_NUMBER: _ClassVar[int]
+    MSG_FIELD_NUMBER: _ClassVar[int]
+    REDIRECT_FIELD_NUMBER: _ClassVar[int]
+    code: int
+    msg: str
+    redirect: str
+    def __init__(self, code: _Optional[int] = ..., msg: _Optional[str] = ..., redirect: _Optional[str] = ...) -> None: ...
+
+class AddIndexRequest(_message.Message):
+    __slots__ = ["database", "collection", "indexes", "buildExistedData"]
+    class IndexesEntry(_message.Message):
+        __slots__ = ["key", "value"]
+        KEY_FIELD_NUMBER: _ClassVar[int]
+        VALUE_FIELD_NUMBER: _ClassVar[int]
+        key: str
+        value: IndexColumn
+        def __init__(self, key: _Optional[str] = ..., value: _Optional[_Union[IndexColumn, _Mapping]] = ...) -> None: ...
+    DATABASE_FIELD_NUMBER: _ClassVar[int]
+    COLLECTION_FIELD_NUMBER: _ClassVar[int]
+    INDEXES_FIELD_NUMBER: _ClassVar[int]
+    BUILDEXISTEDDATA_FIELD_NUMBER: _ClassVar[int]
+    database: str
+    collection: str
+    indexes: _containers.MessageMap[str, IndexColumn]
+    buildExistedData: bool
+    def __init__(self, database: _Optional[str] = ..., collection: _Optional[str] = ..., indexes: _Optional[_Mapping[str, IndexColumn]] = ..., buildExistedData: bool = ...) -> None: ...
+
+class AddIndexResponse(_message.Message):
+    __slots__ = ["code", "msg", "redirect"]
+    CODE_FIELD_NUMBER: _ClassVar[int]
+    MSG_FIELD_NUMBER: _ClassVar[int]
+    REDIRECT_FIELD_NUMBER: _ClassVar[int]
+    code: int
+    msg: str
+    redirect: str
+    def __init__(self, code: _Optional[int] = ..., msg: _Optional[str] = ..., redirect: _Optional[str] = ...) -> None: ...
 
 class HttpRequest(_message.Message):
     __slots__ = []

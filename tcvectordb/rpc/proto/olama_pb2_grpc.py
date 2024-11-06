@@ -99,6 +99,11 @@ class SearchEngineStub(object):
                 request_serializer=olama__pb2.SortRequest.SerializeToString,
                 response_deserializer=olama__pb2.SortResponse.FromString,
                 )
+        self.explain = channel.unary_unary(
+                '/document/count',
+                request_serializer=olama__pb2.ExplainRequest.SerializeToString,
+                response_deserializer=olama__pb2.ExplainResponse.FromString,
+                )
         self.createDatabase = channel.unary_unary(
                 '/database/create',
                 request_serializer=olama__pb2.DatabaseRequest.SerializeToString,
@@ -123,6 +128,16 @@ class SearchEngineStub(object):
                 '/olama.SearchEngine/get_version',
                 request_serializer=olama__pb2.GetVersionRequest.SerializeToString,
                 response_deserializer=olama__pb2.GetVersionResponse.FromString,
+                )
+        self.modifyVectorIndex = channel.unary_unary(
+                '/index/modifyVectorIndex',
+                request_serializer=olama__pb2.ModifyVectorIndexRequest.SerializeToString,
+                response_deserializer=olama__pb2.ModifyVectorIndexResponse.FromString,
+                )
+        self.addIndex = channel.unary_unary(
+                '/index/add',
+                request_serializer=olama__pb2.AddIndexRequest.SerializeToString,
+                response_deserializer=olama__pb2.AddIndexResponse.FromString,
                 )
 
 
@@ -248,6 +263,13 @@ class SearchEngineServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def explain(self, request, context):
+        """explain
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
     def createDatabase(self, request, context):
         """创建 database
         """
@@ -278,6 +300,20 @@ class SearchEngineServicer(object):
 
     def get_version(self, request, context):
         """获取版本（api升级兼容性考虑）
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def modifyVectorIndex(self, request, context):
+        """修改index配置
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def addIndex(self, request, context):
+        """新增scalar的索引
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -371,6 +407,11 @@ def add_SearchEngineServicer_to_server(servicer, server):
                     request_deserializer=olama__pb2.SortRequest.FromString,
                     response_serializer=olama__pb2.SortResponse.SerializeToString,
             ),
+            'explain': grpc.unary_unary_rpc_method_handler(
+                    servicer.explain,
+                    request_deserializer=olama__pb2.ExplainRequest.FromString,
+                    response_serializer=olama__pb2.ExplainResponse.SerializeToString,
+            ),
             'createDatabase': grpc.unary_unary_rpc_method_handler(
                     servicer.createDatabase,
                     request_deserializer=olama__pb2.DatabaseRequest.FromString,
@@ -395,6 +436,16 @@ def add_SearchEngineServicer_to_server(servicer, server):
                     servicer.get_version,
                     request_deserializer=olama__pb2.GetVersionRequest.FromString,
                     response_serializer=olama__pb2.GetVersionResponse.SerializeToString,
+            ),
+            'modifyVectorIndex': grpc.unary_unary_rpc_method_handler(
+                    servicer.modifyVectorIndex,
+                    request_deserializer=olama__pb2.ModifyVectorIndexRequest.FromString,
+                    response_serializer=olama__pb2.ModifyVectorIndexResponse.SerializeToString,
+            ),
+            'addIndex': grpc.unary_unary_rpc_method_handler(
+                    servicer.addIndex,
+                    request_deserializer=olama__pb2.AddIndexRequest.FromString,
+                    response_serializer=olama__pb2.AddIndexResponse.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -696,6 +747,23 @@ class SearchEngine(object):
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
     @staticmethod
+    def explain(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/olama.SearchEngine/explain',
+            olama__pb2.ExplainRequest.SerializeToString,
+            olama__pb2.ExplainResponse.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
     def createDatabase(request,
             target,
             options=(),
@@ -777,5 +845,39 @@ class SearchEngine(object):
         return grpc.experimental.unary_unary(request, target, '/olama.SearchEngine/get_version',
             olama__pb2.GetVersionRequest.SerializeToString,
             olama__pb2.GetVersionResponse.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def modifyVectorIndex(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/olama.SearchEngine/modifyVectorIndex',
+            olama__pb2.ModifyVectorIndexRequest.SerializeToString,
+            olama__pb2.ModifyVectorIndexResponse.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def addIndex(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/olama.SearchEngine/addIndex',
+            olama__pb2.AddIndexRequest.SerializeToString,
+            olama__pb2.AddIndexResponse.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)

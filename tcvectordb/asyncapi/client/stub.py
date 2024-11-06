@@ -8,6 +8,7 @@ from tcvectordb.asyncapi.model.ai_database import AsyncAIDatabase
 from tcvectordb.asyncapi.model.database import AsyncDatabase
 from tcvectordb.model.document import Document, Filter, AnnSearch, KeywordSearch, Rerank
 from tcvectordb.model.enum import ReadConsistency
+from tcvectordb.model.index import FilterIndex, VectorIndex
 
 
 class AsyncVectorDBClient(VectorDBClient):
@@ -232,3 +233,31 @@ class AsyncVectorDBClient(VectorDBClient):
             limit=limit,
             timeout=timeout,
             **kwargs)
+
+    async def add_index(self,
+                        database_name: str,
+                        collection_name: str,
+                        indexes: List[FilterIndex],
+                        build_existed_data: bool = True,
+                        timeout: Optional[float] = None) -> dict:
+        """Add scalar field index to existing collection.
+
+        Args:
+            database_name (str): The name of the database where the collection resides.
+            collection_name (str): The name of the collection
+            indexes (List[FilterIndex]): The scalar fields to add
+            build_existed_data (bool): Whether scan historical Data and build index. Default is True.
+                    If all fields are newly added, no need to scan historical data; can be set to False.
+            timeout (float): An optional duration of time in seconds to allow for the request.
+                    When timeout is set to None, will use the connect timeout.
+
+        Returns:
+            dict: The API returns a code and msg. For example: {"code": 0,  "msg": "Operation success"}
+        """
+        return super().add_index(
+            database_name=database_name,
+            collection_name=collection_name,
+            indexes=indexes,
+            build_existed_data=build_existed_data,
+            timeout=timeout,
+        )

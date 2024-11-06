@@ -15,11 +15,13 @@ class AIDatabase:
                  conn: HTTPClient,
                  name: str,
                  read_consistency: ReadConsistency = ReadConsistency.EVENTUAL_CONSISTENCY,
-                 db_type: Optional[str] = None):
+                 info: Optional[dict] = None):
         self.database_name = name
         self.conn = conn
         self._read_consistency = read_consistency
-        self.db_type = db_type
+        self.info: Optional[dict] = info
+        self.db_type = info.get('dbType', 'AI_DB') if info else 'AI_DB'
+        self.collection_count = info.get('count', None) if info else 0
 
     def get_base_db(self):
         return database.Database(conn=self.conn, name=self.database_name, read_consistency=self._read_consistency)

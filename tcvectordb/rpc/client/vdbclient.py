@@ -1,13 +1,12 @@
+import time
 from typing import List, Union, Dict, Optional, Any
-
 from numpy import ndarray
-
 from tcvectordb.exceptions import ServerInternalError
 from tcvectordb.model.ai_database import AIDatabase
 from tcvectordb.model.collection import Embedding
 from tcvectordb.model.document import Document, Filter, AnnSearch, KeywordSearch, Rerank, WeightedRerank, RRFRerank
 from tcvectordb.model.enum import ReadConsistency, FieldType, IndexType, MetricType
-from tcvectordb.model.index import Index
+from tcvectordb.model.index import Index, VectorIndex, FilterIndex, SparseIndex
 from tcvectordb.rpc.client.rpcclient import RPCClient
 from tcvectordb.rpc.model.collection import RPCCollection
 from tcvectordb.rpc.model.database import RPCDatabase
@@ -163,7 +162,8 @@ class VdbClient:
                limit: int = 10,
                output_fields: Optional[List[str]] = None,
                timeout: Optional[float] = None,
-               ) -> List[List[Dict]]:
+               return_pd_object=False,
+               ) -> List[List[Union[Dict, olama_pb2.Document]]]:
         return self.search_with_warning(
             database_name=database_name,
             collection_name=collection_name,
@@ -176,6 +176,7 @@ class VdbClient:
             limit=limit,
             output_fields=output_fields,
             timeout=timeout,
+            return_pd_object=return_pd_object,
         ).get('documents')
 
     def search_with_warning(self,
@@ -190,6 +191,7 @@ class VdbClient:
                             limit: int = 10,
                             output_fields: Optional[List[str]] = None,
                             timeout: Optional[float] = None,
+                            return_pd_object=False,
                             ) -> Dict[str, Any]:
         search = olama_pb2.SearchCond()
         if vectors is not None:
@@ -226,11 +228,19 @@ class VdbClient:
         )
         res: olama_pb2.SearchResponse = self.rpc_client.search(request, timeout=timeout)
         rtl = []
-        for r in res.results:
-            docs = []
-            for d in r.documents:
-                docs.append(self._pb2doc(d))
-            rtl.append(docs)
+        if return_pd_object:
+            for r in res.results:
+                rtl.append(r.documents)
+        else:
+            quick_trans = len(set(output_fields) - {'id', 'score'}) == 0 if output_fields else False
+            for r in res.results:
+                if quick_trans:
+                    docs = [{"id": i.id, "score": i.score} for i in r.documents]
+                else:
+                    docs = []
+                    for d in r.documents:
+                        docs.append(self._pb2doc(d))
+                rtl.append(docs)
         return {
             'warning': res.warning,
             'documents': rtl
@@ -297,11 +307,11 @@ class VdbClient:
             if len(ann) > 0:
                 if isinstance(ann[0].data, str):
                     d_type_str = True
-                    ai = True
+                    # ai = True
                 elif isinstance(ann[0].data, list) and len(ann[0].data) > 0:
                     if isinstance(ann[0].data[0], str):
                         d_type_str = True
-                        ai = True
+                        # ai = True
             for a in ann:
                 ann_data = olama_pb2.AnnData()
                 if a.field_name is not None:
@@ -356,7 +366,8 @@ class VdbClient:
                       limit: Optional[int] = None,
                       timeout: Optional[float] = None,
                       embedding_items: List[str] = None,
-                      **kwargs) -> List[List[Dict]]:
+                      return_pd_object=False,
+                      **kwargs) -> List[List[Union[Dict, olama_pb2.Document]]]:
         single = True
         if ann:
             if isinstance(ann, List):
@@ -389,11 +400,19 @@ class VdbClient:
         if 'warning' in res.warning:
             Warning(res.warning)
         rtl = []
-        for r in res.results:
-            docs = []
-            for d in r.documents:
-                docs.append(self._pb2doc(d))
-            rtl.append(docs)
+        if return_pd_object:
+            for r in res.results:
+                rtl.append(r.documents)
+        else:
+            quick_trans = len(set(output_fields) - {'id', 'score'}) == 0 if output_fields else False
+            for r in res.results:
+                if quick_trans:
+                    docs = [{"id": i.id, "score": i.score} for i in r.documents]
+                else:
+                    docs = []
+                    for d in r.documents:
+                        docs.append(self._pb2doc(d))
+                rtl.append(docs)
         if single:
             rtl = rtl[0]
         return rtl
@@ -405,10 +424,11 @@ class VdbClient:
         if d.score is not None:
             doc['score'] = d.score
         if d.vector:
-            vecs = []
-            for v in d.vector:
-                vecs.append(v.real)
-            doc['vector'] = vecs
+            # vecs = []
+            # for v in d.vector:
+            #     vecs.append(v.real)
+            # doc['vector'] = vecs
+            doc['vector'] = list(d.vector)
         if d.sparse_vector:
             sp_vector = []
             for item in d.sparse_vector:
@@ -461,7 +481,6 @@ class VdbClient:
             name=database_name,
             read_consistency=self.read_consistency,
             vdb_client=self,
-            db_type='BASE',
         )
 
     def drop_database(self, database_name: str, timeout: Optional[float] = None) -> dict:
@@ -478,17 +497,23 @@ class VdbClient:
         rsp: olama_pb2.DatabaseResponse = self.rpc_client.list_databases(req=req, timeout=timeout)
         dbs = []
         for db_name in rsp.databases:
-            info = rsp.info.get(db_name)
-            if info.db_type == olama_pb2.DataType.BASE:
+            info_pb = rsp.info.get(db_name)
+            info = {
+                "count": info_pb.count,
+                "createTime": info_pb.create_time,
+            }
+            if info_pb.db_type == olama_pb2.DataType.BASE:
+                info["dbType"] = 'BASE_DB'
                 dbs.append(RPCDatabase(name=db_name,
                                        vdb_client=self,
                                        read_consistency=self.read_consistency,
-                                       db_type='BASE'))
+                                       info=info))
             else:
+                info["dbType"] = 'AI_DB'
                 dbs.append(AIDatabase(name=db_name,
                                       conn=None,
                                       read_consistency=self.read_consistency,
-                                      db_type='AI_DOC'))
+                                      info=info))
         return dbs
 
     def set_alias(self,
@@ -526,6 +551,42 @@ class VdbClient:
                                             dropBeforeRebuild=drop_before_rebuild,
                                             throttle=throttle)
         self.rpc_client.rebuild_index(req=req, timeout=timeout)
+
+    def _field2pb(self,
+                  index: Union[FilterIndex, VectorIndex, SparseIndex],
+                  column: olama_pb2.IndexColumn):
+        column.fieldName = index.name
+        column.fieldType = index.field_type.value
+        column.indexType = index.indexType.value
+        if index.field_type == FieldType.Vector:
+            column.dimension = index.dimension
+            param = index.param if index.param else {}
+            param = vars(param) if hasattr(param, '__dict__') else param
+            column.params.M = param.get('M', 0)
+            column.params.efConstruction = param.get('efConstruction', 0)
+            column.params.nprobe = param.get('nprobe', 0)
+            column.params.nlist = param.get('nlist', 0)
+        if index.field_type in (FieldType.Vector, FieldType.SparseVector):
+            column.metricType = index.metricType.value
+
+    def add_index(self,
+                  database_name: str,
+                  collection_name: str,
+                  indexes: List[FilterIndex],
+                  build_existed_data: bool = True,
+                  timeout: Optional[float] = None) -> dict:
+        """Add scalar field index to existing collection."""
+        req = olama_pb2.AddIndexRequest(database=database_name,
+                                        collection=collection_name,
+                                        buildExistedData=build_existed_data)
+        for index in indexes:
+            column: olama_pb2.IndexColumn = req.indexes[index.name]
+            self._field2pb(index, column)
+        rsp = self.rpc_client.add_index(req=req, timeout=timeout)
+        return {
+            "code": rsp.code,
+            "msg": rsp.msg,
+        }
 
     def create_collection(self,
                           database_name: str,
@@ -667,7 +728,7 @@ class VdbClient:
             documentCount=pb.size,
             alias=alias,
             indexStatus={
-                'indexStatus': pb.indexStatus.status,
+                'status': pb.indexStatus.status,
                 'startTime': pb.indexStatus.startTime,
             }
         )

@@ -87,6 +87,7 @@ enum DataType {
 message DatabaseItem {
     int64 create_time   = 1;
     DataType db_type    = 2;
+    int64 count         = 3;
 }
 
 message SnapshotRule {
@@ -425,6 +426,21 @@ message QueryResponse {
     uint64 count                = 5;
 };
 
+message ExplainRequest {
+    string database         = 1;
+    string collection       = 2;
+    QueryCond query         = 3;
+    string readConsistency  = 4;
+};
+
+message ExplainResponse {
+    int32 code                    = 1;
+    string msg                    = 2;
+    string redirect               = 3;
+    repeated uint64 affectedTable = 4;
+    uint64 affectedCount          = 5;
+};
+
 message SearchResult {
     repeated Document documents = 1;
 }
@@ -573,6 +589,33 @@ message GetVersionResponse {
     int64 kernal_version = 2;  // 4段版本号拼接组成, v1.2.3.4 表示成1002003004
 };
 
+message ModifyVectorIndexRequest {
+    string database                     = 1;
+    string collection                   = 2;
+    map<string, IndexColumn> indexes    = 3;
+    bool rebuild                        = 4;
+    RebuildIndexRequest rebuildRules    = 5;
+};
+
+message ModifyVectorIndexResponse {
+    int32 code                      = 1;
+    string msg                      = 2;
+    string redirect                 = 3;
+};
+
+message AddIndexRequest {
+    string database                     = 1;
+    string collection                   = 2;
+    map<string, IndexColumn> indexes    = 3;
+    bool buildExistedData               = 4;
+};
+
+message AddIndexResponse {
+    int32 code                      = 1;
+    string msg                      = 2;
+    string redirect                 = 3;
+};
+
 message HttpRequest {};
 
 message HttpResponse {};
@@ -616,6 +659,8 @@ service SearchEngine {
     rpc range_search(SearchRequest) returns (SearchResponse);
     // 指定候选集排序
     rpc sort(SortRequest) returns (SortResponse);
+    // explain
+    rpc explain(ExplainRequest) returns (ExplainResponse);
 
     // 创建 database
     rpc createDatabase(DatabaseRequest) returns (DatabaseResponse);
@@ -628,4 +673,8 @@ service SearchEngine {
 
     // 获取版本（api升级兼容性考虑）
     rpc get_version(GetVersionRequest) returns (GetVersionResponse);
+    // 修改index配置
+    rpc modifyVectorIndex(ModifyVectorIndexRequest) returns (ModifyVectorIndexResponse);
+    // 新增scalar的索引
+    rpc addIndex(AddIndexRequest) returns (AddIndexResponse);
 };

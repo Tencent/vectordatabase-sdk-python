@@ -43,10 +43,12 @@ class SplitterProcess:
     def __init__(self,
                  append_title_to_chunk: Optional[bool] = None,
                  append_keywords_to_chunk: Optional[bool] = None,
-                 chunk_splitter: Optional[str] = None):
+                 chunk_splitter: Optional[str] = None,
+                 parsing_type: Optional[str] = None):
         self.append_title_to_chunk = append_title_to_chunk
         self.append_keywords_to_chunk = append_keywords_to_chunk
         self.chunk_splitter = chunk_splitter
+        self.parsing_type = parsing_type
 
     @property
     def __dict__(self):
@@ -57,6 +59,8 @@ class SplitterProcess:
             res['appendKeywordsToChunk'] = self.append_keywords_to_chunk
         if self.chunk_splitter is not None:
             res['chunkSplitter'] = self.chunk_splitter
+        if self.parsing_type is not None:
+            res['parsingType'] = self.parsing_type
         return res
 
 
