@@ -187,8 +187,13 @@ class Search:
         if params is not None:
             self._params = params
 
-        if filter is not None and filter.cond:
-            self._filter = filter
+        if filter:
+            if isinstance(filter, Filter):
+                if filter.cond:
+                    self._filter = filter
+            else:
+                self._filter = filter
+
 
         if output_fields is not None:
             self._output_fields = output_fields
