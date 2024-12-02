@@ -16,5 +16,5 @@ Python SDK for [Tencent Cloud VectorDB](https://cloud.tencent.com/product/vdb).
 pip install tcvectordb
 ```
 
-### 使用示例
+### Example
 [example.py](example.py)

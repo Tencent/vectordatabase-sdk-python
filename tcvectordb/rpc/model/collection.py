@@ -8,13 +8,28 @@ from tcvectordb.model.collection_view import Embedding
 from tcvectordb.model.document import Document, Filter, AnnSearch, KeywordSearch, Rerank
 from tcvectordb.model.enum import ReadConsistency
 from tcvectordb.model.index import Index, VectorIndex, FilterIndex
-
-
 # from tcvectordb.rpc.client.vdbclient import VdbClient
 
 
 class RPCCollection(Collection):
-# class RPCCollection:
+    """RPCCollection
+
+    Contains Collection property and document API.
+
+    Args:
+        db (Database): Database object.
+        name (str): collection name.
+        shard (int): The shard number of the collection.
+        replicas (int): The replicas number of the collection.
+        description (str): An optional description of the collection.
+        index (Index): A list of the index properties for the documents in a collection.
+        read_consistency (ReadConsistency): STRONG_CONSISTENCY or EVENTUAL_CONSISTENCY for query
+        embedding (Embedding): An optional embedding for embedding text when upsert documents.
+        ttl_config (dict): TTL configuration, when set {'enable': True, 'timeField': 'expire_at'} means
+            that ttl is enabled and automatically removed when the time set in the expire_at field expires
+        kwargs:
+            create_time(str): collection create time
+    """
 
     def __init__(self,
                  db,
@@ -45,6 +60,19 @@ class RPCCollection(Collection):
                timeout: Optional[float] = None,
                build_index: bool = True,
                **kwargs):
+        """Upsert documents into a collection.
+
+        Args:
+            documents (List[Union[Document, Dict]]) : The list of the document object or dict to upsert. Maximum 1000.
+            timeout (float) : An optional duration of time in seconds to allow for the request.
+                              When timeout is set to None, will use the connect timeout.
+            build_index (bool) : An option for build index time when upsert, if build_index is true, will build index
+                                 immediately, it will affect performance of upsert. And param buildIndex has same
+                                 semantics with build_index, any of them false will be false
+
+        Returns:
+            Dict: Contains affectedCount
+        """
         return self.vdb_client.upsert(
             database_name=self.database_name,
             collection_name=self.collection_name,
@@ -63,6 +91,21 @@ class RPCCollection(Collection):
               output_fields: Optional[List[str]] = None,
               timeout: Optional[float] = None,
               ) -> List[Dict]:
+        """Query documents that satisfies the condition.
+
+        Args:
+            document_ids (List[str]): The list of the document id
+            retrieve_vector (bool): Whether to return vector values
+            limit (int): All ids of the document to be queried
+            offset (int): Page offset, used to control the starting position of the results
+            filter (Union[Filter, str]): Filter condition of the scalar index field
+            output_fields (List[str]): document's fields to return
+            timeout (float): An optional duration of time in seconds to allow for the request.
+                             When timeout is set to None, will use the connect timeout.
+
+        Returns:
+            List[Dict]: all matched documents
+        """
         return self.vdb_client.query(
             database_name=self.database_name,
             collection_name=self.collection_name,
@@ -79,7 +122,18 @@ class RPCCollection(Collection):
                document_ids: List[str] = None,
                filter: Union[Filter, str] = None,
                timeout: float = None,
-               ):
+               ) -> Dict:
+        """Delete document by conditions.
+
+        Args:
+            document_ids (List[str]): The list of the document id
+            filter (Union[Filter, str]): Filter condition of the scalar index field
+            timeout (float): An optional duration of time in seconds to allow for the request.
+                             When timeout is set to None, will use the connect timeout.
+
+        Returns:
+            Dict: Contains affectedCount
+        """
         return self.vdb_client.delete(
             database_name=self.database_name,
             collection_name=self.collection_name,
@@ -93,7 +147,19 @@ class RPCCollection(Collection):
                filter: Union[Filter, str] = None,
                document_ids: Optional[List[str]] = None,
                timeout: Optional[float] = None,
-               ):
+               ) -> Dict:
+        """Update document by conditions.
+
+        Args:
+            data (Union[Document, Dict]): Set the fields to be updated.
+            document_ids (List[str]): The list of the document id
+            filter (Union[Filter, str]): Filter condition of the scalar index field
+            timeout (float): An optional duration of time in seconds to allow for the request.
+                             When timeout is set to None, will use the connect timeout.
+
+        Returns:
+            Dict: Contains affectedCount
+        """
         return self.vdb_client.update(
             database_name=self.database_name,
             collection_name=self.collection_name,
@@ -113,6 +179,24 @@ class RPCCollection(Collection):
                timeout: Optional[float] = None,
                return_pd_object=False,
                ) -> List[List[Union[Dict, olama_pb2.Document]]]:
+        """Search the most similar vector by the given vectors. Batch API
+
+        Args:
+            vectors (Union[List[List[float]], ndarray]): The list of vectors
+            filter (Union[Filter, str]): Filter condition of the scalar index field
+            params (SearchParams): query parameters
+                FLAT: No parameters need to be specified.
+                HNSW: ef, specifying the number of vectors to be accessed. Value range [1,32768], default is 10.
+                IVF series: nprobe, specifying the number of units to be queried. Value range [1,nlist].
+            retrieve_vector (bool): Whether to return vector values
+            limit (int): All ids of the document to be queried
+            output_fields (List[str]): document's fields to return
+            timeout (float): An optional duration of time in seconds to allow for the request.
+                             When timeout is set to None, will use the connect timeout.
+
+        Returns:
+            List[List[Dict]]: Return the most similar document for each vector.
+        """
         return self.vdb_client.search(
             database_name=self.database_name,
             collection_name=self.collection_name,
@@ -136,6 +220,24 @@ class RPCCollection(Collection):
                    output_fields: Optional[List[str]] = None,
                    return_pd_object=False,
                    ) -> List[List[Union[Dict, olama_pb2.Document]]]:
+        """Search the most similar vector by id. Batch API
+
+        Args:
+            document_ids (List[str]): The list of the document id
+            filter (Union[Filter, str]): Filter condition of the scalar index field
+            params (SearchParams): query parameters
+                FLAT: No parameters need to be specified.
+                HNSW: ef, specifying the number of vectors to be accessed. Value range [1,32768], default is 10.
+                IVF series: nprobe, specifying the number of units to be queried. Value range [1,nlist].
+            retrieve_vector (bool): Whether to return vector values
+            limit (int): All ids of the document to be queried
+            output_fields (List[str]): document's fields to return
+            timeout (float): An optional duration of time in seconds to allow for the request.
+                             When timeout is set to None, will use the connect timeout.
+
+        Returns:
+            List[List[Dict]]: Return the most similar document for each id.
+        """
         return self.vdb_client.search(
             database_name=self.database_name,
             collection_name=self.collection_name,
@@ -159,6 +261,25 @@ class RPCCollection(Collection):
                      timeout: Optional[float] = None,
                      return_pd_object=False,
                      ) -> Dict[str, Any]:
+        """Search the most similar vector by the embeddingItem. Batch API
+        The embeddingItem will first be embedded into a vector by the model set by the collection on the server side.
+
+        Args:
+            embeddingItems (Union[List[List[float]], ndarray]): The list of vectors
+            filter (Union[Filter, str]): Filter condition of the scalar index field
+            params (SearchParams): query parameters
+                FLAT: No parameters need to be specified.
+                HNSW: ef, specifying the number of vectors to be accessed. Value range [1,32768], default is 10.
+                IVF series: nprobe, specifying the number of units to be queried. Value range [1,nlist].
+            retrieve_vector (bool): Whether to return vector values
+            limit (int): All ids of the document to be queried
+            output_fields (List[str]): document's fields to return
+            timeout (float): An optional duration of time in seconds to allow for the request.
+                             When timeout is set to None, will use the connect timeout.
+
+        Returns:
+            List[List[Dict]]: Return the most similar document for each embeddingItem.
+        """
         return self.vdb_client.search_with_warning(
             database_name=self.database_name,
             collection_name=self.collection_name,
@@ -183,6 +304,23 @@ class RPCCollection(Collection):
                       timeout: Optional[float] = None,
                       return_pd_object=False,
                       **kwargs) -> List[List[Union[Dict, olama_pb2.Document]]]:
+        """Dense Vector and Sparse Vector Hybrid Retrieval
+
+        Args:
+            ann (Union[List[AnnSearch], AnnSearch]): Sparse vector search params
+            match (Union[List[KeywordSearch], KeywordSearch): Ann params for search
+            filter (Union[Filter, str]): Filter condition of the scalar index field
+            rerank (Rerank): rerank params, RRFRerank, WeightedRerank
+            retrieve_vector (bool): Whether to return vector values
+            limit (int): All ids of the document to be queried
+            output_fields (List[str]): document's fields to return
+            timeout (float): An optional duration of time in seconds to allow for the request.
+                             When timeout is set to None, will use the connect timeout.
+            return_pd_object: Whether to return proto object
+
+        Returns:
+            Union[List[List[Dict], [List[Dict]]: Return the most similar document for each condition.
+        """
         return self.vdb_client.hybrid_search(
             database_name=self.database_name,
             collection_name=self.collection_name,
@@ -201,6 +339,17 @@ class RPCCollection(Collection):
                       drop_before_rebuild: bool = False,
                       throttle: int = 0,
                       timeout: Optional[float] = None):
+        """Rebuild all indexes under the specified collection.
+
+        Args:
+            drop_before_rebuild (bool): Whether to delete the old index before rebuilding the new index. Default False.
+                                        true: first delete the old index and then rebuild the index.
+                                        false: after creating the new index, then delete the old index.
+            throttle (int): Whether to limit the number of CPU cores for building an index on a single node.
+                            0: no limit.
+            timeout (float): An optional duration of time in seconds to allow for the request.
+                    When timeout is set to None, will use the connect timeout.
+        """
         self.vdb_client.rebuild_index(database_name=self.database_name,
                                       collection_name=self.collection_name,
                                       drop_before_rebuild=drop_before_rebuild,

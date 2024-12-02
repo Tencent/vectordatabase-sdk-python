@@ -3,7 +3,7 @@ from typing import Optional, List, Dict, Any
 from tcvectordb import exceptions
 from tcvectordb.client.httpclient import HTTPClient
 from tcvectordb.model import database
-from tcvectordb.model.collection_view import CollectionView, Embedding, SplitterProcess
+from tcvectordb.model.collection_view import CollectionView, Embedding, SplitterProcess, ParsingProcess
 from tcvectordb.model.enum import ReadConsistency
 from tcvectordb.model.index import Index
 
@@ -27,12 +27,17 @@ class AIDatabase:
         return database.Database(conn=self.conn, name=self.database_name, read_consistency=self._read_consistency)
 
     def create_database(self, database_name='', timeout: Optional[float] = None):
-        """Creates an AI Database.
+        """Creates an AI doc database.
 
         Args:
-            database_name: database's name to create.
-            timeout      : An optional duration of time in seconds to allow for the request.
-                           When timeout is set to None, will use the connect timeout.
+            database_name (str): The name of the database. A database name can only include
+                numbers, letters, and underscores, and must not begin with a letter, and length
+                must between 1 and 128
+            timeout (float): An optional duration of time in seconds to allow for the request. When timeout
+                is set to None, will use the connect timeout.
+
+        Returns:
+            AIDatabase: A database object.
         """
         if database_name:
             self.database_name = database_name
@@ -40,16 +45,18 @@ class AIDatabase:
             'database': self.database_name
         }
         self.conn.post('/ai/database/create', body, timeout)
+        return self
 
-    def drop_database(self, database_name='', timeout: Optional[float] = None) -> Dict[str, Any]:
-        """Delete an AI database.
+    def drop_database(self, database_name='', timeout: Optional[float] = None) -> Dict:
+        """Delete a database.
 
         Args:
-            database_name: database's name to drop.
-            timeout      : An optional duration of time in seconds to allow for the request.
-                           When timeout is set to None, will use the connect timeout.
+            database_name (str): The name of the database to delete.
+            timeout (float): An optional duration of time in seconds to allow for the request. When timeout
+                is set to None, will use the connect timeout.
+
         Returns:
-            affectedCount: affected count in dict
+            Dict: Contains code、msg、affectedCount
         """
         if database_name:
             self.database_name = database_name
@@ -71,6 +78,7 @@ class AIDatabase:
             average_file_size: Optional[int] = None,
             shard: Optional[int] = None,
             replicas: Optional[int] = None,
+            parsing_process: Optional[ParsingProcess] = None,
     ) -> CollectionView:
         """Create a collection view.
 
@@ -89,8 +97,9 @@ class AIDatabase:
             replicas         : The replicas number of the collection.
                                Replicas refers to the number of identical copies of each primary shard,
                                used for disaster recovery and load balancing.
+            parsing_process  : Document parsing parameters
         Returns:
-            CollectionView
+            A CollectionView object
         """
         coll = CollectionView(
             db=self,
@@ -103,6 +112,7 @@ class AIDatabase:
             average_file_size=average_file_size,
             shard=shard,
             replicas=replicas,
+            parsing_process=parsing_process,
         )
         self.conn.post('/ai/collectionView/create', vars(coll), timeout)
         return coll
@@ -110,14 +120,14 @@ class AIDatabase:
     def describe_collection_view(self,
                                  collection_view_name: str,
                                  timeout: Optional[float] = None) -> CollectionView:
-        """Get a collection view details.
+        """Get a CollectionView by name.
 
         Args:
             collection_view_name: The name of the collection view
             timeout             : An optional duration of time in seconds to allow for the request.
                                   When timeout is set to None, will use the connect timeout.
         Returns:
-            CollectionView
+            A CollectionView object
         """
         if not collection_view_name:
             raise exceptions.ParamError(message='collection_view_name param not found')
@@ -143,7 +153,7 @@ class AIDatabase:
             timeout         : An optional duration of time in seconds to allow for the request.
                               When timeout is set to None, will use the connect timeout.
         Returns:
-            list[CollectionView]
+            List: all CollectionView objects
         """
         body = {
             'database': self.database_name
@@ -162,21 +172,30 @@ class AIDatabase:
     def collection_view(self,
                         collection_view_name: str,
                         timeout: Optional[float] = None) -> CollectionView:
-        """Get a CollectionView object, same as describe_collection_view."""
+        """Get a CollectionView by name.
+
+        Args:
+            collection_view_name (str): The name of the CollectionView .
+            timeout (float) : An optional duration of time in seconds to allow for the request.
+                              When timeout is set to None, will use the connect timeout.
+
+        Returns:
+            A CollectionView object
+        """
         return self.describe_collection_view(collection_view_name, timeout=timeout)
 
     def drop_collection_view(self,
                              collection_view_name: str,
                              timeout: Optional[float] = None
-                             ) -> Dict[str, Any]:
-        """Delete a collection view.
+                             ) -> Dict:
+        """Delete a CollectionView by name.
 
         Args:
             collection_view_name: The name of the collection view
             timeout             : An optional duration of time in seconds to allow for the request.
                                   When timeout is set to None, will use the connect timeout.
         Returns:
-            affectedCount: affected count in dict
+            Dict: Contains code、msg、affectedCount
         """
         if not collection_view_name:
             raise exceptions.ParamError(message='collection_view_name param not found')
@@ -189,7 +208,7 @@ class AIDatabase:
 
     def truncate_collection_view(self,
                                  collection_view_name: str,
-                                 timeout: Optional[float] = None) -> Dict[str, Any]:
+                                 timeout: Optional[float] = None) -> Dict:
         """Clear all data and indexes in the collection view.
 
         Args:
@@ -197,7 +216,7 @@ class AIDatabase:
             timeout             : An optional duration of time in seconds to allow for the request.
                                   When timeout is set to None, will use the connect timeout.
         Returns:
-            affectedCount: affected count in dict
+            Dict: Contains affectedCount
         """
         if not collection_view_name:
             raise exceptions.ParamError(message='collection_view_name param not found')
@@ -211,14 +230,15 @@ class AIDatabase:
     def set_alias(self,
                   collection_view_name: str,
                   alias: str,
-                  ) -> Dict[str, Any]:
+                  ) -> Dict:
         """Set alias for collection view.
 
         Args:
-            collection_view_name: collection_view's name.
+            collection_view_name: The name of the collection_view.
             alias               : alias name to set.
+
         Returns:
-            affectedCount: affected count in dict
+            Dict: Contains affectedCount
         """
         if not collection_view_name:
             raise exceptions.ParamError(message='collection_view_name param not found')
@@ -233,11 +253,13 @@ class AIDatabase:
         return res.data()
 
     def delete_alias(self, alias: str) -> Dict[str, Any]:
-        """Delete alias.
+        """Delete alias by name.
+
         Args:
             alias  : alias name to delete.
+
         Returns:
-            affectedCount: affected count in dict
+            Dict: Contains affectedCount
         """
         if not alias:
             raise exceptions.ParamError(message="alias param not found")

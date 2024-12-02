@@ -11,5 +11,5 @@ Python SDK for [Tencent VectorDB Sparse Encoder](https://cloud.tencent.com/produ
 pip3 install tcvdb-text
 ```
 
-### 使用示例
+### Example
 [example.py](example.py)

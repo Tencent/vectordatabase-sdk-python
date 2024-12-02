@@ -1,4 +1,4 @@
-# ai_db_example.py  AI套件相关接口使用示例
+# ai_db_example.py  examples for ai suite interface
 
 import json
 import time
@@ -21,9 +21,10 @@ class AiDocExample:
 
     def __init__(self, url: str, key: str, username: str = 'root'):
         """
-        初始化客户端
+        init VectorDBClient
         """
-        # 创建客户端时可以指定 read_consistency，后续调用 sdk 接口的 read_consistency 将延用该值
+        # read_consistency can be specified when the client is created,
+        # and read_consistency will be used in subsequent calls to the sdk interface
         self._client = tcvectordb.VectorDBClient(url=url,
                                                  key=key,
                                                  username=username,
@@ -35,37 +36,37 @@ class AiDocExample:
         self.doc_set_name: Optional[str] = None
 
     def link_ai_database(self, db_name='python-sdk-test-ai-doc'):
-        # 连接已存在的AIDatabase
+        # connect to an existing AIDatabase
         self.ai_db = self._client.database(db_name)
         return
 
     def create_ai_database(self, db_name='python-sdk-test-ai-doc'):
-        # 检查并清理同名Database
-        print('========1.1 检查并清理同名Database')
+        # check and clean the Database with the same name
+        print('========1.1 Clean the Database with the same name')
         try:
             db = self._client.database(db_name)
             if db:
                 self._client.drop_ai_database(db_name)
         except exceptions.ParamError:
             pass
-        print('========1.2 创建AI Database: {}'.format(db_name))
-        # 创建 AI 类向量数据库
+        print('========1.2 Create an AIDatabase: {}'.format(db_name))
+        # create an AIDatabase
         db = self._client.create_ai_database(db_name)
         self.ai_db = db
-        print("========1.3 列举所有Database: ")
-        # 用于查询集群中存在的所有数据库
+        print("========1.3 List Database: ")
+        # list databases
         database_list = self._client.list_databases()
         for db in database_list:
             print("name={}, type={}".format(db.database_name, db.__class__.__name__))
 
     def link_collection_view(self, coll_name='ai_doc_collection'):
-        # 连接已存在的CollectionView
+        # connect to an existing CollectionView
         self.coll_view = self.ai_db.collection_view(coll_name)
         return
 
     def create_collection_view(self, coll_name='ai_doc_collection'):
-        print('========2 创建CollectionView: {}'.format(coll_name))
-        # 在已创建的AI类Database中创建 CollectionView
+        print('========2 Create CollectionView: {}'.format(coll_name))
+        # create CollectionView
         index = Index()
         index.add(FilterIndex('teststr', FieldType.String, IndexType.FILTER))
         index.add(FilterIndex('testList', FieldType.Array, IndexType.FILTER))
@@ -87,19 +88,17 @@ class AiDocExample:
 
     def collection_view_info(self):
         print('========3.1 List CollectionView:')
-        # 查询指定AI类Database 中所有的 CollectionView。
         coll_list = self.ai_db.list_collection_view()
         self.print_object(coll_list)
         print('========3.2 Describe CollectionView:')
-        # 用于查询指定CollectionView 的信息
         coll = self.ai_db.describe_collection_view(self.coll_view.name)
         print(json.dumps(vars(coll), indent=2))
 
     def upload_file(self, file_path):
-        print('========4 上传文件: {}'.format(file_path))
-        # 上传本地文件，并解析到AI database
-        #    可用document_set_name做为导入文件名
-        #    支持自定义属性：metadata
+        print('========4 Upload file: {}'.format(file_path))
+        # Upload the local file and parse to the AIDatabase
+        #    Use document_set_name as the filename
+        #    Support for custom fields：metadata
         doc_set = self.coll_view.load_and_split_text(
             local_file_path=file_path,
             # document_set_name='tencent_vectordb.md',
@@ -123,11 +122,9 @@ class AiDocExample:
         self.doc_set_id = res[0].id
         self.doc_set_name = res[0].name
         print('========5.1 Get DocumentSet:')
-        # 查询指定CollectionView中所有的DocumentSet
         ds = self.coll_view.get_document_set(document_set_id=self.doc_set_id)
         print(json.dumps(vars(ds), indent=2, ensure_ascii=False))
         print('========5.2 Get DocumentSet Text:')
-        # 查询指定CollectionView中所有的DocumentSet
         if ds.get_text():
             print(ds.get_text()[:100])
         print('========5.3 Get DocumentSet Chunks:')
@@ -139,14 +136,9 @@ class AiDocExample:
 
     def query_and_search(self):
         print('========6.1 Query:')
-        # 用于精确查找与查询条件完全匹配的文件，具体支持如下功能。
-        #     支持对文件名使用 Filter 索引的方式查询文件信息。
-        #     支持指定查询起始位置 offset 和返回数量 limit，实现数据 SCAN 能力。
-        #     支持根据主键 id（Document ID），搭配自定义的标量字段的 Filter 表达式一并检索。
         res = self.coll_view.query(document_set_id=[self.doc_set_id])
         self.print_object(res)
         print('========6.2 Search:')
-        # 查找与给定查询向量相似的向量。支持输入文本信息检索与输入文本相似的内容，同时，支持搭配标量字段的 Filter 表达式一并检索。
         res = self.coll_view.search(
             content='什么是向量数据库',
             expand_chunk=[1, 0],
@@ -161,8 +153,6 @@ class AiDocExample:
 
     def update_and_delete(self):
         print('========7.1 Update:')
-        # 通过document_set_id、document_set_name、Filter表达式过滤检索 DocumentSet ，
-        # 对 DocumentSet 的部分字段进行更新。同时，支持新增字段。
         filter_param = Filter('teststr="v1"')
         update = Document(teststr='v2')
         print(self.coll_view.update(data=update, filter=filter_param,
@@ -173,7 +163,6 @@ class AiDocExample:
         res = self.coll_view.query(document_set_id=[self.doc_set_id])
         self.print_object(res)
         print('========7.3 Delete:')
-        # 接口用于删除指定document_set_id、document_set_name的文件，且支持设置 Filter 表达式，删除满足 Filter 表达式的文件
         print(self.coll_view.delete(document_set_id=self.doc_set_id, document_set_name=self.doc_set_name))
         time.sleep(2)
         print('========7.4 Query By Name:')
@@ -182,25 +171,18 @@ class AiDocExample:
 
     def alias_api_example(self):
         print('========8.1 Set Alias:')
-        # 为 AI 类 CollectionSet 指定别名。别名可以是一个简短的字符串，
-        # 方便标识和访问对应的集合。通常，别名会替换 CollectionSet 名称用于业务切换 Embedding 模型等场景。
-        # 一个 CollectionSet 可以设置一个或者多个别名。
         print(self.ai_db.set_alias(self.coll_view.name, 'my_alias'))
         time.sleep(5)
         print('========8.2 Delete Alias:')
-        # 删除 Ai 类数据库指定的集合的别名
         print(self.ai_db.delete_alias('my_alias'))
 
     def clear_collection_view_data(self):
         print('========9.1 Truncate CollectionView:')
-        # 清空CollectionSet，包含 CollectionSet 中的所有文档
         print(self.ai_db.truncate_collection_view(self.coll_view.name, timeout=100))
         print('========9.2 Delete CollectionView:')
-        # 删除指定CollectionSet，包含 CollectionSet 中的所有文档
         print(self.ai_db.drop_collection_view(self.coll_view.name))
 
     def delete_db(self):
-        # 删除已创建的AIDatabase，并删除 AIDatabase 中所有 CollectionView 以及 DocumentSet
         print('========10 Delete AI Database:')
         print(self._client.drop_ai_database(self.ai_db.database_name))
         self._client.close()

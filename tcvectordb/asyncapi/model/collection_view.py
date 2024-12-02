@@ -1,7 +1,7 @@
 from typing import Optional, List, Union
 
 from tcvectordb.asyncapi.model.document_set import AsyncDocumentSet
-from tcvectordb.model.collection_view import SplitterProcess, CollectionView, Embedding
+from tcvectordb.model.collection_view import SplitterProcess, CollectionView, Embedding, ParsingProcess
 from tcvectordb.model.document import Filter, Document
 from tcvectordb.model.document_set import Rerank, SearchResult, Chunk, DocumentSet
 from tcvectordb.model.index import Index
@@ -20,6 +20,7 @@ class AsyncCollectionView(CollectionView):
                  average_file_size: Optional[int] = None,
                  shard: Optional[int] = None,
                  replicas: Optional[int] = None,
+                 parsing_process: Optional[ParsingProcess] = None,
                  ):
         super().__init__(db,
                          name,
@@ -30,19 +31,22 @@ class AsyncCollectionView(CollectionView):
                          expected_file_num=expected_file_num,
                          average_file_size=average_file_size,
                          shard=shard,
-                         replicas=replicas)
+                         replicas=replicas,
+                         parsing_process=parsing_process)
 
     async def load_and_split_text(self,
                                   local_file_path: str,
                                   document_set_name: Optional[str] = None,
                                   metadata: Optional[dict] = None,
                                   splitter_process: Optional[SplitterProcess] = None,
-                                  timeout: Optional[float] = None) -> AsyncDocumentSet:
+                                  timeout: Optional[float] = None,
+                                  parsing_process: Optional[ParsingProcess] = None) -> AsyncDocumentSet:
         ds = super().load_and_split_text(local_file_path,
                                          document_set_name,
                                          metadata,
                                          splitter_process,
-                                         timeout)
+                                         timeout,
+                                         parsing_process=parsing_process)
         return ds_convert(ds)
 
     async def search(self,
@@ -145,5 +149,6 @@ def ds_convert(ds: DocumentSet) -> AsyncDocumentSet:
         keywords=ds.document_set_info.keywords,
         indexed_error_msg=ds.document_set_info.indexed_error_msg,
         splitter_process=ds.splitter_process,
+        parsing_process=ds.parsing_process,
         **ds.__getattribute__('_scalar_fields'),
     )

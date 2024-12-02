@@ -20,7 +20,7 @@ vecs: List[List[float]] = np.random.rand(5, 768).tolist()
 class Example:
 
     def __init__(self, url: str, key: str, username: str = "root", timeout: int = 30):
-        """初始化客户端"""
+        """Create VectorDBClient"""
         self._client = tcvectordb.RPCVectorDBClient(url=url,
                                                     username=username,
                                                     key=key,
@@ -31,23 +31,23 @@ class Example:
         self.bm25 = BM25Encoder.default('zh')
 
     def create_database(self, db_name='python-sdk2-test-sparsevector') -> Database:
-        print('========1.1 检查并清理同名Database', flush=True)
+        print('========1.1 Check and clean the Database with the same name', flush=True)
         try:
             db = self._client.database(db_name)
             if db:
                 self._client.drop_database(db_name)
         except exceptions.ParamError:
             pass
-        print('========1.2 创建Database: {}'.format(db_name), flush=True)
+        print('========1.2 Create Database: {}'.format(db_name), flush=True)
         db = self._client.create_database(db_name)
-        print("========1.3 列举所有Database: ", flush=True)
+        print("========1.3 List Database: ", flush=True)
         database_list = self._client.list_databases()
         for d in database_list:
             print(d.database_name, flush=True)
         return db
 
     def link_database(self, db_name='python-sdk2-test-sparsevector'):
-        print('========1.1 连接已存在的Database', flush=True)
+        print('========1.1 Connect to an existing Database', flush=True)
         return self._client.database(db_name)
 
     @staticmethod
@@ -64,7 +64,7 @@ class Example:
         return index
 
     def create_collection(self, coll_name='sdk2_collection-sparsevector') -> Collection:
-        print('========2 创建Collection: {}'.format(coll_name), flush=True)
+        print('========2 Create Collection: {}'.format(coll_name), flush=True)
         coll = self.db.create_collection(
             name=coll_name,
             shard=1,
@@ -77,13 +77,12 @@ class Example:
         return coll
 
     def link_collection(self, coll_name='sdk2_collection-sparsevector') -> Collection:
-        print('========2 连接已存在的Collection: {}'.format(coll_name), flush=True)
+        print('========2 Connect to an existing Collection: {}'.format(coll_name), flush=True)
         coll = self.db.collection(coll_name)
         return coll
 
     def collection_info(self):
         print('========3 Describe Collection:', flush=True)
-        # 查询指定Collection的信息
         coll = self.db.describe_collection(self.coll.collection_name)
         print(json.dumps(vars(coll), indent=2), flush=True)
 
@@ -95,8 +94,7 @@ class Example:
             '腾讯云向量数据库（Tencent Cloud VectorDB）作为一种专门存储和检索向量数据的服务提供给用户， 在高性能、高可用、大规模、低成本、简单易用、稳定可靠等方面体现出显著优势。 ',
             '腾讯云向量数据库可以和大语言模型 LLM 配合使用。企业的私域数据在经过文本分割、向量化后，可以存储在腾讯云向量数据库中，构建起企业专属的外部知识库，从而在后续的检索任务中，为大模型提供提示信息，辅助大模型生成更加准确的答案。',
         ])
-        # upsert 写入数据，可能会有一定延迟
-        print('========4.1 直接插入向量:', flush=True)
+        print('========4.1 Upsert docs:', flush=True)
         res = self.coll.upsert(documents=[
             Document(id='0001',
                      vector=vecs[0],
@@ -122,7 +120,7 @@ class Example:
         print(res, flush=True)
 
     def search(self):
-        print('========5.1 稠密向量+稀疏向量检索:', flush=True)
+        print('========5.1 HybridSearch:', flush=True)
         res = self.coll.hybrid_search(
             ann=[
                 AnnSearch(
@@ -152,7 +150,7 @@ class Example:
             print(json.dumps(doc, indent=2, ensure_ascii=False))
 
     def delete_db(self):
-        print('========6 删除Database:', flush=True)
+        print('========6 Delete Database:', flush=True)
         res = self._client.drop_database(self.db.database_name)
         print(res, flush=True)
 

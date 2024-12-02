@@ -1,4 +1,4 @@
-# async_example.py  AI套件相关接口使用示例
+# async_example.py examples for async interface
 import asyncio
 import time
 

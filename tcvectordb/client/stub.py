@@ -11,12 +11,13 @@ from tcvectordb import exceptions
 from tcvectordb.model.ai_database import AIDatabase
 from ..model.collection import Collection
 from ..model.document import Document, Filter, AnnSearch, KeywordSearch, Rerank
-from ..model.index import VectorIndex, FilterIndex
+from ..model.index import FilterIndex
 
 
 class VectorDBClient:
-    """
-    VectorDBClient create a http client session for database operate.
+    """Client for vector db.
+
+    Connect with the database instance using HTTP.
     """
 
     def __init__(self, url=None, username='', key='',
@@ -49,17 +50,15 @@ class VectorDBClient:
     def create_database(self, database_name: str, timeout: Optional[float] = None) -> Database:
         """Creates a database.
 
-        :param database_name: The name of the database. A database name can only include
-        numbers, letters, and underscores, and must not begin with a letter, and length 
-        must between 1 and 128
-        :type  database_name: str
+        Args:
+            database_name (str): The name of the database. A database name can only include
+                numbers, letters, and underscores, and must not begin with a letter, and length
+                must between 1 and 128
+            timeout (float): An optional duration of time in seconds to allow for the request. When timeout
+                is set to None, will use the connect timeout.
 
-        :param timeout: An optional duration of time in seconds to allow for the request. When timeout
-                        is set to None, will use the connect timeout.
-        :type  timeout: float
-
-        :return Database object
-        :rtype Database 
+        Returns:
+            Database: A database object.
         """
         db = Database(conn=self._conn, name=database_name, read_consistency=self._read_consistency)
         db.create_database(timeout=timeout)
@@ -86,69 +85,69 @@ class VectorDBClient:
     def create_ai_database(self, database_name: str, timeout: Optional[float] = None) -> AIDatabase:
         """Creates an AI doc database.
 
-        :param database_name: The name of the database. A database name can only include
-        numbers, letters, and underscores, and must not begin with a letter, and length
-        must between 1 and 128
-        :type  database_name: str
+        Args:
+            database_name (str): The name of the database. A database name can only include
+                numbers, letters, and underscores, and must not begin with a letter, and length
+                must between 1 and 128
+            timeout (float): An optional duration of time in seconds to allow for the request. When timeout
+                is set to None, will use the connect timeout.
 
-        :param timeout: An optional duration of time in seconds to allow for the request. When timeout
-                        is set to None, will use the connect timeout.
-        :type  timeout: float
-
-        :return Database object
-        :rtype Database
+        Returns:
+            AIDatabase: A database object.
         """
         db = AIDatabase(conn=self._conn, name=database_name, read_consistency=self._read_consistency)
         db.create_database(timeout=timeout)
         return db
 
-    def drop_database(self, database_name: str, timeout: Optional[float] = None):
+    def drop_database(self, database_name: str, timeout: Optional[float] = None) -> Dict:
         """Delete a database.
 
-        :param database_name: The name of the database to delete.
-        :type  database_name: str
+        Args:
+            database_name (str): The name of the database to delete.
+            timeout (float): An optional duration of time in seconds to allow for the request. When timeout
+                is set to None, will use the connect timeout.
 
-        :param timeout: An optional duration of time in seconds to allow for the request. When timeout
-                        is set to None, will use the connect timeout.
-        :type  timeout: float
+        Returns:
+            Dict: Contains code、msg、affectedCount
         """
         db = Database(conn=self._conn, name=database_name, read_consistency=self._read_consistency)
         return db.drop_database(timeout=timeout)
 
-    def drop_ai_database(self, database_name: str, timeout: Optional[float] = None):
+    def drop_ai_database(self, database_name: str, timeout: Optional[float] = None) -> Dict:
         """Delete an AI doc database.
 
-        :param database_name: The name of the database to delete.
-        :type  database_name: str
+        Args:
+            database_name (str): The name of the database to delete.
+            timeout (float): An optional duration of time in seconds to allow for the request. When timeout
+                is set to None, will use the connect timeout.
 
-        :param timeout: An optional duration of time in seconds to allow for the request. When timeout
-                        is set to None, will use the connect timeout.
-        :type  timeout: float
+        Returns:
+            Dict: Contains code、msg、affectedCount
         """
         db = AIDatabase(conn=self._conn, name=database_name, read_consistency=self._read_consistency)
         return db.drop_database(timeout=timeout)
 
-    def list_databases(self, timeout: Optional[float] = None) -> List[Database]:
-        """Get database list.
+    def list_databases(self, timeout: Optional[float] = None) -> List[Union[AIDatabase, Database]]:
+        """List all databases.
 
-        :param timeout: An optional duration of time in seconds to allow for the request. When timeout
-                        is set to None, will use the connect timeout.
-        :type  timeout: float
+        Args:
+            timeout (float): An optional duration of time in seconds to allow for the request. When timeout
+                is set to None, will use the connect timeout.
 
-        :return: The database name list
-        :rtype: list[str]
+        Returns:
+            List: all AIDatabase and Database
         """
         db = Database(conn=self._conn, read_consistency=self._read_consistency)
         return db.list_databases(timeout=timeout)
 
     def database(self, database: str) -> Union[Database, AIDatabase]:
-        """Get database list.
+        """Get a database.
 
-        :param database_name: The name of the database to delete.
-        :type  database_name: str
+        Args:
+            database (str): The name of the database.
 
-        :return Database object
-        :rtype Database 
+        Returns:
+            A Database or AIDatabase object
         """
         for db in self.list_databases():
             if db.database_name == database:
@@ -156,17 +155,9 @@ class VectorDBClient:
         raise exceptions.ParamError(message='Database not exist: {}'.format(database))
 
     def close(self):
-        """Close the connect session.
-
-        :param database_name: The name of the database to delete.
-        :type  database_name: str
-
-        :return Database object
-        :rtype Database 
-        """
+        """Close the connection."""
         if self._conn:
             self._conn.close()
-            self._conn = None
 
     def exists_collection(self,
                           database_name: str,
@@ -189,6 +180,21 @@ class VectorDBClient:
                timeout: Optional[float] = None,
                build_index: bool = True,
                **kwargs):
+        """Upsert documents into a collection.
+
+        Args:
+            database_name (str): The name of the database.
+            collection_name (str): The name of the collection.
+            documents (List[Union[Document, Dict]]) : The list of the document object or dict to upsert. Maximum 1000.
+            timeout (float) : An optional duration of time in seconds to allow for the request.
+                              When timeout is set to None, will use the connect timeout.
+            build_index (bool) : An option for build index time when upsert, if build_index is true, will build index
+                                 immediately, it will affect performance of upsert. And param buildIndex has same
+                                 semantics with build_index, any of them false will be false
+
+        Returns:
+            Dict: Contains affectedCount
+        """
         return Collection(
             db=Database(conn=self._conn, name=database_name),
             name=collection_name,
@@ -205,7 +211,20 @@ class VectorDBClient:
                collection_name: str,
                document_ids: List[str] = None,
                filter: Union[Filter, str] = None,
-               timeout: Optional[float] = None):
+               timeout: Optional[float] = None) -> Dict:
+        """Delete document by conditions.
+
+        Args:
+            database_name (str): The name of the database.
+            collection_name (str): The name of the collection.
+            document_ids (List[str]): The list of the document id
+            filter (Union[Filter, str]): Filter condition of the scalar index field
+            timeout (float): An optional duration of time in seconds to allow for the request.
+                             When timeout is set to None, will use the connect timeout.
+
+        Returns:
+            Dict: Contains affectedCount
+        """
         return Collection(
             db=Database(conn=self._conn, name=database_name),
             name=collection_name,
@@ -222,7 +241,21 @@ class VectorDBClient:
                data: Union[Document, Dict],
                filter: Union[Filter, str] = None,
                document_ids: Optional[List[str]] = None,
-               timeout: Optional[float] = None):
+               timeout: Optional[float] = None) -> Dict:
+        """Update document by conditions.
+
+        Args:
+            database_name (str): The name of the database.
+            collection_name (str): The name of the collection.
+            data (Union[Document, Dict]): Set the fields to be updated.
+            document_ids (List[str]): The list of the document id
+            filter (Union[Filter, str]): Filter condition of the scalar index field
+            timeout (float): An optional duration of time in seconds to allow for the request.
+                             When timeout is set to None, will use the connect timeout.
+
+        Returns:
+            Dict: Contains affectedCount
+        """
         return Collection(
             db=Database(conn=self._conn, name=database_name),
             name=collection_name,
@@ -245,6 +278,23 @@ class VectorDBClient:
               output_fields: Optional[List[str]] = None,
               timeout: Optional[float] = None,
               ) -> List[Dict]:
+        """Query documents that satisfies the condition.
+
+        Args:
+            database_name (str): The name of the database.
+            collection_name (str): The name of the collection.
+            document_ids (List[str]): The list of the document id
+            retrieve_vector (bool): Whether to return vector values
+            limit (int): All ids of the document to be queried
+            offset (int): Page offset, used to control the starting position of the results
+            filter (Union[Filter, str]): Filter condition of the scalar index field
+            output_fields (List[str]): document's fields to return
+            timeout (float): An optional duration of time in seconds to allow for the request.
+                             When timeout is set to None, will use the connect timeout.
+
+        Returns:
+            List[Dict]: all matched documents
+        """
         return Collection(
             db=Database(conn=self._conn, name=database_name),
             name=collection_name,
@@ -270,6 +320,26 @@ class VectorDBClient:
                output_fields: Optional[List[str]] = None,
                timeout: Optional[float] = None,
                ) -> List[List[Dict]]:
+        """Search the most similar vector by the given vectors. Batch API
+
+        Args:
+            database_name (str): The name of the database.
+            collection_name (str): The name of the collection.
+            vectors (Union[List[List[float]], ndarray]): The list of vectors
+            filter (Union[Filter, str]): Filter condition of the scalar index field
+            params (SearchParams): query parameters
+                FLAT: No parameters need to be specified.
+                HNSW: ef, specifying the number of vectors to be accessed. Value range [1,32768], default is 10.
+                IVF series: nprobe, specifying the number of units to be queried. Value range [1,nlist].
+            retrieve_vector (bool): Whether to return vector values
+            limit (int): All ids of the document to be queried
+            output_fields (List[str]): document's fields to return
+            timeout (float): An optional duration of time in seconds to allow for the request.
+                             When timeout is set to None, will use the connect timeout.
+
+        Returns:
+            List[List[Dict]]: Return the most similar document for each vector.
+        """
         return Collection(
             db=Database(conn=self._conn, name=database_name),
             name=collection_name,
@@ -295,6 +365,26 @@ class VectorDBClient:
                      output_fields: Optional[List[str]] = None,
                      timeout: Optional[float] = None,
                      ) -> List[List[Dict]]:
+        """Search the most similar vector by id. Batch API
+
+        Args:
+            database_name (str): The name of the database.
+            collection_name (str): The name of the collection.
+            document_ids (List[str]): The list of the document id
+            filter (Union[Filter, str]): Filter condition of the scalar index field
+            params (SearchParams): query parameters
+                FLAT: No parameters need to be specified.
+                HNSW: ef, specifying the number of vectors to be accessed. Value range [1,32768], default is 10.
+                IVF series: nprobe, specifying the number of units to be queried. Value range [1,nlist].
+            retrieve_vector (bool): Whether to return vector values
+            limit (int): All ids of the document to be queried
+            output_fields (List[str]): document's fields to return
+            timeout (float): An optional duration of time in seconds to allow for the request.
+                             When timeout is set to None, will use the connect timeout.
+
+        Returns:
+            List[List[Dict]]: Return the most similar document for each id.
+        """
         return Collection(
             db=Database(conn=self._conn, name=database_name),
             name=collection_name,
@@ -320,7 +410,27 @@ class VectorDBClient:
                        output_fields: Optional[List[str]] = None,
                        timeout: Optional[float] = None,
                        ) -> Dict[str, Any]:
+        """Search the most similar vector by the embeddingItem. Batch API
+        The embedding_items will first be embedded into a vector by the model set by the collection on the server side.
 
+        Args:
+            database_name (str): The name of the database.
+            collection_name (str): The name of the collection.
+            embedding_items (Union[List[List[float]], ndarray]): The list of vectors
+            filter (Union[Filter, str]): Filter condition of the scalar index field
+            params (SearchParams): query parameters
+                FLAT: No parameters need to be specified.
+                HNSW: ef, specifying the number of vectors to be accessed. Value range [1,32768], default is 10.
+                IVF series: nprobe, specifying the number of units to be queried. Value range [1,nlist].
+            retrieve_vector (bool): Whether to return vector values
+            limit (int): All ids of the document to be queried
+            output_fields (List[str]): document's fields to return
+            timeout (float): An optional duration of time in seconds to allow for the request.
+                             When timeout is set to None, will use the connect timeout.
+
+        Returns:
+            List[List[Dict]]: Return the most similar document for each embedding_item.
+        """
         return Collection(
             db=Database(conn=self._conn, name=database_name),
             name=collection_name,
@@ -347,6 +457,24 @@ class VectorDBClient:
                       limit: Optional[int] = None,
                       timeout: Optional[float] = None,
                       **kwargs) -> List[List[Dict]]:
+        """Dense Vector and Sparse Vector Hybrid Retrieval
+
+        Args:
+            database_name (str): The name of the database.
+            collection_name (str): The name of the collection.
+            ann (Union[List[AnnSearch], AnnSearch]): Sparse vector search params
+            match (Union[List[KeywordSearch], KeywordSearch): Ann params for search
+            filter (Union[Filter, str]): Filter condition of the scalar index field
+            rerank (Rerank): rerank params, RRFRerank, WeightedRerank
+            retrieve_vector (bool): Whether to return vector values
+            limit (int): All ids of the document to be queried
+            output_fields (List[str]): document's fields to return
+            timeout (float): An optional duration of time in seconds to allow for the request.
+                             When timeout is set to None, will use the connect timeout.
+
+        Returns:
+            Union[List[List[Dict], [List[Dict]]: Return the most similar document for each condition.
+        """
         return Collection(
             db=Database(conn=self._conn, name=database_name),
             name=collection_name,

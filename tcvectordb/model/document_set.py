@@ -41,6 +41,7 @@ class DocumentSet:
                  keywords: Optional[str] = None,
                  indexed_error_msg: Optional[str] = None,
                  splitter_process=None,
+                 parsing_process=None,
                  **kwargs) -> None:
         self.collection_view = collection_view
         self.id = id
@@ -58,6 +59,7 @@ class DocumentSet:
             indexed_error_msg=indexed_error_msg,
         )
         self.splitter_process = splitter_process
+        self.parsing_process = parsing_process
         self._scalar_fields = None
         self._set_scalar_fields(kwargs)
 
@@ -75,6 +77,8 @@ class DocumentSet:
             res['documentSetInfo'] = vars(self.document_set_info)
         if self.splitter_process:
             res['splitterPreprocess'] = vars(self.splitter_process)
+        if self.parsing_process:
+            res['parsingProcess'] = vars(self.parsing_process)
         if self._scalar_fields:
             res.update(self._scalar_fields)
         return res
@@ -92,9 +96,11 @@ class DocumentSet:
             data.pop('text')
         if 'splitterPreprocess' in data:
             data.pop('splitterPreprocess')
+        if 'parsingProcess' in data:
+            data.pop('parsingProcess')
         self._scalar_fields = data
 
-    def load_fields(self, data: dict, splitter_process=None):
+    def load_fields(self, data: dict, splitter_process=None, parsing_process=None):
         self.text_prefix = data.get('textPrefix')
         self.text = data.get('text')
         if 'documentSetInfo' in data:
@@ -112,6 +118,8 @@ class DocumentSet:
             self.document_set_info = dsi
         if splitter_process is not None:
             self.splitter_process = splitter_process
+        if parsing_process is not None:
+            self.parsing_process = parsing_process
         self._set_scalar_fields(data)
 
     def get_text(self) -> str:

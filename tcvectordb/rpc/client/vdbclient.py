@@ -621,6 +621,8 @@ class VdbClient:
                     column.params.nlist = param.get('nlist', 0)
                 if f_item.field_type in (FieldType.Vector, FieldType.SparseVector):
                     column.metricType = f_item.metricType.value
+                if f_item.field_type == FieldType.Array:
+                    column.fieldElementType = 'string'
         if embedding is not None:
             emb = vars(embedding)
             req.embeddingParams.field = emb.get('field')

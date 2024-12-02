@@ -43,12 +43,10 @@ class SplitterProcess:
     def __init__(self,
                  append_title_to_chunk: Optional[bool] = None,
                  append_keywords_to_chunk: Optional[bool] = None,
-                 chunk_splitter: Optional[str] = None,
-                 parsing_type: Optional[str] = None):
+                 chunk_splitter: Optional[str] = None):
         self.append_title_to_chunk = append_title_to_chunk
         self.append_keywords_to_chunk = append_keywords_to_chunk
         self.chunk_splitter = chunk_splitter
-        self.parsing_type = parsing_type
 
     @property
     def __dict__(self):
@@ -59,8 +57,22 @@ class SplitterProcess:
             res['appendKeywordsToChunk'] = self.append_keywords_to_chunk
         if self.chunk_splitter is not None:
             res['chunkSplitter'] = self.chunk_splitter
+        return res
+
+
+class ParsingProcess:
+    def __init__(self,
+                 parsing_type: Optional[str] = None,
+                 **kwargs):
+        self.parsing_type = parsing_type
+        self.kwargs = kwargs
+
+    @property
+    def __dict__(self):
+        res = {}
         if self.parsing_type is not None:
             res['parsingType'] = self.parsing_type
+        res.update(self.kwargs)
         return res
 
 
@@ -78,6 +90,7 @@ class CollectionView:
                  average_file_size: Optional[int] = None,
                  shard: Optional[int] = None,
                  replicas: Optional[int] = None,
+                 parsing_process: Optional[ParsingProcess] = None,
                  ):
         self.db = db
         self.name: str = name
@@ -89,6 +102,7 @@ class CollectionView:
         self.average_file_size: Optional[int] = average_file_size
         self.shard : Optional[int] = shard
         self.replicas: Optional[int] = replicas
+        self.parsing_process: Optional[ParsingProcess] = parsing_process
         self.create_time: Optional[str] = None
         self.stats: Optional[dict] = None
         self.alias: Optional[list] = None
@@ -105,6 +119,8 @@ class CollectionView:
             res_dict['embedding'] = vars(self.embedding)
         if self.splitter_process:
             res_dict['splitterPreprocess'] = vars(self.splitter_process)
+        if self.parsing_process:
+            res_dict['parsingProcess'] = vars(self.parsing_process)
         if self.index:
             res_dict['indexes'] = self.index.list()
         if self.create_time:
@@ -138,6 +154,11 @@ class CollectionView:
                 append_title_to_chunk=spl.get('appendTitleToChunk'),
                 append_keywords_to_chunk=spl.get('appendKeywordsToChunk')
             )
+        if 'parsingProcess' in fields:
+            pp = fields.get('parsingProcess')
+            self.parsing_process = ParsingProcess(
+                parsing_type=pp.get('parsingType'),
+            )
         self.index = Index()
         for elem in fields.get('indexes', []):
             self.index.add(**elem)
@@ -168,7 +189,10 @@ class CollectionView:
                 message='{} fileSize is invalid, support max content length is {} bytes'.format(
                     local_file_path, max_length))
 
-    def _get_cos_metadata(self, metadata: dict = None, splitter_process: Optional[SplitterProcess] = None):
+    def _get_cos_metadata(self,
+                          metadata: dict = None,
+                          splitter_process: Optional[SplitterProcess] = None,
+                          parsing_process: Optional[ParsingProcess] = None):
         cos_metadata = {}
         if not metadata:
             metadata = {}
@@ -176,38 +200,49 @@ class CollectionView:
             if k.startswith('_'):
                 raise exceptions.ParamError(
                     message='field {} can not start with "-"'.format(k))
-        if splitter_process:
-            config = vars(splitter_process)
-            cos_metadata['x-cos-meta-config'] = \
-                urllib.parse.quote(base64.b64encode(json.dumps(config).encode('utf-8')))
         cos_metadata['x-cos-meta-data'] = \
             urllib.parse.quote(base64.b64encode(json.dumps(metadata).encode('utf-8')))
+        config = {}
+        if splitter_process:
+            config = vars(splitter_process)
+        if parsing_process:
+            config['parsingProcess'] = vars(parsing_process)
+        cos_metadata['x-cos-meta-config'] = \
+            urllib.parse.quote(base64.b64encode(json.dumps(config).encode('utf-8')))
         return cos_metadata
 
     def _chunk_splitter_check(self,
                               local_file_path: str,
-                              splitter_process: Optional[SplitterProcess] = None
+                              splitter_process: Optional[SplitterProcess] = None,
+                              parsing_process: Optional[ParsingProcess] = None,
                               ):
         if splitter_process is None or splitter_process.chunk_splitter is None:
             return
         _, extension = os.path.splitext(local_file_path)
         if extension.lower() in {'.pdf', '.pptx'}:
             Warning("The splitter_process.chunk_splitter parameter is valid only for markdown and word files")
+        if parsing_process and parsing_process.parsing_type == "VisionModelParsing" \
+                and extension.lower() in {'.md', '.markdown'}:
+            Warning("parsing_process.parsing_type setting does not take effect, "
+                    "Markdown file can only use AlgorithmParsing")
 
     def load_and_split_text(self,
                             local_file_path: str,
                             document_set_name: Optional[str] = None,
                             metadata: Optional[dict] = None,
                             splitter_process: Optional[SplitterProcess] = None,
-                            timeout: Optional[float] = None) -> DocumentSet:
+                            timeout: Optional[float] = None,
+                            parsing_process: Optional[ParsingProcess] = None) -> DocumentSet:
         """Upload local file, parse and save it remotely.
 
         Args:
             local_file_path  : File path to load
             document_set_name: File name as DocumentSet
             metadata         : Extra properties to save
+            splitter_process : Args for splitter process
             timeout          : An optional duration of time in seconds to allow for the request
                                When timeout is set to None, will use the connect timeout
+            parsing_process  : Document parsing parameters
         Returns:
             DocumentSet
         """
@@ -219,7 +254,7 @@ class CollectionView:
         # chunk splitter check
         self._chunk_splitter_check(local_file_path, splitter_process)
         # metadata check
-        cos_metadata = self._get_cos_metadata(metadata, splitter_process)
+        cos_metadata = self._get_cos_metadata(metadata, splitter_process, parsing_process)
         _, file_name = os.path.split(local_file_path)
         if not document_set_name:
             document_set_name = file_name
@@ -229,6 +264,8 @@ class CollectionView:
             'collectionView': self.name,
             'documentSetName': document_set_name,
         }
+        if parsing_process:
+            body['parsingProcess'] = vars(parsing_process)
         res = self.db.conn.post('/ai/documentSet/uploadUrl', body, timeout)
         upload_condition = res.body.get('uploadCondition')
         credentials = res.body.get('credentials')
@@ -239,10 +276,8 @@ class CollectionView:
         upload_path = res.body.get('uploadPath')
         cos_endpoint = res.body.get('cosEndpoint')
         bucket = cos_endpoint.split('.')[0].replace('https://', '').replace('http://', '')
-        # region = cos_endpoint.split('.')[2]
         endpoint = cos_endpoint.split('.', 1)[1]
-        config = CosConfig(#Region=region,
-                           Endpoint=endpoint,
+        config = CosConfig(Endpoint=endpoint,
                            SecretId=credentials.get('TmpSecretId'),
                            SecretKey=credentials.get('TmpSecretKey'),
                            Token=credentials.get('Token'))
@@ -265,6 +300,8 @@ class CollectionView:
             name=document_set_name,
             indexed_progress=0,
             indexed_status='New',
+            splitter_process=splitter_process,
+            parsing_process=parsing_process,
         )
 
     def search(self,
@@ -360,7 +397,7 @@ class CollectionView:
             return []
         for doc in documents:
             ds = DocumentSet(self, id=doc['documentSetId'], name=doc['documentSetName'])
-            ds.load_fields(doc, self._parse_splitter_preprocess(doc))
+            ds.load_fields(doc, self._parse_splitter_preprocess(doc), self._parse_parsing_process(doc))
             res.append(ds)
         return res
 
@@ -372,6 +409,14 @@ class CollectionView:
             append_title_to_chunk=splitter.get('appendTitleToChunk'),
             append_keywords_to_chunk=splitter.get('appendKeywordsToChunk'),
             chunk_splitter=splitter.get('chunkSplitter'),
+        )
+
+    def _parse_parsing_process(self, doc: dict):
+        if 'parsingProcess' not in doc:
+            return None
+        pp = doc['parsingProcess']
+        return ParsingProcess(
+            parsing_type=pp.get('parsingType'),
         )
 
     def get_document_set(self,
@@ -401,7 +446,7 @@ class CollectionView:
         if not data:
             return None
         ds = DocumentSet(self, id=data['documentSetId'], name=data['documentSetName'])
-        ds.load_fields(data, self._parse_splitter_preprocess(data))
+        ds.load_fields(data, self._parse_splitter_preprocess(data), self._parse_parsing_process(data))
         return ds
 
     def delete(self,

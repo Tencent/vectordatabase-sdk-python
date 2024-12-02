@@ -16,8 +16,9 @@ from tcvectordb.rpc.model.database import RPCDatabase
 
 
 class RPCVectorDBClient(VectorDBClient):
-    """
-    RPCVectorDBClient create a grpc client for database operate.
+    """Client for vector db.
+
+    Connect with the database instance using grpc.
     """
 
     def __init__(self,
@@ -58,7 +59,7 @@ class RPCVectorDBClient(VectorDBClient):
         return self.http
 
     def create_database(self, database_name: str, timeout: Optional[float] = None) -> RPCDatabase:
-        """Create the database if it doesn't exist.
+        """Create a database.
 
         Args:
             database_name (str): The name of the database. A database name can only include
@@ -91,20 +92,39 @@ class RPCVectorDBClient(VectorDBClient):
         return self.create_database(database_name=database_name, timeout=timeout)
 
     def list_databases(self, timeout: Optional[float] = None) -> List[Union[RPCDatabase, AIDatabase]]:
+        """List all databases.
+
+        Args:
+            timeout (float): An optional duration of time in seconds to allow for the request. When timeout
+                is set to None, will use the connect timeout.
+
+        Returns:
+            List: all RPCDatabase and AIDatabase
+        """
         return self.vdb_client.list_databases(timeout=timeout)
 
-    def drop_database(self, database_name: str, timeout: Optional[float] = None) -> dict:
+    def drop_database(self, database_name: str, timeout: Optional[float] = None) -> Dict:
+        """Delete a database.
+
+        Args:
+            database_name (str): The name of the database to delete.
+            timeout (float): An optional duration of time in seconds to allow for the request. When timeout
+                is set to None, will use the connect timeout.
+
+        Returns:
+            Dict: Contains code、msg、affectedCount
+        """
         return self.vdb_client.drop_database(database_name=database_name,
                                              timeout=timeout)
 
     def database(self, database: str) -> Union[RPCDatabase, AIDatabase]:
-        """Get database list.
+        """Get a database.
 
-        :param database_name: The name of the database to delete.
-        :type  database_name: str
+        Args:
+            database (str): The name of the database.
 
-        :return Database object
-        :rtype Database
+        Returns:
+            A RPCDatabase or AIDatabase object
         """
         for db in self.list_databases():
             if db.database_name == database:
@@ -116,36 +136,36 @@ class RPCVectorDBClient(VectorDBClient):
     def create_ai_database(self, database_name: str, timeout: Optional[float] = None) -> AIDatabase:
         """Creates an AI doc database.
 
-        :param database_name: The name of the database. A database name can only include
-        numbers, letters, and underscores, and must not begin with a letter, and length
-        must between 1 and 128
-        :type  database_name: str
+        Args:
+            database_name (str): The name of the database. A database name can only include
+                numbers, letters, and underscores, and must not begin with a letter, and length
+                must between 1 and 128
+            timeout (float): An optional duration of time in seconds to allow for the request. When timeout
+                is set to None, will use the connect timeout.
 
-        :param timeout: An optional duration of time in seconds to allow for the request. When timeout
-                        is set to None, will use the connect timeout.
-        :type  timeout: float
-
-        :return Database object
-        :rtype Database
+        Returns:
+            AIDatabase: A database object.
         """
         db = AIDatabase(conn=self._get_http(), name=database_name, read_consistency=self.read_consistency)
         db.create_database(timeout=timeout)
         return db
 
     def drop_ai_database(self, database_name: str, timeout: Optional[float] = None):
-        """Delete an AI doc database.
+        """Delete an AI Database.
 
-        :param database_name: The name of the database to delete.
-        :type  database_name: str
+        Args:
+            database_name (str): The name of the database to delete.
+            timeout (float): An optional duration of time in seconds to allow for the request. When timeout
+                is set to None, will use the connect timeout.
 
-        :param timeout: An optional duration of time in seconds to allow for the request. When timeout
-                        is set to None, will use the connect timeout.
-        :type  timeout: float
+        Returns:
+            Dict: Contains code、msg、affectedCount
         """
         db = AIDatabase(conn=self._get_http(), name=database_name, read_consistency=self.read_consistency)
         return db.drop_database(timeout=timeout)
 
     def close(self):
+        """Close the connection."""
         self.vdb_client.close()
         if self.http:
             self.http.close()
@@ -153,6 +173,15 @@ class RPCVectorDBClient(VectorDBClient):
     def exists_collection(self,
                           database_name: str,
                           collection_name: str) -> bool:
+        """Check if the collection exists.
+
+        Args:
+            database_name (str): The name of the database where the collection resides.
+            collection_name (str): The name of the collection to check.
+
+        Returns:
+            Bool: True if collection exists else False.
+        """
         return RPCDatabase(name=database_name,
                            read_consistency=self.vdb_client.read_consistency,
                            vdb_client=self.vdb_client).exists_collection(collection_name)
@@ -164,6 +193,21 @@ class RPCVectorDBClient(VectorDBClient):
                timeout: Optional[float] = None,
                build_index: bool = True,
                **kwargs):
+        """Upsert documents into a collection.
+
+        Args:
+            database_name (str): The name of the database.
+            collection_name (str): The name of the collection.
+            documents (List[Union[Document, Dict]]) : The list of the document object or dict to upsert. Maximum 1000.
+            timeout (float) : An optional duration of time in seconds to allow for the request.
+                              When timeout is set to None, will use the connect timeout.
+            build_index (bool) : An option for build index time when upsert, if build_index is true, will build index
+                                 immediately, it will affect performance of upsert. And param buildIndex has same
+                                 semantics with build_index, any of them false will be false
+
+        Returns:
+            Dict: Contains affectedCount
+        """
         return self.vdb_client.upsert(
             database_name=database_name,
             collection_name=collection_name,
@@ -178,7 +222,20 @@ class RPCVectorDBClient(VectorDBClient):
                collection_name: str,
                document_ids: List[str] = None,
                filter: Union[Filter, str] = None,
-               timeout: Optional[float] = None):
+               timeout: Optional[float] = None) -> Dict:
+        """Delete document by conditions.
+
+        Args:
+            database_name (str): The name of the database.
+            collection_name (str): The name of the collection.
+            document_ids (List[str]): The list of the document id
+            filter (Union[Filter, str]): Filter condition of the scalar index field
+            timeout (float): An optional duration of time in seconds to allow for the request.
+                             When timeout is set to None, will use the connect timeout.
+
+        Returns:
+            Dict: Contains affectedCount
+        """
         return self.vdb_client.delete(
             database_name=database_name,
             collection_name=collection_name,
@@ -193,7 +250,21 @@ class RPCVectorDBClient(VectorDBClient):
                data: Union[Document, Dict],
                filter: Union[Filter, str] = None,
                document_ids: Optional[List[str]] = None,
-               timeout: Optional[float] = None):
+               timeout: Optional[float] = None) -> Dict:
+        """Update document by conditions.
+
+        Args:
+            database_name (str): The name of the database.
+            collection_name (str): The name of the collection.
+            data (Union[Document, Dict]): Set the fields to be updated.
+            document_ids (List[str]): The list of the document id
+            filter (Union[Filter, str]): Filter condition of the scalar index field
+            timeout (float): An optional duration of time in seconds to allow for the request.
+                             When timeout is set to None, will use the connect timeout.
+
+        Returns:
+            Dict: Contains affectedCount
+        """
         return self.vdb_client.update(
             database_name=database_name,
             collection_name=collection_name,
@@ -214,6 +285,23 @@ class RPCVectorDBClient(VectorDBClient):
               output_fields: Optional[List[str]] = None,
               timeout: Optional[float] = None,
               ) -> List[Dict]:
+        """Query documents that satisfies the condition.
+
+        Args:
+            database_name (str): The name of the database.
+            collection_name (str): The name of the collection.
+            document_ids (List[str]): The list of the document id
+            retrieve_vector (bool): Whether to return vector values
+            limit (int): All ids of the document to be queried
+            offset (int): Page offset, used to control the starting position of the results
+            filter (Union[Filter, str]): Filter condition of the scalar index field
+            output_fields (List[str]): document's fields to return
+            timeout (float): An optional duration of time in seconds to allow for the request.
+                             When timeout is set to None, will use the connect timeout.
+
+        Returns:
+            List[Dict]: all matched documents
+        """
         return self.vdb_client.query(
             database_name=database_name,
             collection_name=collection_name,
@@ -238,6 +326,27 @@ class RPCVectorDBClient(VectorDBClient):
                timeout: Optional[float] = None,
                return_pd_object=False,
                ) -> List[List[Union[Dict, olama_pb2.Document]]]:
+        """Search the most similar vector by the given vectors. Batch API
+
+        Args:
+            database_name (str): The name of the database.
+            collection_name (str): The name of the collection.
+            vectors (Union[List[List[float]], ndarray]): The list of vectors
+            filter (Union[Filter, str]): Filter condition of the scalar index field
+            params (SearchParams): query parameters
+                FLAT: No parameters need to be specified.
+                HNSW: ef, specifying the number of vectors to be accessed. Value range [1,32768], default is 10.
+                IVF series: nprobe, specifying the number of units to be queried. Value range [1,nlist].
+            retrieve_vector (bool): Whether to return vector values
+            limit (int): All ids of the document to be queried
+            output_fields (List[str]): document's fields to return
+            timeout (float): An optional duration of time in seconds to allow for the request.
+                             When timeout is set to None, will use the connect timeout.
+            return_pd_object: Whether to return proto object
+
+        Returns:
+            List[List[Dict]]: Return the most similar document for each vector.
+        """
         return self.vdb_client.search(
             database_name=database_name,
             collection_name=collection_name,
@@ -263,6 +372,27 @@ class RPCVectorDBClient(VectorDBClient):
                      timeout: Optional[float] = None,
                      return_pd_object=False,
                      ) -> List[List[Union[Dict, olama_pb2.Document]]]:
+        """Search the most similar vector by id. Batch API
+
+        Args:
+            database_name (str): The name of the database.
+            collection_name (str): The name of the collection.
+            document_ids (List[str]): The list of the document id
+            filter (Union[Filter, str]): Filter condition of the scalar index field
+            params (SearchParams): query parameters
+                FLAT: No parameters need to be specified.
+                HNSW: ef, specifying the number of vectors to be accessed. Value range [1,32768], default is 10.
+                IVF series: nprobe, specifying the number of units to be queried. Value range [1,nlist].
+            retrieve_vector (bool): Whether to return vector values
+            limit (int): All ids of the document to be queried
+            output_fields (List[str]): document's fields to return
+            timeout (float): An optional duration of time in seconds to allow for the request.
+                             When timeout is set to None, will use the connect timeout.
+            return_pd_object: Whether to return proto object
+
+        Returns:
+            List[List[Dict]]: Return the most similar document for each id.
+        """
         return self.vdb_client.search(
             database_name=database_name,
             collection_name=collection_name,
@@ -288,6 +418,28 @@ class RPCVectorDBClient(VectorDBClient):
                        timeout: Optional[float] = None,
                        return_pd_object=False,
                        ) -> List[List[Union[Dict, olama_pb2.Document]]]:
+        """Search the most similar vector by the embeddingItem. Batch API
+        The embedding_items will first be embedded into a vector by the model set by the collection on the server side.
+
+        Args:
+            database_name (str): The name of the database.
+            collection_name (str): The name of the collection.
+            embedding_items (Union[List[List[float]], ndarray]): The list of vectors
+            filter (Union[Filter, str]): Filter condition of the scalar index field
+            params (SearchParams): query parameters
+                FLAT: No parameters need to be specified.
+                HNSW: ef, specifying the number of vectors to be accessed. Value range [1,32768], default is 10.
+                IVF series: nprobe, specifying the number of units to be queried. Value range [1,nlist].
+            retrieve_vector (bool): Whether to return vector values
+            limit (int): All ids of the document to be queried
+            output_fields (List[str]): document's fields to return
+            timeout (float): An optional duration of time in seconds to allow for the request.
+                             When timeout is set to None, will use the connect timeout.
+            return_pd_object: Whether to return proto object
+
+        Returns:
+            List[List[Dict]]: Return the most similar document for each embedding_item.
+        """
         return self.vdb_client.search(
             database_name=database_name,
             collection_name=collection_name,
@@ -314,6 +466,25 @@ class RPCVectorDBClient(VectorDBClient):
                       timeout: Optional[float] = None,
                       return_pd_object=False,
                       **kwargs) -> List[List[Union[Dict, olama_pb2.Document]]]:
+        """Dense Vector and Sparse Vector Hybrid Retrieval
+
+        Args:
+            database_name (str): The name of the database.
+            collection_name (str): The name of the collection.
+            ann (Union[List[AnnSearch], AnnSearch]): Sparse vector search params
+            match (Union[List[KeywordSearch], KeywordSearch): Ann params for search
+            filter (Union[Filter, str]): Filter condition of the scalar index field
+            rerank (Rerank): rerank params, RRFRerank, WeightedRerank
+            retrieve_vector (bool): Whether to return vector values
+            limit (int): All ids of the document to be queried
+            output_fields (List[str]): document's fields to return
+            timeout (float): An optional duration of time in seconds to allow for the request.
+                             When timeout is set to None, will use the connect timeout.
+            return_pd_object: Whether to return proto object
+
+        Returns:
+            Union[List[List[Dict], [List[Dict]]: Return the most similar document for each condition.
+        """
         return self.vdb_client.hybrid_search(
             database_name=database_name,
             collection_name=collection_name,

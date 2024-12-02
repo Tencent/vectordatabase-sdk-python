@@ -1,4 +1,4 @@
-# add_index接口使用示例
+# add_index example
 import time
 import numpy as np
 
@@ -14,14 +14,14 @@ db_name = "python-sdk-test-add-index"
 coll_name = "sdk_collection_add_index"
 
 
-# 初始化VectorDB Client
+# create VectorDBClient
 vdb_client = tcvectordb.RPCVectorDBClient(url=vdb_url,
                                           key=vdb_key,
                                           username='root')
 # vdb_client.drop_database(db_name)
-# 创建Database
+# create Database
 db = vdb_client.create_database_if_not_exists(database_name=db_name)
-# 创建Collection
+# create Collection
 index = Index()
 index.add(FilterIndex('id', FieldType.String, IndexType.PRIMARY_KEY))
 index.add(VectorIndex('vector', 32, IndexType.HNSW, MetricType.IP, HNSWParams(m=16, efconstruction=200)))
@@ -32,7 +32,7 @@ coll = db.create_collection_if_not_exists(
     description='test collection',
     index=index,
 )
-# 插入数据
+# upsert docs
 vecs: list = np.random.rand(4, 32).tolist()
 res = coll.upsert(
     documents=[
@@ -69,7 +69,7 @@ res = coll.upsert(
 print(res, flush=True)
 time.sleep(2)
 
-# AddIndex
+# add_index
 print(vdb_client.add_index(database_name=db_name,
                            collection_name=coll_name,
                            indexes=[
@@ -79,14 +79,14 @@ print(vdb_client.add_index(database_name=db_name,
                            ],
                            build_existed_data=True),
       )
-# 等待索引构建完成
+# Wait for the index build to complete
 while True:
     coll = db.describe_collection(coll_name)
     if coll.index_status.get('status') == 'ready':
         print(vars(coll))
         break
     time.sleep(2)
-# 使用新加index做filter
+# Use the new index to filter
 res = coll.query(filter='username="Bob"', limit=10)
 print(res, flush=True)
 res = coll.query(filter='age>30', limit=10)
@@ -95,6 +95,6 @@ res = coll.query(filter=Filter(Filter.Include('interest', ['Swimming'])), limit=
 print(res, flush=True)
 
 
-# 清除环境
+# clear env
 vdb_client.drop_database(db_name)
 vdb_client.close()

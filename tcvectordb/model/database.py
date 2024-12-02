@@ -11,6 +11,8 @@ from .index import Index
 
 
 class Database:
+    """Database, Contains Database property and collection API."""
+
     def __init__(self,
                  conn: Union[HTTPClient, None],
                  name: str = '',
@@ -34,14 +36,15 @@ class Database:
     def create_database(self, database_name='', timeout: Optional[float] = None):
         """Creates a database.
 
-        :param database_name: The name of the database. A database name can only include
-        numbers, letters, and underscores, and must not begin with a letter, and length
-        must between 1 and 128
-        :type  database_name: str
+        Args:
+            database_name (str): The name of the database. A database name can only include
+                numbers, letters, and underscores, and must not begin with a letter, and length
+                must between 1 and 128
+            timeout (float): An optional duration of time in seconds to allow for the request. When timeout
+                is set to None, will use the connect timeout.
 
-        :param timeout: An optional duration of time in seconds to allow for the request. When timeout
-                        is set to None, will use the connect timeout.
-        :type  timeout: float
+        Returns:
+            Database: A database object.
         """
         if not self.conn:
             raise exceptions.NoConnectError
@@ -55,16 +58,18 @@ class Database:
             'database': self.database_name
         }
         self.conn.post('/database/create', body, timeout)
+        return self
 
-    def drop_database(self, database_name='', timeout: Optional[float] = None):
-        """Delete a database.
+    def drop_database(self, database_name='', timeout: Optional[float] = None) -> Dict:
+        """Delete a database by name.
 
-        :param database_name: The name of the database to delete.
-        :type  database_name: str
+        Args:
+            database_name (str): The name of the database to delete.
+            timeout (float): An optional duration of time in seconds to allow for the request. When timeout
+                is set to None, will use the connect timeout.
 
-        :param timeout: An optional duration of time in seconds to allow for the request. When timeout
-                        is set to None, will use the connect timeout.
-        :type  timeout: float
+        Returns:
+            Dict: Contains code、msg、affectedCount
         """
         if not self.conn:
             raise exceptions.NoConnectError
@@ -84,15 +89,15 @@ class Database:
             if e.message.find('not exist') == -1:
                 raise e
 
-    def list_databases(self, timeout: Optional[float] = None) -> List:
-        """Get database list.
+    def list_databases(self, timeout: Optional[float] = None) -> List[Union[AIDatabase, "Database"]]:
+        """List all databases.
 
-        :param timeout: An optional duration of time in seconds to allow for the request. When timeout
-                        is set to None, will use the connect timeout.
-        :type  timeout: float
+        Args:
+            timeout (float): An optional duration of time in seconds to allow for the request. When timeout
+                is set to None, will use the connect timeout.
 
-        :return: The database name list
-        :rtype: list[str]
+        Returns:
+            List: all Database and AIDatabase
         """
         res = self.conn.get('/database/list', timeout=timeout)
         databases = res.body.get('databases', [])
@@ -122,37 +127,23 @@ class Database:
     ) -> Collection:
         """Create a collection.
 
-        :param name: The name of the collection. A collection name can only include
-        numbers, letters, and underscores, and must not begin with a letter, and length
-        must between 1 and 128
-        :type  name: str
+        Args:
+            name (str): The name of the collection. A collection name can only include
+                numbers, letters, and underscores, and must not begin with a letter, and length
+                must between 1 and 128
+            shard (int): The shard number of the collection. Shard will divide a large dataset into smaller subsets.
+            replicas (int): The replicas number of the collection. Replicas refers to the number of identical copies
+                of each primary shard, used for disaster recovery and load balancing.
+            description (str): An optional description of the collection.
+            index (Index): A list of the index properties for the documents in a collection.
+            embedding (Embedding): An optional embedding for embedding text when upsert documents.
+            timeout (float): An optional duration of time in seconds to allow for the request. When timeout
+                is set to None, will use the connect timeout.
+            ttl_config (dict): TTL configuration, when set {'enable': True, 'timeField': 'expire_at'} means
+                that ttl is enabled and automatically removed when the time set in the expire_at field expires
 
-        :param shard: The shard number of the collection. Shard will divide a large dataset into smaller subsets.
-        :type shard: int
-
-        :param replicas: The replicas number of the collection. Replicas refers to the number of identical copies
-        of each primary shard, used for disaster recovery and load balancing.
-        :type replicas: int
-
-        :param description: An optional description of the collection.
-        :type description: str
-
-        :param index: A list of the index properties for the documents in a collection.
-        :type index: Index class
-
-        :param embedding: An optional embedding for embedding text when upsert documents.
-        :type embedding: Embedding class
-
-        :param timeout: An optional duration of time in seconds to allow for the request. When timeout
-                        is set to None, will use the connect timeout.
-        :type  timeout: float
-
-        :param ttl_config: TTL configuration, when set {'enable': True, 'timeField': 'expire_at'} means that
-                           ttl is enabled and automatically removed when the time set in the expire_at field expires
-        :type  ttl_config: dict
-
-        :return: The Collection object. You can use the collection object to manipulate documents.
-        :rtype: Collection class
+        Returns:
+            A Collection object.
         """
         if not self.database_name:
             raise exceptions.ParamError(message='database not found')
@@ -196,14 +187,14 @@ class Database:
         return collection
 
     def list_collections(self, timeout: Optional[float] = None) -> List[Collection]:
-        """Get collection list.
+        """List all collections in the database.
 
-        :param timeout: An optional duration of time in seconds to allow for the request. When timeout
-                        is set to None, will use the connect timeout.
-        :type  timeout: float
+        Args:
+            timeout (float): An optional duration of time in seconds to allow for the request. When timeout
+                is set to None, will use the connect timeout.
 
-        :return: The database name list
-        :rtype: list[Collection]
+        Returns:
+            List: all Collections
         """
         if not self.database_name:
             raise exceptions.ParamError(message='database not found')
@@ -219,16 +210,15 @@ class Database:
         return collections
 
     def describe_collection(self, name: str, timeout: Optional[float] = None) -> Collection:
-        """Get a collection details.
-        :param name: The name of the collection.
-        :type: str
+        """Get a Collection by name.
 
-        :param timeout: An optional duration of time in seconds to allow for the request. When timeout
-                        is set to None, will use the connect timeout.
-        :type  timeout: float
+        Args:
+            name (str): The name of the collection.
+            timeout (float): An optional duration of time in seconds to allow for the request. When timeout
+                is set to None, will use the connect timeout.
 
-        :return: The Collection object. You can use the collection object to manipulate documents.
-        :rtype: Collection class
+        Returns:
+            A Collection object.
         """
         if not self.database_name:
             raise exceptions.ParamError(message='database not found')
@@ -246,14 +236,16 @@ class Database:
         col = res.body['collection']
         return self._generate_collection(col)
 
-    def drop_collection(self, name: str, timeout: Optional[float] = None):
-        """Delete a collection.
-        :param name: The name of the collection.
-        :type: str
+    def drop_collection(self, name: str, timeout: Optional[float] = None) -> Dict:
+        """Delete a collection by name.
 
-        :param timeout: An optional duration of time in seconds to allow for the request. When timeout
-                        is set to None, will use the connect timeout.
-        :type  timeout: float
+        Args:
+            name (str): The name of the collection.
+            timeout (float): An optional duration of time in seconds to allow for the request. When timeout
+                is set to None, will use the connect timeout.
+
+        Returns:
+            Dict: Contains code、msg、affectedCount
         """
         if not self.database_name:
             raise exceptions.ParamError(message='database not found')
@@ -271,7 +263,15 @@ class Database:
             if e.message.find('not exist') == -1:
                 raise e
 
-    def truncate_collection(self, collection_name: str) -> Dict[str, Any]:
+    def truncate_collection(self, collection_name: str) -> Dict:
+        """Clear all the data and indexes in the Collection.
+
+        Args:
+            collection_name (str): The name of the collection.
+
+        Returns:
+            Dict: Contains affectedCount
+        """
         if not self.database_name:
             raise exceptions.ParamError(message='param database is blank')
         if not collection_name:
@@ -284,7 +284,15 @@ class Database:
         res = self._conn.post('/collection/truncate', body)
         return res.data()
 
-    def set_alias(self, collection_name: str, collection_alias: str) -> Dict[str, Any]:
+    def set_alias(self, collection_name: str, collection_alias: str) -> Dict:
+        """Set alias for collection.
+
+        Args:
+            collection_name  : The name of the collection.
+            collection_alias : alias name to set.
+        Returns:
+            Dict: Contains affectedCount
+        """
         if not self.database_name:
             raise exceptions.ParamError(message='database not found')
         if not collection_name:
@@ -303,6 +311,14 @@ class Database:
         raise exceptions.ServerInternalError(message='response content is not as expected: {}'.format(postRes.body))
 
     def delete_alias(self, alias: str) -> Dict[str, Any]:
+        """Delete alias by name.
+
+        Args:
+            alias  : alias name to delete.
+
+        Returns:
+            Dict: Contains affectedCount
+        """
         if not self.database_name or not alias:
             raise exceptions.ParamError(message='database and alias required')
         body = {
@@ -315,16 +331,13 @@ class Database:
         raise exceptions.ServerInternalError(message='response content is not as expected: {}'.format(postRes.body))
 
     def collection(self, name: str) -> Collection:
-        """Get a collection object, same as describe_collection.
-        :param name: The name of the collection.
-        :type: str
+        """Get a Collection by name.
 
-        :param timeout: An optional duration of time in seconds to allow for the request. When timeout
-                        is set to None, will use the connect timeout.
-        :type  timeout: float
+        Args:
+            name (str): The name of the collection.
 
-        :return: The Collection object. You can use the collection object to manipulate documents.
-        :rtype: Collection class
+        Returns:
+            A Collection object
         """
         return self.describe_collection(name)
 
