@@ -6,7 +6,7 @@ from tcvectordb.client.httpclient import HTTPClient
 from tcvectordb import exceptions
 from .ai_database import AIDatabase
 
-from .collection import Collection, Embedding
+from .collection import Collection, Embedding, FilterIndexConfig
 from .index import Index
 
 
@@ -124,6 +124,7 @@ class Database:
             embedding: Embedding = None,
             timeout: float = None,
             ttl_config: dict = None,
+            filter_index_config: FilterIndexConfig = None,
     ) -> Collection:
         """Create a collection.
 
@@ -141,7 +142,8 @@ class Database:
                 is set to None, will use the connect timeout.
             ttl_config (dict): TTL configuration, when set {'enable': True, 'timeField': 'expire_at'} means
                 that ttl is enabled and automatically removed when the time set in the expire_at field expires
-
+            filter_index_config (FilterIndexConfig): Enabling full indexing mode.
+                Where all scalar fields are indexed by default.
         Returns:
             A Collection object.
         """
@@ -160,9 +162,12 @@ class Database:
             body['indexes'] = index.list()
         if ttl_config is not None:
             body['ttlConfig'] = ttl_config
+        if filter_index_config is not None:
+            body['filterIndexConfig'] = vars(filter_index_config)
         self._conn.post('/collection/create', body, timeout)
         return Collection(self, name, shard, replicas, description, index, embedding=embedding,
-                          ttl_config=ttl_config, read_consistency=self._read_consistency)
+                          ttl_config=ttl_config, filter_index_config=filter_index_config,
+                          read_consistency=self._read_consistency)
 
     def _generate_collection(self, col):
         index = Index()
@@ -172,6 +177,9 @@ class Database:
         if "embedding" in col:
             ebd = Embedding()
             ebd.set_fields(**col.pop("embedding", {}))
+        filter_index_config = None
+        if "filterIndexConfig" in col:
+            filter_index_config = FilterIndexConfig(**col.pop("filterIndexConfig", {}))
         collection = Collection(
             self,
             name=col.pop('collection', None),
@@ -181,6 +189,7 @@ class Database:
             index=index,
             embedding=ebd,
             ttl_config=col.pop('ttlConfig', None),
+            filter_index_config=filter_index_config,
             read_consistency=self._read_consistency,
             **col,
         )
@@ -367,6 +376,7 @@ class Database:
                                         embedding: Embedding = None,
                                         timeout: float = None,
                                         ttl_config: dict = None,
+                                        filter_index_config: FilterIndexConfig = None,
                                         ) -> Collection:
         """Create the collection if it doesn't exist.
 
@@ -384,6 +394,8 @@ class Database:
                 is set to None, will use the connect timeout.
             ttl_config (dict): TTL configuration, when set {'enable': True, 'timeField': 'expire_at'} means
                 that ttl is enabled and automatically removed when the time set in the expire_at field expires
+            filter_index_config (FilterIndexConfig): Enabling full indexing mode.
+                Where all scalar fields are indexed by default.
 
         Returns:
             Collection: A collection object.
@@ -402,4 +414,5 @@ class Database:
             embedding=embedding,
             timeout=timeout,
             ttl_config=ttl_config,
+            filter_index_config=filter_index_config,
         )

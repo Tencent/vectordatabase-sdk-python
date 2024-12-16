@@ -2,7 +2,7 @@ from typing import Dict, List, Optional, Any, Union
 
 from numpy import ndarray
 
-from tcvectordb.model.collection import Collection
+from tcvectordb.model.collection import Collection, FilterIndexConfig
 from tcvectordb.model.collection_view import Embedding
 from tcvectordb.model.document import Document, Filter, AnnSearch, KeywordSearch, Rerank
 from tcvectordb.model.enum import ReadConsistency
@@ -25,6 +25,8 @@ class AsyncCollection(Collection):
         embedding (Embedding): An optional embedding for embedding text when upsert documents.
         ttl_config (dict): TTL configuration, when set {'enable': True, 'timeField': 'expire_at'} means
             that ttl is enabled and automatically removed when the time set in the expire_at field expires
+        filter_index_config (FilterIndexConfig): Enabling full indexing mode.
+            Where all scalar fields are indexed by default.
         kwargs:
             create_time(str): collection create time
     """
@@ -39,6 +41,7 @@ class AsyncCollection(Collection):
                  embedding: Embedding = None,
                  read_consistency: ReadConsistency = ReadConsistency.EVENTUAL_CONSISTENCY,
                  ttl_config: dict = None,
+                 filter_index_config: FilterIndexConfig = None,
                  **kwargs
                  ):
         super().__init__(db,
@@ -50,6 +53,7 @@ class AsyncCollection(Collection):
                          embedding,
                          read_consistency,
                          ttl_config=ttl_config,
+                         filter_index_config=filter_index_config,
                          **kwargs)
 
     async def upsert(self,
@@ -115,6 +119,7 @@ class AsyncCollection(Collection):
                      limit: int = 10,
                      output_fields: Optional[List[str]] = None,
                      timeout: Optional[float] = None,
+                     radius: Optional[float] = None,
                      ) -> List[List[Dict]]:
         """Search the most similar vector by the given vectors. Batch API
 
@@ -130,6 +135,10 @@ class AsyncCollection(Collection):
             output_fields (List[str]): document's fields to return
             timeout (float): An optional duration of time in seconds to allow for the request.
                              When timeout is set to None, will use the connect timeout.
+            radius (float): Based on the score threshold for similarity retrieval.
+                            IP: return when score >= radius, value range (-∞, +∞).
+                            COSINE: return when score >= radius, value range [-1, 1].
+                            L2: return when score <= radius, value range [0, +∞).
 
         Returns:
             List[List[Dict]]: Return the most similar document for each vector.
@@ -140,7 +149,8 @@ class AsyncCollection(Collection):
                               retrieve_vector,
                               limit,
                               output_fields,
-                              timeout)
+                              timeout,
+                              radius=radius)
 
     async def searchById(self,
                          document_ids: List,
@@ -149,7 +159,8 @@ class AsyncCollection(Collection):
                          retrieve_vector: bool = False,
                          limit: int = 10,
                          timeout: Optional[float] = None,
-                         output_fields: Optional[List[str]] = None
+                         output_fields: Optional[List[str]] = None,
+                         radius: Optional[float] = None,
                          ) -> List[List[Dict]]:
         """Search the most similar vector by id. Batch API
 
@@ -165,6 +176,10 @@ class AsyncCollection(Collection):
             output_fields (List[str]): document's fields to return
             timeout (float): An optional duration of time in seconds to allow for the request.
                              When timeout is set to None, will use the connect timeout.
+            radius (float): Based on the score threshold for similarity retrieval.
+                            IP: return when score >= radius, value range (-∞, +∞).
+                            COSINE: return when score >= radius, value range [-1, 1].
+                            L2: return when score <= radius, value range [0, +∞).
 
         Returns:
             List[List[Dict]]: Return the most similar document for each id.
@@ -175,7 +190,8 @@ class AsyncCollection(Collection):
                                   retrieve_vector,
                                   limit,
                                   timeout,
-                                  output_fields)
+                                  output_fields,
+                                  radius=radius)
 
     async def searchByText(self,
                            embeddingItems: List[str],
@@ -185,6 +201,7 @@ class AsyncCollection(Collection):
                            limit: int = 10,
                            output_fields: Optional[List[str]] = None,
                            timeout: Optional[float] = None,
+                           radius: Optional[float] = None,
                            ) -> Dict[str, Any]:
         """Search the most similar vector by the embeddingItem. Batch API
         The embeddingItem will first be embedded into a vector by the model set by the collection on the server side.
@@ -201,6 +218,10 @@ class AsyncCollection(Collection):
             output_fields (List[str]): document's fields to return
             timeout (float): An optional duration of time in seconds to allow for the request.
                              When timeout is set to None, will use the connect timeout.
+            radius (float): Based on the score threshold for similarity retrieval.
+                            IP: return when score >= radius, value range (-∞, +∞).
+                            COSINE: return when score >= radius, value range [-1, 1].
+                            L2: return when score <= radius, value range [0, +∞).
 
         Returns:
             List[List[Dict]]: Return the most similar document for each embeddingItem.
@@ -211,7 +232,8 @@ class AsyncCollection(Collection):
                                     retrieve_vector,
                                     limit,
                                     output_fields,
-                                    timeout)
+                                    timeout,
+                                    radius=radius,)
 
     async def hybrid_search(self,
                             ann: Optional[Union[List[AnnSearch], AnnSearch]] = None,
@@ -253,19 +275,21 @@ class AsyncCollection(Collection):
     async def delete(self,
                      document_ids: List[str] = None,
                      filter: Union[Filter, str] = None,
-                     timeout: float = None) -> Dict:
+                     timeout: float = None,
+                     limit: Optional[int] = None) -> Dict:
         """Delete document by conditions.
 
         Args:
             document_ids (List[str]): The list of the document id
             filter (Union[Filter, str]): Filter condition of the scalar index field
+            limit (int): The amount of document deleted, with a range of [1, 16384].
             timeout (float): An optional duration of time in seconds to allow for the request.
                              When timeout is set to None, will use the connect timeout.
 
         Returns:
             Dict: Contains affectedCount
         """
-        return super().delete(document_ids, filter, timeout)
+        return super().delete(document_ids, filter, timeout, limit=limit)
 
     async def update(self,
                      data: Union[Document, Dict],
@@ -288,7 +312,7 @@ class AsyncCollection(Collection):
 
     async def rebuild_index(self,
                             drop_before_rebuild: bool = False,
-                            throttle: int = 0,
+                            throttle: Optional[int] = None,
                             timeout: Optional[float] = None):
         """Rebuild all indexes under the specified collection.
 

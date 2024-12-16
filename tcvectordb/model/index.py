@@ -85,7 +85,7 @@ class IndexField:
         return self.index_type
 
     def is_vector_field(self) -> bool:
-        return self.field_type == FieldType.Vector
+        return self.field_type == FieldType.Vector or self.field_type == FieldType.BinaryVector
 
     def is_sparse_vector_field(self) -> bool:
         return self.field_type == FieldType.SparseVector
@@ -110,15 +110,16 @@ class VectorIndex(IndexField):
 
     def __init__(
         self,
-        name: str,
-        dimension: int,
-        index_type: IndexType,
-        metric_type: MetricType,
+        name: str = 'vector',
+        dimension: Optional[int] = None,
+        index_type: Optional[IndexType] = None,
+        metric_type: Optional[MetricType] = None,
         params=None,
+        field_type: FieldType = FieldType.Vector,
         **kwargs
     ):
         super().__init__(name=name,
-                         field_type=FieldType.Vector,
+                         field_type=field_type,
                          index_type=index_type)
         self._dimension = dimension
         self._index_type = index_type
@@ -199,7 +200,7 @@ class SparseIndex(IndexField):
                          field_type=field_type,
                          index_type=index_type)
         self.kwargs = kwargs
-        self.metric_type=metric_type
+        self.metric_type = metric_type
 
     @property
     def metricType(self):
@@ -235,13 +236,14 @@ class Index:
         if not index and kwargs:
             metric_type = kwargs.pop('metricType', None)
             field_type = kwargs.pop('fieldType', '')
-            if field_type == FieldType.Vector.value:
+            if field_type == FieldType.Vector.value or field_type == FieldType.BinaryVector.value:
                 index = VectorIndex(
                     kwargs.pop('fieldName', ''),
                     kwargs.pop('dimension', None),
                     IndexType(kwargs.pop('indexType', None)),
                     metric_type=None if metric_type is None else MetricType(metric_type),
                     params=kwargs.pop('params', None),
+                    field_type=FieldType(field_type),
                     **kwargs,
                 )
             elif field_type == FieldType.SparseVector.value:

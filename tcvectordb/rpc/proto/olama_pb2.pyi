@@ -503,7 +503,7 @@ class FilterIndexConfig(_message.Message):
     def __init__(self, filterAll: bool = ..., fieldsWithoutIndex: _Optional[_Iterable[str]] = ..., maxStrLen: _Optional[int] = ...) -> None: ...
 
 class CreateCollectionRequest(_message.Message):
-    __slots__ = ["database", "collection", "replicaNum", "shardNum", "size", "createTime", "description", "indexes", "indexStatus", "alias_list", "embeddingParams", "version", "ttlConfig", "filterIndexConfig"]
+    __slots__ = ["database", "collection", "replicaNum", "shardNum", "size", "createTime", "description", "indexes", "indexStatus", "alias_list", "embeddingParams", "version", "ttlConfig", "filterIndexConfig", "document_count"]
     class IndexesEntry(_message.Message):
         __slots__ = ["key", "value"]
         KEY_FIELD_NUMBER: _ClassVar[int]
@@ -525,6 +525,7 @@ class CreateCollectionRequest(_message.Message):
     VERSION_FIELD_NUMBER: _ClassVar[int]
     TTLCONFIG_FIELD_NUMBER: _ClassVar[int]
     FILTERINDEXCONFIG_FIELD_NUMBER: _ClassVar[int]
+    DOCUMENT_COUNT_FIELD_NUMBER: _ClassVar[int]
     database: str
     collection: str
     replicaNum: int
@@ -539,7 +540,8 @@ class CreateCollectionRequest(_message.Message):
     version: int
     ttlConfig: TTLConfig
     filterIndexConfig: FilterIndexConfig
-    def __init__(self, database: _Optional[str] = ..., collection: _Optional[str] = ..., replicaNum: _Optional[int] = ..., shardNum: _Optional[int] = ..., size: _Optional[int] = ..., createTime: _Optional[str] = ..., description: _Optional[str] = ..., indexes: _Optional[_Mapping[str, IndexColumn]] = ..., indexStatus: _Optional[_Union[indexStatus, _Mapping]] = ..., alias_list: _Optional[_Iterable[str]] = ..., embeddingParams: _Optional[_Union[EmbeddingParams, _Mapping]] = ..., version: _Optional[int] = ..., ttlConfig: _Optional[_Union[TTLConfig, _Mapping]] = ..., filterIndexConfig: _Optional[_Union[FilterIndexConfig, _Mapping]] = ...) -> None: ...
+    document_count: int
+    def __init__(self, database: _Optional[str] = ..., collection: _Optional[str] = ..., replicaNum: _Optional[int] = ..., shardNum: _Optional[int] = ..., size: _Optional[int] = ..., createTime: _Optional[str] = ..., description: _Optional[str] = ..., indexes: _Optional[_Mapping[str, IndexColumn]] = ..., indexStatus: _Optional[_Union[indexStatus, _Mapping]] = ..., alias_list: _Optional[_Iterable[str]] = ..., embeddingParams: _Optional[_Union[EmbeddingParams, _Mapping]] = ..., version: _Optional[int] = ..., ttlConfig: _Optional[_Union[TTLConfig, _Mapping]] = ..., filterIndexConfig: _Optional[_Union[FilterIndexConfig, _Mapping]] = ..., document_count: _Optional[int] = ...) -> None: ...
 
 class CreateCollectionResponse(_message.Message):
     __slots__ = ["code", "msg", "redirect", "affectedCount"]
@@ -785,6 +787,28 @@ class ExplainResponse(_message.Message):
     affectedCount: int
     def __init__(self, code: _Optional[int] = ..., msg: _Optional[str] = ..., redirect: _Optional[str] = ..., affectedTable: _Optional[_Iterable[int]] = ..., affectedCount: _Optional[int] = ...) -> None: ...
 
+class CountRequest(_message.Message):
+    __slots__ = ["database", "collection", "query"]
+    DATABASE_FIELD_NUMBER: _ClassVar[int]
+    COLLECTION_FIELD_NUMBER: _ClassVar[int]
+    QUERY_FIELD_NUMBER: _ClassVar[int]
+    database: str
+    collection: str
+    query: QueryCond
+    def __init__(self, database: _Optional[str] = ..., collection: _Optional[str] = ..., query: _Optional[_Union[QueryCond, _Mapping]] = ...) -> None: ...
+
+class CountResponse(_message.Message):
+    __slots__ = ["code", "msg", "redirect", "count"]
+    CODE_FIELD_NUMBER: _ClassVar[int]
+    MSG_FIELD_NUMBER: _ClassVar[int]
+    REDIRECT_FIELD_NUMBER: _ClassVar[int]
+    COUNT_FIELD_NUMBER: _ClassVar[int]
+    code: int
+    msg: str
+    redirect: str
+    count: int
+    def __init__(self, code: _Optional[int] = ..., msg: _Optional[str] = ..., redirect: _Optional[str] = ..., count: _Optional[int] = ...) -> None: ...
+
 class SearchResult(_message.Message):
     __slots__ = ["documents"]
     DOCUMENTS_FIELD_NUMBER: _ClassVar[int]
@@ -808,20 +832,22 @@ class VectorArray(_message.Message):
     def __init__(self, vector: _Optional[_Iterable[float]] = ...) -> None: ...
 
 class AnnData(_message.Message):
-    __slots__ = ["fieldName", "data", "documentIds", "params", "limit", "data_expr"]
+    __slots__ = ["fieldName", "data", "documentIds", "params", "limit", "data_expr", "embeddingItems"]
     FIELDNAME_FIELD_NUMBER: _ClassVar[int]
     DATA_FIELD_NUMBER: _ClassVar[int]
     DOCUMENTIDS_FIELD_NUMBER: _ClassVar[int]
     PARAMS_FIELD_NUMBER: _ClassVar[int]
     LIMIT_FIELD_NUMBER: _ClassVar[int]
     DATA_EXPR_FIELD_NUMBER: _ClassVar[int]
+    EMBEDDINGITEMS_FIELD_NUMBER: _ClassVar[int]
     fieldName: str
     data: _containers.RepeatedCompositeFieldContainer[VectorArray]
     documentIds: _containers.RepeatedScalarFieldContainer[str]
     params: SearchParams
     limit: int
     data_expr: _containers.RepeatedScalarFieldContainer[str]
-    def __init__(self, fieldName: _Optional[str] = ..., data: _Optional[_Iterable[_Union[VectorArray, _Mapping]]] = ..., documentIds: _Optional[_Iterable[str]] = ..., params: _Optional[_Union[SearchParams, _Mapping]] = ..., limit: _Optional[int] = ..., data_expr: _Optional[_Iterable[str]] = ...) -> None: ...
+    embeddingItems: _containers.RepeatedScalarFieldContainer[str]
+    def __init__(self, fieldName: _Optional[str] = ..., data: _Optional[_Iterable[_Union[VectorArray, _Mapping]]] = ..., documentIds: _Optional[_Iterable[str]] = ..., params: _Optional[_Union[SearchParams, _Mapping]] = ..., limit: _Optional[int] = ..., data_expr: _Optional[_Iterable[str]] = ..., embeddingItems: _Optional[_Iterable[str]] = ...) -> None: ...
 
 class SparseVectorArray(_message.Message):
     __slots__ = ["sp_vector"]
@@ -829,15 +855,25 @@ class SparseVectorArray(_message.Message):
     sp_vector: _containers.RepeatedCompositeFieldContainer[SparseVecItem]
     def __init__(self, sp_vector: _Optional[_Iterable[_Union[SparseVecItem, _Mapping]]] = ...) -> None: ...
 
+class SparseSearchParams(_message.Message):
+    __slots__ = ["terminateAfter", "cutoffFrequency"]
+    TERMINATEAFTER_FIELD_NUMBER: _ClassVar[int]
+    CUTOFFFREQUENCY_FIELD_NUMBER: _ClassVar[int]
+    terminateAfter: int
+    cutoffFrequency: float
+    def __init__(self, terminateAfter: _Optional[int] = ..., cutoffFrequency: _Optional[float] = ...) -> None: ...
+
 class SparseData(_message.Message):
-    __slots__ = ["fieldName", "data", "limit"]
+    __slots__ = ["fieldName", "data", "limit", "params"]
     FIELDNAME_FIELD_NUMBER: _ClassVar[int]
     DATA_FIELD_NUMBER: _ClassVar[int]
     LIMIT_FIELD_NUMBER: _ClassVar[int]
+    PARAMS_FIELD_NUMBER: _ClassVar[int]
     fieldName: str
     data: _containers.RepeatedCompositeFieldContainer[SparseVectorArray]
     limit: int
-    def __init__(self, fieldName: _Optional[str] = ..., data: _Optional[_Iterable[_Union[SparseVectorArray, _Mapping]]] = ..., limit: _Optional[int] = ...) -> None: ...
+    params: SparseSearchParams
+    def __init__(self, fieldName: _Optional[str] = ..., data: _Optional[_Iterable[_Union[SparseVectorArray, _Mapping]]] = ..., limit: _Optional[int] = ..., params: _Optional[_Union[SparseSearchParams, _Mapping]] = ...) -> None: ...
 
 class RerankParams(_message.Message):
     __slots__ = ["method", "weights", "rrf_k"]
@@ -1050,8 +1086,8 @@ class GetVersionResponse(_message.Message):
     def __init__(self, timestamp: _Optional[int] = ..., kernal_version: _Optional[int] = ...) -> None: ...
 
 class ModifyVectorIndexRequest(_message.Message):
-    __slots__ = ["database", "collection", "indexes", "rebuild", "rebuildRules"]
-    class IndexesEntry(_message.Message):
+    __slots__ = ["database", "collection", "vectorIndexes", "rebuildRules"]
+    class VectorIndexesEntry(_message.Message):
         __slots__ = ["key", "value"]
         KEY_FIELD_NUMBER: _ClassVar[int]
         VALUE_FIELD_NUMBER: _ClassVar[int]
@@ -1060,15 +1096,13 @@ class ModifyVectorIndexRequest(_message.Message):
         def __init__(self, key: _Optional[str] = ..., value: _Optional[_Union[IndexColumn, _Mapping]] = ...) -> None: ...
     DATABASE_FIELD_NUMBER: _ClassVar[int]
     COLLECTION_FIELD_NUMBER: _ClassVar[int]
-    INDEXES_FIELD_NUMBER: _ClassVar[int]
-    REBUILD_FIELD_NUMBER: _ClassVar[int]
+    VECTORINDEXES_FIELD_NUMBER: _ClassVar[int]
     REBUILDRULES_FIELD_NUMBER: _ClassVar[int]
     database: str
     collection: str
-    indexes: _containers.MessageMap[str, IndexColumn]
-    rebuild: bool
+    vectorIndexes: _containers.MessageMap[str, IndexColumn]
     rebuildRules: RebuildIndexRequest
-    def __init__(self, database: _Optional[str] = ..., collection: _Optional[str] = ..., indexes: _Optional[_Mapping[str, IndexColumn]] = ..., rebuild: bool = ..., rebuildRules: _Optional[_Union[RebuildIndexRequest, _Mapping]] = ...) -> None: ...
+    def __init__(self, database: _Optional[str] = ..., collection: _Optional[str] = ..., vectorIndexes: _Optional[_Mapping[str, IndexColumn]] = ..., rebuildRules: _Optional[_Union[RebuildIndexRequest, _Mapping]] = ...) -> None: ...
 
 class ModifyVectorIndexResponse(_message.Message):
     __slots__ = ["code", "msg", "redirect"]

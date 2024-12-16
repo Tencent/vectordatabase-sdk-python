@@ -297,7 +297,8 @@ message CreateCollectionRequest {
     EmbeddingParams embeddingParams        = 11;
     int64 version                          = 12;
     TTLConfig ttlConfig                    = 13;
-    FilterIndexConfig filterIndexConfig     = 14;
+    FilterIndexConfig filterIndexConfig    = 14;
+    uint64 document_count                  = 15;
 };
 
 message CreateCollectionResponse {
@@ -441,6 +442,19 @@ message ExplainResponse {
     uint64 affectedCount          = 5;
 };
 
+message CountRequest {
+    string database         = 1;
+    string collection       = 2;
+    QueryCond query         = 3;
+};
+
+message CountResponse {
+    int32 code                    = 1;
+    string msg                    = 2;
+    string redirect               = 3;
+    uint64 count                  = 4;
+};
+
 message SearchResult {
     repeated Document documents = 1;
 }
@@ -462,16 +476,23 @@ message AnnData {
     SearchParams params                 = 4; // 搜索参数
     uint32 limit                        = 5; // 结果数量
     repeated string data_expr           = 6; // 表达式搜索
+    repeated string embeddingItems      = 7; // 使用embedding字段检索
 }
 
 message SparseVectorArray {
     repeated SparseVecItem sp_vector = 1;
 }
 
+message SparseSearchParams {
+    uint32 terminateAfter          = 1;   // 搜索到指定数量的结果就终止
+    double cutoffFrequency         = 2;   // 全文检索时过滤掉高频词
+}
+
 message SparseData {
     string   fieldName                  = 1; // 字段名称
     repeated SparseVectorArray data     = 2; // 使用向量值检索
     uint32 limit                        = 3; // 结果数量
+    SparseSearchParams params           = 4; // 搜索参数
 }
 
 message RerankParams {
@@ -590,11 +611,10 @@ message GetVersionResponse {
 };
 
 message ModifyVectorIndexRequest {
-    string database                     = 1;
-    string collection                   = 2;
-    map<string, IndexColumn> indexes    = 3;
-    bool rebuild                        = 4;
-    RebuildIndexRequest rebuildRules    = 5;
+    string database                           = 1;
+    string collection                         = 2;
+    map<string, IndexColumn> vectorIndexes    = 3;
+    RebuildIndexRequest rebuildRules          = 4;
 };
 
 message ModifyVectorIndexResponse {
@@ -652,6 +672,8 @@ service SearchEngine {
     rpc search(SearchRequest) returns (SearchResponse);
     // 混合搜索
     rpc hybrid_search(SearchRequest) returns (SearchResponse);
+    // 关键词检索
+    rpc keyword_search(SearchRequest) returns (SearchRequest);
     // 删除向量
     rpc dele(DeleteRequest) returns (DeleteResponse);
 
@@ -661,6 +683,8 @@ service SearchEngine {
     rpc sort(SortRequest) returns (SortResponse);
     // explain
     rpc explain(ExplainRequest) returns (ExplainResponse);
+    // count
+    rpc count(CountRequest) returns (CountResponse);
 
     // 创建 database
     rpc createDatabase(DatabaseRequest) returns (DatabaseResponse);

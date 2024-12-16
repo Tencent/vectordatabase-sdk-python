@@ -145,11 +145,15 @@ class KeywordSearch:
                  field_name: Optional[str] = "sparse_vector",
                  data: Optional[SparseVector] = None,
                  limit: Optional[int] = None,
+                 terminate_after: Optional[int] = None,
+                 cutoff_frequency: Optional[float] = None,
                  **kwargs
                  ):
         self.field_name = field_name
         self.data = data
         self.limit = limit
+        self.terminate_after = terminate_after
+        self.cutoff_frequency = cutoff_frequency
         self.kwargs = kwargs
 
     @property
@@ -168,6 +172,10 @@ class KeywordSearch:
                     res['data'] = self.data
         if self.limit is not None:
             res['limit'] = self.limit
+        if self.terminate_after is not None:
+            res['terminateAfter'] = self.terminate_after
+        if self.cutoff_frequency is not None:
+            res['cutoffFrequency'] = self.cutoff_frequency
         res.update(self.kwargs)
         return res
 

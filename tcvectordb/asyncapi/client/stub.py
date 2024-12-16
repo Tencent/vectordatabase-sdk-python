@@ -8,7 +8,7 @@ from tcvectordb.asyncapi.model.ai_database import AsyncAIDatabase
 from tcvectordb.asyncapi.model.database import AsyncDatabase
 from tcvectordb.model.document import Document, Filter, AnnSearch, KeywordSearch, Rerank
 from tcvectordb.model.enum import ReadConsistency
-from tcvectordb.model.index import FilterIndex
+from tcvectordb.model.index import FilterIndex, VectorIndex
 
 
 class AsyncVectorDBClient(VectorDBClient):
@@ -172,7 +172,8 @@ class AsyncVectorDBClient(VectorDBClient):
                      collection_name: str,
                      document_ids: List[str] = None,
                      filter: Union[Filter, str] = None,
-                     timeout: Optional[float] = None) -> Dict:
+                     timeout: Optional[float] = None,
+                     limit: Optional[int] = None) -> Dict:
         """Delete document by conditions.
 
         Args:
@@ -180,6 +181,7 @@ class AsyncVectorDBClient(VectorDBClient):
             collection_name (str): The name of the collection.
             document_ids (List[str]): The list of the document id
             filter (Union[Filter, str]): Filter condition of the scalar index field
+            limit (int): The amount of document deleted, with a range of [1, 16384].
             timeout (float): An optional duration of time in seconds to allow for the request.
                              When timeout is set to None, will use the connect timeout.
 
@@ -192,6 +194,7 @@ class AsyncVectorDBClient(VectorDBClient):
             document_ids=document_ids,
             filter=filter,
             timeout=timeout,
+            limit=limit,
         )
 
     async def update(self,
@@ -264,6 +267,31 @@ class AsyncVectorDBClient(VectorDBClient):
             timeout=timeout,
         )
 
+    async def count(self,
+                    database_name: str,
+                    collection_name: str,
+                    filter: Union[Filter, str] = None,
+                    timeout: float = None
+                    ) -> int:
+        """Calculate the number of documents based on the query conditions.
+
+        Args:
+            database_name (str): The name of the database where the collection resides.
+            collection_name (str): The name of the collection.
+            filter (Union[Filter, str]): The optional filter condition of the scalar index field.
+            timeout (float): An optional duration of time in seconds to allow for the request.
+                    When timeout is set to None, will use the connect timeout.
+
+        Returns:
+            int: The number of documents based on the query conditions
+        """
+        return super().count(
+            database_name=database_name,
+            collection_name=collection_name,
+            filter=filter,
+            timeout=timeout,
+        )
+
     async def search(self,
                      database_name: str,
                      collection_name: str,
@@ -274,6 +302,7 @@ class AsyncVectorDBClient(VectorDBClient):
                      limit: int = 10,
                      output_fields: Optional[List[str]] = None,
                      timeout: Optional[float] = None,
+                     radius: Optional[float] = None,
                      ) -> List[List[Dict]]:
         """Search the most similar vector by the given vectors. Batch API
 
@@ -291,6 +320,10 @@ class AsyncVectorDBClient(VectorDBClient):
             output_fields (List[str]): document's fields to return
             timeout (float): An optional duration of time in seconds to allow for the request.
                              When timeout is set to None, will use the connect timeout.
+            radius (float): Based on the score threshold for similarity retrieval.
+                            IP: return when score >= radius, value range (-∞, +∞).
+                            COSINE: return when score >= radius, value range [-1, 1].
+                            L2: return when score <= radius, value range [0, +∞).
 
         Returns:
             List[List[Dict]]: Return the most similar document for each vector.
@@ -305,6 +338,7 @@ class AsyncVectorDBClient(VectorDBClient):
             limit=limit,
             output_fields=output_fields,
             timeout=timeout,
+            radius=radius,
         )
 
     async def search_by_id(self,
@@ -317,6 +351,7 @@ class AsyncVectorDBClient(VectorDBClient):
                            limit: int = 10,
                            output_fields: Optional[List[str]] = None,
                            timeout: Optional[float] = None,
+                           radius: Optional[float] = None,
                            ) -> List[List[Dict]]:
         """Search the most similar vector by id. Batch API
 
@@ -334,6 +369,10 @@ class AsyncVectorDBClient(VectorDBClient):
             output_fields (List[str]): document's fields to return
             timeout (float): An optional duration of time in seconds to allow for the request.
                              When timeout is set to None, will use the connect timeout.
+            radius (float): Based on the score threshold for similarity retrieval.
+                            IP: return when score >= radius, value range (-∞, +∞).
+                            COSINE: return when score >= radius, value range [-1, 1].
+                            L2: return when score <= radius, value range [0, +∞).
 
         Returns:
             List[List[Dict]]: Return the most similar document for each id.
@@ -348,6 +387,7 @@ class AsyncVectorDBClient(VectorDBClient):
             limit=limit,
             output_fields=output_fields,
             timeout=timeout,
+            radius=radius,
         )
 
     async def search_by_text(self,
@@ -360,6 +400,7 @@ class AsyncVectorDBClient(VectorDBClient):
                              limit: int = 10,
                              output_fields: Optional[List[str]] = None,
                              timeout: Optional[float] = None,
+                             radius: Optional[float] = None,
                              ) -> Dict[str, Any]:
         """Search the most similar vector by the embeddingItem. Batch API
         The embedding_items will first be embedded into a vector by the model set by the collection on the server side.
@@ -378,6 +419,10 @@ class AsyncVectorDBClient(VectorDBClient):
             output_fields (List[str]): document's fields to return
             timeout (float): An optional duration of time in seconds to allow for the request.
                              When timeout is set to None, will use the connect timeout.
+            radius (float): Based on the score threshold for similarity retrieval.
+                            IP: return when score >= radius, value range (-∞, +∞).
+                            COSINE: return when score >= radius, value range [-1, 1].
+                            L2: return when score <= radius, value range [0, +∞).
 
         Returns:
             List[List[Dict]]: Return the most similar document for each embedding_item.
@@ -392,6 +437,7 @@ class AsyncVectorDBClient(VectorDBClient):
             limit=limit,
             output_fields=output_fields,
             timeout=timeout,
+            radius=radius,
         )
 
     async def hybrid_search(self,
@@ -464,3 +510,41 @@ class AsyncVectorDBClient(VectorDBClient):
             build_existed_data=build_existed_data,
             timeout=timeout,
         )
+
+    async def modify_vector_index(self,
+                                  database_name: str,
+                                  collection_name: str,
+                                  vector_indexes: List[VectorIndex],
+                                  rebuild_rules: Optional[dict] = None,
+                                  timeout: Optional[float] = None) -> dict:
+        """Adjust vector index parameters.
+
+        Args:
+            database_name (str): The name of the database where the collection resides.
+            collection_name (str): The name of the collection
+            vector_indexes (List[FilterIndex]): The vector fields to adjust
+            rebuild_rules (dict): Specified rebuild rules.
+                    This interface will trigger a rebuild after adjusting the parameters.
+                    For example: {"drop_before_rebuild": True , "throttle": 1}
+                    drop_before_rebuild (bool): Whether to delete the old index before rebuilding the new index during
+                              index reconstruction. True: Delete the old index before rebuilding the index.
+                    throttle (int): Whether to limit the number of CPU cores for building the index on a single node.
+                              0: No limit on CPU cores. 1: CPU core count is 1.
+            timeout (float): An optional duration of time in seconds to allow for the request.
+                    When timeout is set to None, will use the connect timeout.
+
+        Returns:
+            dict: The API returns a code and msg. For example:
+           {
+             "code": 0,
+             "msg": "Start rebuilding. You can use the '/collection/describe' API to follow the progress of rebuilding."
+           }
+        """
+        return super().modify_vector_index(
+            database_name=database_name,
+            collection_name=collection_name,
+            vector_indexes=vector_indexes,
+            rebuild_rules=rebuild_rules,
+            timeout=timeout,
+        )
+

@@ -5,7 +5,7 @@ from cachetools import cached, TTLCache
 from tcvectordb.model.ai_database import AIDatabase
 
 from tcvectordb import exceptions
-from tcvectordb.model.collection import Embedding
+from tcvectordb.model.collection import Embedding, FilterIndexConfig
 from tcvectordb.model.database import Database
 from tcvectordb.model.enum import ReadConsistency
 from tcvectordb.model.index import Index
@@ -73,6 +73,7 @@ class RPCDatabase(Database):
                           embedding: Embedding = None,
                           timeout: float = None,
                           ttl_config: dict = None,
+                          filter_index_config: FilterIndexConfig = None,
                           ) -> RPCCollection:
         """Create a collection.
 
@@ -90,6 +91,8 @@ class RPCDatabase(Database):
                 is set to None, will use the connect timeout.
             ttl_config (dict): TTL configuration, when set {'enable': True, 'timeField': 'expire_at'} means
                 that ttl is enabled and automatically removed when the time set in the expire_at field expires
+            filter_index_config (FilterIndexConfig): Enabling full indexing mode.
+                Where all scalar fields are indexed by default.
 
         Returns:
             A RPCCollection object.
@@ -104,6 +107,7 @@ class RPCDatabase(Database):
             embedding=embedding,
             timeout=timeout,
             ttl_config=ttl_config,
+            filter_index_config=filter_index_config,
         )
 
     def list_collections(self, timeout: Optional[float] = None) -> List[RPCCollection]:
@@ -206,6 +210,7 @@ class RPCDatabase(Database):
                                         embedding: Embedding = None,
                                         timeout: float = None,
                                         ttl_config: dict = None,
+                                        filter_index_config: FilterIndexConfig = None,
                                         ) -> RPCCollection:
         """Create the collection if it doesn't exist.
 
@@ -223,6 +228,8 @@ class RPCDatabase(Database):
                 is set to None, will use the connect timeout.
             ttl_config (dict): TTL configuration, when set {'enable': True, 'timeField': 'expire_at'} means
                 that ttl is enabled and automatically removed when the time set in the expire_at field expires
+            filter_index_config (FilterIndexConfig): Enabling full indexing mode.
+                Where all scalar fields are indexed by default.
 
         Returns:
             RPCCollection: A collection object.
@@ -241,4 +248,5 @@ class RPCDatabase(Database):
             embedding=embedding,
             timeout=timeout,
             ttl_config=ttl_config,
+            filter_index_config=filter_index_config,
         )

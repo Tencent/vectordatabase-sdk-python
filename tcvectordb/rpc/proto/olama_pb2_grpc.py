@@ -84,6 +84,11 @@ class SearchEngineStub(object):
                 request_serializer=olama__pb2.SearchRequest.SerializeToString,
                 response_deserializer=olama__pb2.SearchResponse.FromString,
                 )
+        self.keyword_search = channel.unary_unary(
+                '/document/keywordSearch',
+                request_serializer=olama__pb2.SearchRequest.SerializeToString,
+                response_deserializer=olama__pb2.SearchRequest.FromString,
+                )
         self.dele = channel.unary_unary(
                 '/document/delete',
                 request_serializer=olama__pb2.DeleteRequest.SerializeToString,
@@ -100,9 +105,14 @@ class SearchEngineStub(object):
                 response_deserializer=olama__pb2.SortResponse.FromString,
                 )
         self.explain = channel.unary_unary(
-                '/document/count',
+                '/olama.SearchEngine/explain',
                 request_serializer=olama__pb2.ExplainRequest.SerializeToString,
                 response_deserializer=olama__pb2.ExplainResponse.FromString,
+                )
+        self.count = channel.unary_unary(
+                '/document/count',
+                request_serializer=olama__pb2.CountRequest.SerializeToString,
+                response_deserializer=olama__pb2.CountResponse.FromString,
                 )
         self.createDatabase = channel.unary_unary(
                 '/database/create',
@@ -242,6 +252,13 @@ class SearchEngineServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def keyword_search(self, request, context):
+        """关键词检索
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
     def dele(self, request, context):
         """删除向量
         """
@@ -265,6 +282,13 @@ class SearchEngineServicer(object):
 
     def explain(self, request, context):
         """explain
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def count(self, request, context):
+        """count
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -392,6 +416,11 @@ def add_SearchEngineServicer_to_server(servicer, server):
                     request_deserializer=olama__pb2.SearchRequest.FromString,
                     response_serializer=olama__pb2.SearchResponse.SerializeToString,
             ),
+            'keyword_search': grpc.unary_unary_rpc_method_handler(
+                    servicer.keyword_search,
+                    request_deserializer=olama__pb2.SearchRequest.FromString,
+                    response_serializer=olama__pb2.SearchRequest.SerializeToString,
+            ),
             'dele': grpc.unary_unary_rpc_method_handler(
                     servicer.dele,
                     request_deserializer=olama__pb2.DeleteRequest.FromString,
@@ -411,6 +440,11 @@ def add_SearchEngineServicer_to_server(servicer, server):
                     servicer.explain,
                     request_deserializer=olama__pb2.ExplainRequest.FromString,
                     response_serializer=olama__pb2.ExplainResponse.SerializeToString,
+            ),
+            'count': grpc.unary_unary_rpc_method_handler(
+                    servicer.count,
+                    request_deserializer=olama__pb2.CountRequest.FromString,
+                    response_serializer=olama__pb2.CountResponse.SerializeToString,
             ),
             'createDatabase': grpc.unary_unary_rpc_method_handler(
                     servicer.createDatabase,
@@ -696,6 +730,23 @@ class SearchEngine(object):
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
     @staticmethod
+    def keyword_search(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/olama.SearchEngine/keyword_search',
+            olama__pb2.SearchRequest.SerializeToString,
+            olama__pb2.SearchRequest.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
     def dele(request,
             target,
             options=(),
@@ -760,6 +811,23 @@ class SearchEngine(object):
         return grpc.experimental.unary_unary(request, target, '/olama.SearchEngine/explain',
             olama__pb2.ExplainRequest.SerializeToString,
             olama__pb2.ExplainResponse.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def count(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/olama.SearchEngine/count',
+            olama__pb2.CountRequest.SerializeToString,
+            olama__pb2.CountResponse.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 

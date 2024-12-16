@@ -222,7 +222,8 @@ class RPCVectorDBClient(VectorDBClient):
                collection_name: str,
                document_ids: List[str] = None,
                filter: Union[Filter, str] = None,
-               timeout: Optional[float] = None) -> Dict:
+               timeout: Optional[float] = None,
+               limit: Optional[int] = None) -> Dict:
         """Delete document by conditions.
 
         Args:
@@ -230,6 +231,7 @@ class RPCVectorDBClient(VectorDBClient):
             collection_name (str): The name of the collection.
             document_ids (List[str]): The list of the document id
             filter (Union[Filter, str]): Filter condition of the scalar index field
+            limit (int): The amount of document deleted, with a range of [1, 16384].
             timeout (float): An optional duration of time in seconds to allow for the request.
                              When timeout is set to None, will use the connect timeout.
 
@@ -242,6 +244,7 @@ class RPCVectorDBClient(VectorDBClient):
             document_ids=document_ids,
             filter=filter,
             timeout=timeout,
+            limit=limit,
         )
 
     def update(self,
@@ -314,6 +317,30 @@ class RPCVectorDBClient(VectorDBClient):
             timeout=timeout,
         )
 
+    def count(self,
+              database_name: str,
+              collection_name: str,
+              filter: Union[Filter, str] = None,
+              timeout: float = None
+              ) -> int:
+        """Calculate the number of documents based on the query conditions.
+
+        Args:
+            database_name (str): The name of the database where the collection resides.
+            collection_name (str): The name of the collection.
+            filter (Union[Filter, str]): The optional filter condition of the scalar index field.
+            timeout (float): An optional duration of time in seconds to allow for the request.
+                    When timeout is set to None, will use the connect timeout.
+
+        Returns:
+            int: The number of documents based on the query conditions
+        """
+        return self.vdb_client.count(
+            database_name=database_name,
+            collection_name=collection_name,
+            filter=filter,
+            timeout=timeout)
+
     def search(self,
                database_name: str,
                collection_name: str,
@@ -325,6 +352,7 @@ class RPCVectorDBClient(VectorDBClient):
                output_fields: Optional[List[str]] = None,
                timeout: Optional[float] = None,
                return_pd_object=False,
+               radius: Optional[float] = None,
                ) -> List[List[Union[Dict, olama_pb2.Document]]]:
         """Search the most similar vector by the given vectors. Batch API
 
@@ -343,6 +371,10 @@ class RPCVectorDBClient(VectorDBClient):
             timeout (float): An optional duration of time in seconds to allow for the request.
                              When timeout is set to None, will use the connect timeout.
             return_pd_object: Whether to return proto object
+            radius (float): Based on the score threshold for similarity retrieval.
+                            IP: return when score >= radius, value range (-∞, +∞).
+                            COSINE: return when score >= radius, value range [-1, 1].
+                            L2: return when score <= radius, value range [0, +∞).
 
         Returns:
             List[List[Dict]]: Return the most similar document for each vector.
@@ -358,6 +390,7 @@ class RPCVectorDBClient(VectorDBClient):
             output_fields=output_fields,
             timeout=timeout,
             return_pd_object=return_pd_object,
+            radius=radius,
         )
 
     def search_by_id(self,
@@ -371,6 +404,7 @@ class RPCVectorDBClient(VectorDBClient):
                      output_fields: Optional[List[str]] = None,
                      timeout: Optional[float] = None,
                      return_pd_object=False,
+                     radius: Optional[float] = None,
                      ) -> List[List[Union[Dict, olama_pb2.Document]]]:
         """Search the most similar vector by id. Batch API
 
@@ -389,6 +423,10 @@ class RPCVectorDBClient(VectorDBClient):
             timeout (float): An optional duration of time in seconds to allow for the request.
                              When timeout is set to None, will use the connect timeout.
             return_pd_object: Whether to return proto object
+            radius (float): Based on the score threshold for similarity retrieval.
+                            IP: return when score >= radius, value range (-∞, +∞).
+                            COSINE: return when score >= radius, value range [-1, 1].
+                            L2: return when score <= radius, value range [0, +∞).
 
         Returns:
             List[List[Dict]]: Return the most similar document for each id.
@@ -404,6 +442,7 @@ class RPCVectorDBClient(VectorDBClient):
             output_fields=output_fields,
             timeout=timeout,
             return_pd_object=return_pd_object,
+            radius=radius,
         )
 
     def search_by_text(self,
@@ -417,6 +456,7 @@ class RPCVectorDBClient(VectorDBClient):
                        output_fields: Optional[List[str]] = None,
                        timeout: Optional[float] = None,
                        return_pd_object=False,
+                       radius: Optional[float] = None,
                        ) -> List[List[Union[Dict, olama_pb2.Document]]]:
         """Search the most similar vector by the embeddingItem. Batch API
         The embedding_items will first be embedded into a vector by the model set by the collection on the server side.
@@ -436,6 +476,10 @@ class RPCVectorDBClient(VectorDBClient):
             timeout (float): An optional duration of time in seconds to allow for the request.
                              When timeout is set to None, will use the connect timeout.
             return_pd_object: Whether to return proto object
+            radius (float): Based on the score threshold for similarity retrieval.
+                            IP: return when score >= radius, value range (-∞, +∞).
+                            COSINE: return when score >= radius, value range [-1, 1].
+                            L2: return when score <= radius, value range [0, +∞).
 
         Returns:
             List[List[Dict]]: Return the most similar document for each embedding_item.
@@ -451,6 +495,7 @@ class RPCVectorDBClient(VectorDBClient):
             output_fields=output_fields,
             timeout=timeout,
             return_pd_object=return_pd_object,
+            radius=radius,
         )
 
     def hybrid_search(self,
@@ -524,5 +569,42 @@ class RPCVectorDBClient(VectorDBClient):
             collection_name=collection_name,
             indexes=indexes,
             build_existed_data=build_existed_data,
+            timeout=timeout,
+        )
+
+    def modify_vector_index(self,
+                            database_name: str,
+                            collection_name: str,
+                            vector_indexes: List[VectorIndex],
+                            rebuild_rules: Optional[dict] = None,
+                            timeout: Optional[float] = None) -> dict:
+        """Adjust vector index parameters.
+
+        Args:
+            database_name (str): The name of the database where the collection resides.
+            collection_name (str): The name of the collection
+            vector_indexes (List[FilterIndex]): The vector fields to adjust
+            rebuild_rules (dict): Specified rebuild rules.
+                    This interface will trigger a rebuild after adjusting the parameters.
+                    For example: {"drop_before_rebuild": True , "throttle": 1}
+                    drop_before_rebuild (bool): Whether to delete the old index before rebuilding the new index during
+                              index reconstruction. True: Delete the old index before rebuilding the index.
+                    throttle (int): Whether to limit the number of CPU cores for building the index on a single node.
+                              0: No limit on CPU cores. 1: CPU core count is 1.
+            timeout (float): An optional duration of time in seconds to allow for the request.
+                    When timeout is set to None, will use the connect timeout.
+
+        Returns:
+            dict: The API returns a code and msg. For example:
+           {
+             "code": 0,
+             "msg": "Start rebuilding. You can use the '/collection/describe' API to follow the progress of rebuilding."
+           }
+        """
+        return self.vdb_client.modify_vector_index(
+            database_name=database_name,
+            collection_name=collection_name,
+            vector_indexes=vector_indexes,
+            rebuild_rules=rebuild_rules,
             timeout=timeout,
         )

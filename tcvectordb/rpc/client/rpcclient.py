@@ -98,6 +98,22 @@ class RPCClient:
         except Exception as e:
             raise GrpcException(message=str(e))
 
+    def keyword_search(self,
+                       req: olama_pb2.SearchRequest,
+                       timeout: Optional[float] = None) -> olama_pb2.SearchResponse:
+        self._print_req(req)
+        if timeout is None:
+            timeout = self.timeout
+        try:
+            ret: olama_pb2.SearchResponse = self.stub.keyword_search(
+                req, metadata=self._get_headers(False), timeout=timeout)
+            self._result_check(ret, ret.warning)
+            return ret
+        except ServerInternalError as se:
+            raise se
+        except Exception as e:
+            raise GrpcException(message=str(e))
+
     def query(self,
               req: olama_pb2.QueryRequest,
               timeout: Optional[float] = None,
@@ -143,6 +159,40 @@ class RPCClient:
             ret: olama_pb2.UpdateResponse = self.stub.update(
                 req, metadata=self._get_headers(ai), timeout=timeout)
             self._result_check(ret, ret.warning)
+            return ret
+        except ServerInternalError as se:
+            raise se
+        except Exception as e:
+            raise GrpcException(message=str(e))
+
+    def explain(self,
+                req: olama_pb2.ExplainRequest,
+                timeout: Optional[float] = None,
+                ) -> olama_pb2.ExplainResponse:
+        self._print_req(req)
+        if timeout is None:
+            timeout = self.timeout
+        try:
+            ret: olama_pb2.ExplainResponse = self.stub.explain(
+                req, metadata=self._get_headers(False), timeout=timeout)
+            self._result_check(ret)
+            return ret
+        except ServerInternalError as se:
+            raise se
+        except Exception as e:
+            raise GrpcException(message=str(e))
+
+    def count(self,
+              req: olama_pb2.CountRequest,
+              timeout: Optional[float] = None,
+              ) -> olama_pb2.CountResponse:
+        self._print_req(req)
+        if timeout is None:
+            timeout = self.timeout
+        try:
+            ret: olama_pb2.CountResponse = self.stub.count(
+                req, metadata=self._get_headers(False), timeout=timeout)
+            self._result_check(ret)
             return ret
         except ServerInternalError as se:
             raise se
@@ -260,6 +310,23 @@ class RPCClient:
             timeout = self.timeout
         try:
             ret: olama_pb2.AddIndexResponse = self.stub.addIndex(
+                req, metadata=self._get_headers(ai), timeout=timeout)
+            self._result_check(ret)
+            return ret
+        except ServerInternalError as se:
+            raise se
+        except Exception as e:
+            raise GrpcException(message=str(e))
+
+    def modify_vector_index(self,
+                            req: olama_pb2.ModifyVectorIndexRequest,
+                            timeout: Optional[float] = None,
+                            ai: bool = False) -> olama_pb2.ModifyVectorIndexResponse:
+        self._print_req(req)
+        if timeout is None:
+            timeout = self.timeout
+        try:
+            ret: olama_pb2.ModifyVectorIndexResponse = self.stub.modifyVectorIndex(
                 req, metadata=self._get_headers(ai), timeout=timeout)
             self._result_check(ret)
             return ret

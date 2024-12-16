@@ -13,6 +13,7 @@ class FieldType(Enum):
 
     # vector field type
     Vector = "vector"
+    BinaryVector = "binary_vector"
     # sparse vector type
     SparseVector = "sparseVector"
 
@@ -25,6 +26,7 @@ class MetricType(Enum):
     L2 = "L2"
     IP = "IP"
     COSINE = "COSINE"
+    HAMMING = "Hamming"
 
 
 @unique
@@ -37,6 +39,8 @@ class IndexType(Enum):
     IVF_SQ4 = "IVF_SQ4"
     IVF_SQ8 = "IVF_SQ8"
     IVF_SQ16 = "IVF_SQ16"
+    BIN_FLAT = "BIN_FLAT"
+    BIN_HNSW = "BIN_HNSW"
 
     # scalar index type
     PRIMARY_KEY = "primaryKey"

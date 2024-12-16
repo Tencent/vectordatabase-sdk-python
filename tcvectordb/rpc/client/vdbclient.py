@@ -3,7 +3,7 @@ from typing import List, Union, Dict, Optional, Any
 from numpy import ndarray
 from tcvectordb.exceptions import ServerInternalError
 from tcvectordb.model.ai_database import AIDatabase
-from tcvectordb.model.collection import Embedding
+from tcvectordb.model.collection import Embedding, FilterIndexConfig
 from tcvectordb.model.document import Document, Filter, AnnSearch, KeywordSearch, Rerank, WeightedRerank, RRFRerank
 from tcvectordb.model.enum import ReadConsistency, FieldType, IndexType, MetricType
 from tcvectordb.model.index import Index, VectorIndex, FilterIndex, SparseIndex
@@ -63,12 +63,18 @@ class VdbClient:
                collection_name: str,
                document_ids: List[str] = None,
                filter: Union[Filter, str] = None,
-               timeout: float = None):
+               timeout: float = None,
+               limit: Optional[int] = None):
         query = olama_pb2.QueryCond()
         if document_ids is not None:
             query.documentIds.extend(document_ids)
         if filter is not None:
             query.filter = filter if isinstance(filter, str) else filter.cond
+        if limit is not None:
+            if limit == 0:
+                raise ServerInternalError(code=15000,
+                                          message=f'The value of limit cannot be 0.')
+            query.limit = limit
         request = olama_pb2.DeleteRequest(
             database=database_name,
             collection=collection_name,
@@ -133,6 +139,9 @@ class VdbClient:
         if retrieve_vector is not None:
             query.retrieveVector = retrieve_vector
         if limit is not None:
+            if limit == 0:
+                raise ServerInternalError(code=15000,
+                                          message=f'The value of limit cannot be 0.')
             query.limit = limit
         if offset is not None:
             query.offset = offset
@@ -150,6 +159,22 @@ class VdbClient:
             res.append(self._pb2doc(d))
         return res
 
+    def count(self,
+              database_name: str,
+              collection_name: str,
+              filter: Union[Filter, str] = None,
+              timeout: float = None
+              ) -> int:
+        """Calculate the number of documents based on the query conditions."""
+        request = olama_pb2.CountRequest(
+            database=database_name,
+            collection=collection_name,
+        )
+        if filter is not None:
+            request.query.filter = filter if isinstance(filter, str) else filter.cond
+        result: olama_pb2.CountResponse = self.rpc_client.count(request, timeout=timeout)
+        return result.count
+
     def search(self,
                database_name: str,
                collection_name: str,
@@ -163,6 +188,7 @@ class VdbClient:
                output_fields: Optional[List[str]] = None,
                timeout: Optional[float] = None,
                return_pd_object=False,
+               radius: Optional[float] = None,
                ) -> List[List[Union[Dict, olama_pb2.Document]]]:
         return self.search_with_warning(
             database_name=database_name,
@@ -177,6 +203,7 @@ class VdbClient:
             output_fields=output_fields,
             timeout=timeout,
             return_pd_object=return_pd_object,
+            radius=radius,
         ).get('documents')
 
     def search_with_warning(self,
@@ -192,6 +219,7 @@ class VdbClient:
                             output_fields: Optional[List[str]] = None,
                             timeout: Optional[float] = None,
                             return_pd_object=False,
+                            radius: Optional[float] = None,
                             ) -> Dict[str, Any]:
         search = olama_pb2.SearchCond()
         if vectors is not None:
@@ -206,7 +234,11 @@ class VdbClient:
         if params is not None:
             if not isinstance(params, dict):
                 params = vars(params)
+            print(params)
             if params.get('ef') is not None:
+                if params.get('ef') == 0:
+                    raise ServerInternalError(code=15000,
+                                              message=f'The value of ef cannot be 0.')
                 search.params.ef = params.get('ef')
             if params.get('nprobe') is not None:
                 search.params.nprobe = params.get('nprobe')
@@ -220,6 +252,9 @@ class VdbClient:
             search.retrieveVector = retrieve_vector
         if limit is not None:
             search.limit = limit
+        if radius is not None:
+            search.range = True
+            search.params.radius = radius
         request = olama_pb2.SearchRequest(
             database=database_name,
             collection=collection_name,
@@ -267,6 +302,9 @@ class VdbClient:
                         search.rerank_params.weights[rerank.field_list[i]] = rerank.weight[i]
             elif isinstance(rerank, RRFRerank):
                 if rerank.k is not None:
+                    if rerank.k == 0:
+                        raise ServerInternalError(code=15000,
+                                                  message=f'The value of rrf_k cannot be 0.')
                     search.rerank_params.rrf_k = rerank.k
         if match is not None:
             for m in match:
@@ -281,7 +319,7 @@ class VdbClient:
                     if len(data) == 0:
                         data = [data]
                     elif isinstance(data[0], list) \
-                        and len(data[0]) > 0 and type(data[0][0]) == int:
+                            and len(data[0]) > 0 and type(data[0][0]) == int:
                         data = [data]
                 for item in data:
                     sva = olama_pb2.SparseVectorArray()
@@ -291,6 +329,10 @@ class VdbClient:
                         svi.score = pair[1]
                         sva.sp_vector.append(svi)
                     md.data.append(sva)
+                if m.terminate_after is not None:
+                    md.params.terminateAfter = m.terminate_after
+                if m.cutoff_frequency is not None:
+                    md.params.cutoffFrequency = m.cutoff_frequency
                 search.sparse.append(md)
         if filter is not None:
             search.filter = filter if isinstance(filter, str) else filter.cond
@@ -327,7 +369,7 @@ class VdbClient:
                     for v in data:
                         if isinstance(v, str):
                             if d_type_str:
-                                ann_data.data_expr.append(v)
+                                ann_data.embeddingItems.append(v)
                             else:
                                 raise ServerInternalError(
                                     code=14100,
@@ -344,6 +386,9 @@ class VdbClient:
                     if not isinstance(params, dict):
                         params = vars(params)
                     if params.get('ef') is not None:
+                        if params.get("ef") == 0:
+                            raise ServerInternalError(code=15000,
+                                                      message=f'The value of ef cannot be 0.')
                         ann_data.params.ef = params.get("ef")
                     if params.get('nprobe') is not None:
                         ann_data.params.nprobe = params.get("nprobe")
@@ -544,12 +589,14 @@ class VdbClient:
                       database_name: str,
                       collection_name: str,
                       drop_before_rebuild: bool = False,
-                      throttle: int = 0,
+                      throttle: Optional[int] = None,
                       timeout: Optional[float] = None):
         req = olama_pb2.RebuildIndexRequest(database=database_name,
                                             collection=collection_name,
                                             dropBeforeRebuild=drop_before_rebuild,
-                                            throttle=throttle)
+                                            )
+        if throttle is None:
+            req.throttle = 1
         self.rpc_client.rebuild_index(req=req, timeout=timeout)
 
     def _field2pb(self,
@@ -557,15 +604,30 @@ class VdbClient:
                   column: olama_pb2.IndexColumn):
         column.fieldName = index.name
         column.fieldType = index.field_type.value
-        column.indexType = index.indexType.value
+        if index.indexType:
+            column.indexType = index.indexType.value
         if index.field_type == FieldType.Vector:
-            column.dimension = index.dimension
+            if column.dimension:
+                column.dimension = index.dimension
             param = index.param if index.param else {}
             param = vars(param) if hasattr(param, '__dict__') else param
-            column.params.M = param.get('M', 0)
-            column.params.efConstruction = param.get('efConstruction', 0)
-            column.params.nprobe = param.get('nprobe', 0)
-            column.params.nlist = param.get('nlist', 0)
+            if param.get('M') is not None:
+                if param.get('M') == 0:
+                    raise ServerInternalError(code=15000,
+                                              message=f'The value of M cannot be 0.')
+                column.params.M = param.get('M')
+            if param.get('efConstruction') is not None:
+                if param.get('efConstruction') == 0:
+                    raise ServerInternalError(code=15000,
+                                              message=f'The value of efConstruction cannot be 0.')
+                column.params.efConstruction = param.get('efConstruction')
+            if param.get('nprobe') is not None:
+                column.params.nprobe = param.get('nprobe')
+            if param.get('nlist') is not None:
+                if param.get('nlist') == 0:
+                    raise ServerInternalError(code=15000,
+                                              message=f'The value of nlist cannot be 0.')
+                column.params.nlist = param.get('nlist', 0)
         if index.field_type in (FieldType.Vector, FieldType.SparseVector):
             column.metricType = index.metricType.value
 
@@ -588,6 +650,32 @@ class VdbClient:
             "msg": rsp.msg,
         }
 
+    def modify_vector_index(self,
+                            database_name: str,
+                            collection_name: str,
+                            vector_indexes: List[VectorIndex],
+                            rebuild_rules: Optional[dict] = None,
+                            timeout: Optional[float] = None) -> dict:
+        """Adjust vector index parameters."""
+        req = olama_pb2.ModifyVectorIndexRequest(database=database_name,
+                                                 collection=collection_name,
+                                                 rebuildRules=rebuild_rules)
+        for index in vector_indexes:
+            column: olama_pb2.IndexColumn = req.vectorIndexes[index.name]
+            self._field2pb(index, column)
+        if rebuild_rules is not None:
+            if 'drop_before_rebuild' in rebuild_rules:
+                rebuild_rules['dropBeforeRebuild'] = rebuild_rules.pop('drop_before_rebuild')
+            if 'dropBeforeRebuild' in rebuild_rules:
+                req.rebuildRules.dropBeforeRebuild = rebuild_rules.get('dropBeforeRebuild')
+            if 'throttle' in rebuild_rules:
+                req.rebuildRules.throttle = rebuild_rules.get('throttle')
+        rsp = self.rpc_client.modify_vector_index(req=req, timeout=timeout)
+        return {
+            "code": rsp.code,
+            "msg": rsp.msg,
+        }
+
     def create_collection(self,
                           database_name: str,
                           collection_name: str,
@@ -598,6 +686,7 @@ class VdbClient:
                           embedding: Embedding = None,
                           timeout: float = None,
                           ttl_config: dict = None,
+                          filter_index_config: FilterIndexConfig = None,
                           ) -> RPCCollection:
         req = olama_pb2.CreateCollectionRequest(database=database_name,
                                                 collection=collection_name,
@@ -611,7 +700,7 @@ class VdbClient:
                 column.fieldName = f_item.name
                 column.fieldType = f_item.field_type.value
                 column.indexType = f_item.indexType.value
-                if f_item.field_type == FieldType.Vector:
+                if f_item.field_type == FieldType.Vector or f_item.field_type == FieldType.BinaryVector:
                     column.dimension = f_item.dimension
                     param = f_item.param if f_item.param else {}
                     param = vars(param) if hasattr(param, '__dict__') else param
@@ -619,7 +708,7 @@ class VdbClient:
                     column.params.efConstruction = param.get('efConstruction', 0)
                     column.params.nprobe = param.get('nprobe', 0)
                     column.params.nlist = param.get('nlist', 0)
-                if f_item.field_type in (FieldType.Vector, FieldType.SparseVector):
+                if hasattr(f_item, 'metric_type') and f_item.metric_type is not None:
                     column.metricType = f_item.metricType.value
                 if f_item.field_type == FieldType.Array:
                     column.fieldElementType = 'string'
@@ -631,6 +720,16 @@ class VdbClient:
         if ttl_config is not None:
             req.ttlConfig.enable = ttl_config.get('enable')
             req.ttlConfig.timeField = ttl_config.get('timeField')
+        if filter_index_config is not None:
+            if filter_index_config.filter_all is not None:
+                req.filterIndexConfig.filterAll = filter_index_config.filter_all
+            if filter_index_config.fields_without_index is not None:
+                req.filterIndexConfig.fieldsWithoutIndex.extend(filter_index_config.fields_without_index)
+            if filter_index_config.max_str_len is not None:
+                if filter_index_config.max_str_len == 0:
+                    raise ServerInternalError(code=15000,
+                                              message=f'The value of maxStrLen cannot be 0.')
+                req.filterIndexConfig.maxStrLen = filter_index_config.max_str_len
         rsp: olama_pb2.CreateCollectionResponse = self.rpc_client.create_collection(req=req, timeout=timeout)
         return RPCCollection(
             db=RPCDatabase(name=database_name,
@@ -645,6 +744,7 @@ class VdbClient:
             read_consistency=self.read_consistency,
             ttl_config=ttl_config,
             vdb_client=self,
+            filter_index_config=filter_index_config,
         )
 
     def drop_collection(self,
@@ -700,9 +800,8 @@ class VdbClient:
                     params['efConstruction'] = f_item.params.efConstruction
                 if params:
                     field['params'] = params
-            # rpc 没有返回indexedCount
-            # if f_item.fieldType == FieldType.Vector.value:
-            #     field['indexedCount'] = f_item
+            if f_item.fieldType == FieldType.Vector.value or f_item.fieldType == FieldType.BinaryVector.value:
+                field['indexedCount'] = pb.size
             index.add(**field)
         embedding = None
         if pb.embeddingParams:
@@ -712,6 +811,17 @@ class VdbClient:
                     field=pb.embeddingParams.field,
                     model_name=pb.embeddingParams.model_name,
                     status="enabled",
+                )
+        filter_index_config = None
+        if pb.filterIndexConfig:
+            if not pb.filterIndexConfig.filterAll and \
+                    len(pb.filterIndexConfig.fieldsWithoutIndex) == 0 and pb.filterIndexConfig.maxStrLen == 0:
+                filter_index_config = None
+            else:
+                filter_index_config = FilterIndexConfig(
+                    filter_all=pb.filterIndexConfig.filterAll,
+                    fields_without_index=list(pb.filterIndexConfig.fieldsWithoutIndex),
+                    max_str_len=pb.filterIndexConfig.maxStrLen,
                 )
         return RPCCollection(
             db=RPCDatabase(name=pb.database,
@@ -727,12 +837,13 @@ class VdbClient:
             ttl_config=ttl_config,
             vdb_client=self,
             createTime=pb.createTime,
-            documentCount=pb.size,
+            documentCount=pb.document_count,
             alias=alias,
             indexStatus={
                 'status': pb.indexStatus.status,
                 'startTime': pb.indexStatus.startTime,
-            }
+            },
+            filter_index_config=filter_index_config
         )
 
     def describe_collection(self,

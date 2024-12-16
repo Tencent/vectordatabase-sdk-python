@@ -3,7 +3,7 @@ from typing import List, Optional, Dict, Any, Union
 from tcvectordb.asyncapi.model.ai_database import AsyncAIDatabase
 from tcvectordb.asyncapi.model.collection import AsyncCollection
 from tcvectordb.client.httpclient import HTTPClient
-from tcvectordb.model.collection import Embedding, Collection
+from tcvectordb.model.collection import Embedding, Collection, FilterIndexConfig
 from tcvectordb.model.database import Database
 from tcvectordb.model.enum import ReadConsistency
 from tcvectordb.model.index import Index
@@ -69,6 +69,7 @@ class AsyncDatabase(Database):
                                 embedding: Embedding = None,
                                 timeout: float = None,
                                 ttl_config: dict = None,
+                                filter_index_config: FilterIndexConfig = None,
                                 ) -> AsyncCollection:
         """Create a collection.
 
@@ -86,6 +87,8 @@ class AsyncDatabase(Database):
                 is set to None, will use the connect timeout.
             ttl_config (dict): TTL configuration, when set {'enable': True, 'timeField': 'expire_at'} means
                 that ttl is enabled and automatically removed when the time set in the expire_at field expires
+            filter_index_config (FilterIndexConfig): Enabling full indexing mode.
+                Where all scalar fields are indexed by default.
 
         Returns:
             A AsyncCollection object.
@@ -97,7 +100,8 @@ class AsyncDatabase(Database):
                                          index,
                                          embedding,
                                          timeout,
-                                         ttl_config=ttl_config)
+                                         ttl_config=ttl_config,
+                                         filter_index_config=filter_index_config)
         return coll_convert(coll)
 
     async def create_collection_if_not_exists(self,
@@ -109,6 +113,7 @@ class AsyncDatabase(Database):
                                               embedding: Embedding = None,
                                               timeout: float = None,
                                               ttl_config: dict = None,
+                                              filter_index_config: FilterIndexConfig = None,
                                               ) -> AsyncCollection:
         """Create the collection if it doesn't exist.
 
@@ -126,6 +131,8 @@ class AsyncDatabase(Database):
                 is set to None, will use the connect timeout.
             ttl_config (dict): TTL configuration, when set {'enable': True, 'timeField': 'expire_at'} means
                 that ttl is enabled and automatically removed when the time set in the expire_at field expires
+            filter_index_config (FilterIndexConfig): Enabling full indexing mode.
+                Where all scalar fields are indexed by default.
 
         Returns:
             AsyncCollection: A collection object.
@@ -139,6 +146,7 @@ class AsyncDatabase(Database):
             embedding=embedding,
             timeout=timeout,
             ttl_config=ttl_config,
+            filter_index_config=filter_index_config,
         )
         return coll_convert(coll)
 
@@ -255,6 +263,7 @@ def coll_convert(coll: Collection) -> AsyncCollection:
         embedding=coll.embedding,
         read_consistency=read_consistency,
         ttl_config=coll.ttl_config,
+        filter_index_config=coll.filter_index_config,
         createTime=coll.create_time,
         documentCount=coll.document_count,
         alias=coll.alias,

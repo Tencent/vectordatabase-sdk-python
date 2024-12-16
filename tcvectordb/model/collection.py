@@ -59,6 +59,57 @@ class Embedding:
         self._status = kwargs.get("status")
 
 
+class FilterIndexConfig:
+    """Enabling full indexing mode.
+    Where all scalar fields are indexed by default. Disabled by default.
+    """
+
+    def __init__(self,
+                 filter_all: Optional[bool] = None,
+                 fields_without_index: Optional[List[str]] = None,
+                 max_str_len: Optional[int] = None,
+                 **kwargs,
+                 ):
+        """
+        init FilterIndexConfig when create a collection
+
+        Args:
+            filter_all (bool): enable (true) and disable (false) control for full indexing mode.
+            fields_without_index (list[str]): specify certain scalar fields not to create an index.
+            max_str_len (int): The maximum length limit for the string field "value" is specified.
+                               If more than, it will be truncated to the specified max_str_len value before indexing.
+                               The default value is 32, and the valid range is between 1 and 65536.
+
+        Examples:
+            >>> FilterIndexConfig(filter_all=True, fields_without_index=['fieldName1'], max_str_len=32)
+        """
+        self.filter_all: Optional[bool] = filter_all
+        self.fields_without_index: Optional[List[str]] = fields_without_index
+        self.max_str_len: Optional[int] = max_str_len
+        self._init(**kwargs)
+        self.kwargs = kwargs
+
+    def _init(self, **kwargs):
+        if self.filter_all is None:
+            self.filter_all = kwargs.pop('filterAll', None)
+        if self.fields_without_index is None:
+            self.fields_without_index = kwargs.pop('fieldsWithoutIndex', None)
+        if self.max_str_len is None:
+            self.max_str_len = kwargs.pop('maxStrLen', None)
+
+    @property
+    def __dict__(self):
+        res = {}
+        if self.filter_all is not None:
+            res['filterAll'] = self.filter_all
+        if self.fields_without_index is not None:
+            res['fieldsWithoutIndex'] = self.fields_without_index
+        if self.max_str_len is not None:
+            res['maxStrLen'] = self.max_str_len
+        res.update(self.kwargs)
+        return res
+
+
 class BaseQuery:
     """
     Query, query conditions
@@ -146,12 +197,18 @@ class Query(BaseQuery):
 class DeleteQuery(BaseQuery):
     def __init__(self,
                  filter: Union[Filter, str] = None,
-                 document_ids: Optional[List[str]] = None):
+                 document_ids: Optional[List[str]] = None,
+                 limit: Optional[int] = None):
         super().__init__(filter, document_ids)
+        self.limit = limit
 
     @property
     def __dict__(self):
-        return super().__dict__
+        res = {}
+        if self.limit is not None:
+            res['limit'] = self.limit
+        res.update(super().__dict__)
+        return res
 
 
 class UpdateQuery(BaseQuery):
@@ -174,7 +231,8 @@ class Search:
                  embedding_items: Optional[List[str]] = None,
                  params: Optional[Any] = None,
                  filter: Union[Filter, str] = None,
-                 output_fields: Optional[List[str]] = None
+                 output_fields: Optional[List[str]] = None,
+                 radius: Optional[float] = None,
                  ):
         self._retrieve_vector = retrieve_vector
         self._limit = limit
@@ -197,6 +255,7 @@ class Search:
 
         if output_fields is not None:
             self._output_fields = output_fields
+        self.radius = radius
 
     @property
     def __dict__(self):
@@ -223,6 +282,9 @@ class Search:
         if hasattr(self, "_output_fields"):
             res["outputFields"] = self._output_fields
 
+        if self.radius is not None:
+            res['radius'] = self.radius
+
         return res
 
 
@@ -242,6 +304,8 @@ class Collection():
         embedding (Embedding): An optional embedding for embedding text when upsert documents.
         ttl_config (dict): TTL configuration, when set {'enable': True, 'timeField': 'expire_at'} means
             that ttl is enabled and automatically removed when the time set in the expire_at field expires
+        filter_index_config (FilterIndexConfig): Enabling full indexing mode.
+            Where all scalar fields are indexed by default.
         kwargs:
             create_time(str): collection create time
     """
@@ -257,6 +321,7 @@ class Collection():
             embedding: Embedding = None,
             read_consistency: ReadConsistency = ReadConsistency.EVENTUAL_CONSISTENCY,
             ttl_config: dict = None,
+            filter_index_config: FilterIndexConfig = None,
             **kwargs
     ):
         self._conn = db.conn
@@ -268,6 +333,7 @@ class Collection():
         self._embedding = embedding
         self._index = index
         self.ttl_config = ttl_config
+        self.filter_index_config = filter_index_config
         self.create_time = kwargs.pop('createTime', None)
         self.document_count = kwargs.pop("documentCount", None)
         self.alias = kwargs.pop("alias", None)
@@ -318,6 +384,8 @@ class Collection():
             res_dict['indexStatus'] = self.index_status
         if self.ttl_config is not None:
             res_dict['ttlConfig'] = self.ttl_config
+        if self.filter_index_config is not None:
+            res_dict['filterIndexConfig'] = vars(self.filter_index_config)
         res_dict.update(self.kwargs)
         return res_dict
 
@@ -422,6 +490,7 @@ class Collection():
             limit: int = 10,
             output_fields: Optional[List[str]] = None,
             timeout: Optional[float] = None,
+            radius: Optional[float] = None,
     ) -> List[List[Dict]]:
         """Search the most similar vector by the given vectors. Batch API
 
@@ -437,12 +506,16 @@ class Collection():
             output_fields (List[str]): document's fields to return
             timeout (float): An optional duration of time in seconds to allow for the request.
                              When timeout is set to None, will use the connect timeout.
+            radius (float): Based on the score threshold for similarity retrieval.
+                            IP: return when score >= radius, value range (-∞, +∞).
+                            COSINE: return when score >= radius, value range [-1, 1].
+                            L2: return when score <= radius, value range [0, +∞).
 
         Returns:
             List[List[Dict]]: Return the most similar document for each vector.
         """
         search_param = Search(retrieve_vector=retrieve_vector, limit=limit, vectors=vectors, filter=filter,
-                              params=params, output_fields=output_fields)
+                              params=params, output_fields=output_fields, radius=radius)
         return self.__base_search(search=search_param, read_consistency=self._read_consistency, timeout=timeout).get(
             'documents')
 
@@ -454,7 +527,8 @@ class Collection():
             retrieve_vector: bool = False,
             limit: int = 10,
             timeout: Optional[float] = None,
-            output_fields: Optional[List[str]] = None
+            output_fields: Optional[List[str]] = None,
+            radius: Optional[float] = None,
     ) -> List[List[Dict]]:
         """Search the most similar vector by id. Batch API
 
@@ -470,6 +544,10 @@ class Collection():
             output_fields (List[str]): document's fields to return
             timeout (float): An optional duration of time in seconds to allow for the request.
                              When timeout is set to None, will use the connect timeout.
+            radius (float): Based on the score threshold for similarity retrieval.
+                            IP: return when score >= radius, value range (-∞, +∞).
+                            COSINE: return when score >= radius, value range [-1, 1].
+                            L2: return when score <= radius, value range [0, +∞).
 
         Returns:
             List[List[Dict]]: Return the most similar document for each id.
@@ -478,7 +556,7 @@ class Collection():
             raise exceptions.ParamError(message="database_name or collection_name is blank")
 
         search_param = Search(retrieve_vector=retrieve_vector, limit=limit, document_ids=document_ids,
-                              filter=filter, params=params, output_fields=output_fields)
+                              filter=filter, params=params, output_fields=output_fields, radius=radius)
         return self.__base_search(search=search_param, read_consistency=self._read_consistency, timeout=timeout).get(
             'documents')
 
@@ -490,6 +568,7 @@ class Collection():
                      limit: int = 10,
                      output_fields: Optional[List[str]] = None,
                      timeout: Optional[float] = None,
+                     radius: Optional[float] = None,
                      ) -> Dict[str, Any]:
         """Search the most similar vector by the embeddingItem. Batch API
         The embeddingItem will first be embedded into a vector by the model set by the collection on the server side.
@@ -506,6 +585,10 @@ class Collection():
             output_fields (List[str]): document's fields to return
             timeout (float): An optional duration of time in seconds to allow for the request.
                              When timeout is set to None, will use the connect timeout.
+            radius (float): Based on the score threshold for similarity retrieval.
+                            IP: return when score >= radius, value range (-∞, +∞).
+                            COSINE: return when score >= radius, value range [-1, 1].
+                            L2: return when score <= radius, value range [0, +∞).
 
         Returns:
             List[List[Dict]]: Return the most similar document for each embeddingItem.
@@ -514,7 +597,7 @@ class Collection():
             raise exceptions.ParamError(message="database_name or collection_name is blank")
 
         search_param = Search(retrieve_vector=retrieve_vector, limit=limit, embedding_items=embeddingItems,
-                              filter=filter, params=params, output_fields=output_fields)
+                              filter=filter, params=params, output_fields=output_fields, radius=radius)
         return self.__base_search(search=search_param, read_consistency=self._read_consistency, timeout=timeout)
 
     def __base_search(
@@ -598,7 +681,7 @@ class Collection():
                       output_fields: Optional[List[str]] = None,
                       limit: Optional[int] = None,
                       timeout: Optional[float] = None,
-                      **kwargs) -> List[List[Dict]]:
+                      **kwargs) -> List[Union[List[Dict], Dict]]:
         """Dense Vector and Sparse Vector Hybrid Retrieval
 
         Args:
@@ -680,19 +763,21 @@ class Collection():
                document_ids: List[str] = None,
                filter: Union[Filter, str] = None,
                timeout: float = None,
+               limit: Optional[int] = None
                ) -> Dict:
         """Delete document by conditions.
 
         Args:
             document_ids (List[str]): The list of the document id
             filter (Union[Filter, str]): Filter condition of the scalar index field
+            limit (int): The amount of document deleted, with a range of [1, 16384].
             timeout (float): An optional duration of time in seconds to allow for the request.
                              When timeout is set to None, will use the connect timeout.
 
         Returns:
             Dict: Contains affectedCount
         """
-        delete_query_param = DeleteQuery(document_ids=document_ids, filter=filter)
+        delete_query_param = DeleteQuery(document_ids=document_ids, filter=filter, limit=limit)
         return self.__base_delete(delete_query=delete_query_param, timeout=timeout)
 
     def __base_delete(
@@ -719,6 +804,31 @@ class Collection():
         }
         res = self._conn.post('/document/delete', body, timeout)
         return res.data()
+
+    def count(self,
+              filter: Union[Filter, str] = None,
+              timeout: float = None
+              ) -> int:
+        """Calculate the number of documents based on the query conditions.
+
+        Args:
+            filter (Union[Filter, str]): The optional filter condition of the scalar index field.
+            timeout (float): An optional duration of time in seconds to allow for the request.
+                    When timeout is set to None, will use the connect timeout.
+
+        Returns:
+            int: The number of documents based on the query conditions
+        """
+        body = {
+            "database": self.database_name,
+            "collection": self.collection_name,
+        }
+        query = {}
+        if filter is not None:
+            query['filter'] = filter if isinstance(filter, str) else filter.cond
+        body['query'] = query
+        res = self._conn.post('/document/count', body, timeout)
+        return res.data().get('count')
 
     def update(self,
                data: Union[Document, Dict],
@@ -780,7 +890,7 @@ class Collection():
 
     def rebuild_index(self,
                       drop_before_rebuild: bool = False,
-                      throttle: int = 0,
+                      throttle: Optional[int] = None,
                       timeout: Optional[float] = None):
         """Rebuild all indexes under the specified collection.
 
@@ -800,8 +910,9 @@ class Collection():
             'database': self.database_name,
             'collection': self.collection_name,
             'dropBeforeRebuild': drop_before_rebuild,
-            'throttle': throttle
         }
+        if throttle is not None:
+            body['throttle'] = throttle
         self._conn.post('/index/rebuild', body, timeout)
 
     def add_index(self,
@@ -831,4 +942,44 @@ class Collection():
         if build_existed_data is not None:
             body['buildExistedData'] = build_existed_data
         res = self._conn.post('/index/add', body, timeout)
+        return res.data()
+
+    def modify_vector_index(self,
+                            vector_indexes: List[VectorIndex],
+                            rebuild_rules: Optional[dict] = None,
+                            timeout: Optional[float] = None) -> dict:
+        """Adjust vector index parameters.
+
+        Args:
+            vector_indexes (List[FilterIndex]): The vector fields to adjust
+            rebuild_rules (dict): Specified rebuild rules.
+                    This interface will trigger a rebuild after adjusting the parameters.
+                    For example: {"drop_before_rebuild": True , "throttle": 1}
+                    drop_before_rebuild (bool): Whether to delete the old index before rebuilding the new index during
+                              index reconstruction. True: Delete the old index before rebuilding the index.
+                    throttle (int): Whether to limit the number of CPU cores for building the index on a single node.
+                              0: No limit on CPU cores. 1: CPU core count is 1.
+            timeout (float): An optional duration of time in seconds to allow for the request.
+                    When timeout is set to None, will use the connect timeout.
+
+        Returns:
+            dict: The API returns a code and msg. For example:
+           {
+             "code": 0,
+             "msg": "Start rebuilding. You can use the '/collection/describe' API to follow the progress of rebuilding."
+           }
+        """
+        if not self.database_name or not self.collection_name:
+            raise exceptions.ParamError(message="database_name or collection_name is blank")
+        indexes = [vars(item) for item in vector_indexes]
+        body = {
+            'database': self.database_name,
+            'collection': self.collection_name,
+            'vectorIndexes': indexes,
+        }
+        if rebuild_rules is not None:
+            if 'drop_before_rebuild' in rebuild_rules:
+                rebuild_rules['dropBeforeRebuild'] = rebuild_rules.pop('drop_before_rebuild')
+            body['rebuildRules'] = rebuild_rules
+        res = self._conn.post('/index/modifyVectorIndex', body, timeout)
         return res.data()
