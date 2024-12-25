@@ -37,6 +37,7 @@ class BM25Encoder(BaseSparseEncoder):
         self.token_freq: Optional[Dict[int, int]] = None
         self.doc_count: Optional[int] = None
         self.average_doc_length: Optional[float] = None
+        self.total_doc_length = 0
 
     @staticmethod
     def default(name: str = 'zh') -> "BM25Encoder":
@@ -157,7 +158,7 @@ class BM25Encoder(BaseSparseEncoder):
 
         if isinstance(corpus, str):
             corpus = [corpus]
-        for doc in tqdm(corpus):
+        for doc in corpus:
             if not isinstance(doc, str):
                 raise ValueError("corpus must be a list of strings")
 
@@ -173,16 +174,17 @@ class BM25Encoder(BaseSparseEncoder):
             self.token_freq = dict(token_freq_counter)
             self.doc_count = doc_num
             self.average_doc_length = sum_doc_len / doc_num
+            self.total_doc_length = sum_doc_len
         else:
-            self.average_doc_length = (self.average_doc_length * self.doc_count + sum_doc_len) / (
-                        self.doc_count + doc_num)
-            self.doc_count = self.doc_count + doc_num
+            if self.total_doc_length == 0:
+                self.total_doc_length = self.average_doc_length * self.doc_count
+            self.total_doc_length += sum_doc_len
+            self.doc_count += doc_num
+            self.average_doc_length = self.total_doc_length / self.doc_count
             token_freq = dict(token_freq_counter)
             for k, v in token_freq.items():
                 count = self.token_freq.get(k, 0)
                 self.token_freq[k] = count + v
-            doc_sorted = sorted(self.token_freq.items())
-            self.token_freq = {k:v for k,v in doc_sorted}
 
     def download_params(self, params_file: str = "./bm25_params.json"):
         """下载BM25参数
@@ -197,6 +199,8 @@ class BM25Encoder(BaseSparseEncoder):
         if self.token_freq is None or self.doc_count is None or self.average_doc_length is None:
             raise ValueError("BM25 must be fit before storing params")
         tokenizer_param = self.tokenizer.get_parameter()
+        doc_sorted = sorted(self.token_freq.items())
+        self.token_freq = {k: v for k, v in doc_sorted}
         data = {
             "b": self.b,
             "k1": self.k1,

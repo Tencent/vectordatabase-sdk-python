@@ -20,7 +20,7 @@ class BaseTokenizer(object):
 
     def updated_parameter(self,
                           hash_function: Callable[[Union[str, int]], int],
-                          stop_words: Union[bool, Dict[str, Any], List[str], Set[str]] = None,
+                          stop_words: Union[bool, str, Dict[str, Any], List[str], Set[str]] = None,
                           lower_case: bool = False,
                           dict_file: Optional[str] = None,
                           **kwargs

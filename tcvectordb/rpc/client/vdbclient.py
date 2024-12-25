@@ -628,7 +628,7 @@ class VdbClient:
                     raise ServerInternalError(code=15000,
                                               message=f'The value of nlist cannot be 0.')
                 column.params.nlist = param.get('nlist', 0)
-        if index.field_type in (FieldType.Vector, FieldType.SparseVector):
+        if index.metric_type is not None:
             column.metricType = index.metricType.value
 
     def add_index(self,

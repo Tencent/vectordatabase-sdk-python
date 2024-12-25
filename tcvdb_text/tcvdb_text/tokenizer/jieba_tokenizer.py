@@ -11,7 +11,7 @@ class JiebaTokenizer(BaseTokenizer):
 
     def __init__(self,
                  hash_function: Callable[[Union[str, int]], int] = Hash.mmh3_hash,
-                 stop_words: Union[bool, Dict[str, Any], List[str], Set[str]] = True,
+                 stop_words: Union[bool, str, Dict[str, Any], List[str], Set[str]] = True,
                  lower_case: bool = False,
                  dict_file: Optional[str] = None,
                  cut_all: bool = False,
