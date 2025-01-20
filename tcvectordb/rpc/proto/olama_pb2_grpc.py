@@ -87,7 +87,7 @@ class SearchEngineStub(object):
         self.keyword_search = channel.unary_unary(
                 '/document/keywordSearch',
                 request_serializer=olama__pb2.SearchRequest.SerializeToString,
-                response_deserializer=olama__pb2.SearchRequest.FromString,
+                response_deserializer=olama__pb2.SearchResponse.FromString,
                 )
         self.dele = channel.unary_unary(
                 '/document/delete',
@@ -133,6 +133,41 @@ class SearchEngineStub(object):
                 '/olama.SearchEngine/describeDatabase',
                 request_serializer=olama__pb2.DescribeDatabaseRequest.SerializeToString,
                 response_deserializer=olama__pb2.DescribeDatabaseResponse.FromString,
+                )
+        self.user_create = channel.unary_unary(
+                '/olama.SearchEngine/user_create',
+                request_serializer=olama__pb2.UserAccountRequest.SerializeToString,
+                response_deserializer=olama__pb2.UserAccountResponse.FromString,
+                )
+        self.user_drop = channel.unary_unary(
+                '/olama.SearchEngine/user_drop',
+                request_serializer=olama__pb2.UserAccountRequest.SerializeToString,
+                response_deserializer=olama__pb2.UserAccountResponse.FromString,
+                )
+        self.user_change_password = channel.unary_unary(
+                '/olama.SearchEngine/user_change_password',
+                request_serializer=olama__pb2.UserAccountRequest.SerializeToString,
+                response_deserializer=olama__pb2.UserAccountResponse.FromString,
+                )
+        self.user_grant = channel.unary_unary(
+                '/olama.SearchEngine/user_grant',
+                request_serializer=olama__pb2.UserPrivilegesRequest.SerializeToString,
+                response_deserializer=olama__pb2.UserPrivilegesResponse.FromString,
+                )
+        self.user_revoke = channel.unary_unary(
+                '/olama.SearchEngine/user_revoke',
+                request_serializer=olama__pb2.UserPrivilegesRequest.SerializeToString,
+                response_deserializer=olama__pb2.UserPrivilegesResponse.FromString,
+                )
+        self.user_list = channel.unary_unary(
+                '/olama.SearchEngine/user_list',
+                request_serializer=olama__pb2.UserListRequest.SerializeToString,
+                response_deserializer=olama__pb2.UserListResponse.FromString,
+                )
+        self.user_describe = channel.unary_unary(
+                '/olama.SearchEngine/user_describe',
+                request_serializer=olama__pb2.UserDescribeRequest.SerializeToString,
+                response_deserializer=olama__pb2.UserDescribeResponse.FromString,
                 )
         self.get_version = channel.unary_unary(
                 '/olama.SearchEngine/get_version',
@@ -322,6 +357,56 @@ class SearchEngineServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def user_create(self, request, context):
+        """RBAC相关接口
+        创建用户
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def user_drop(self, request, context):
+        """删除用户
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def user_change_password(self, request, context):
+        """修改用户密码
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def user_grant(self, request, context):
+        """授予用户角色或权限
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def user_revoke(self, request, context):
+        """撤销用户角色或权限
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def user_list(self, request, context):
+        """展示所有用户列表
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def user_describe(self, request, context):
+        """展示某个用户的详细信息
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
     def get_version(self, request, context):
         """获取版本（api升级兼容性考虑）
         """
@@ -419,7 +504,7 @@ def add_SearchEngineServicer_to_server(servicer, server):
             'keyword_search': grpc.unary_unary_rpc_method_handler(
                     servicer.keyword_search,
                     request_deserializer=olama__pb2.SearchRequest.FromString,
-                    response_serializer=olama__pb2.SearchRequest.SerializeToString,
+                    response_serializer=olama__pb2.SearchResponse.SerializeToString,
             ),
             'dele': grpc.unary_unary_rpc_method_handler(
                     servicer.dele,
@@ -465,6 +550,41 @@ def add_SearchEngineServicer_to_server(servicer, server):
                     servicer.describeDatabase,
                     request_deserializer=olama__pb2.DescribeDatabaseRequest.FromString,
                     response_serializer=olama__pb2.DescribeDatabaseResponse.SerializeToString,
+            ),
+            'user_create': grpc.unary_unary_rpc_method_handler(
+                    servicer.user_create,
+                    request_deserializer=olama__pb2.UserAccountRequest.FromString,
+                    response_serializer=olama__pb2.UserAccountResponse.SerializeToString,
+            ),
+            'user_drop': grpc.unary_unary_rpc_method_handler(
+                    servicer.user_drop,
+                    request_deserializer=olama__pb2.UserAccountRequest.FromString,
+                    response_serializer=olama__pb2.UserAccountResponse.SerializeToString,
+            ),
+            'user_change_password': grpc.unary_unary_rpc_method_handler(
+                    servicer.user_change_password,
+                    request_deserializer=olama__pb2.UserAccountRequest.FromString,
+                    response_serializer=olama__pb2.UserAccountResponse.SerializeToString,
+            ),
+            'user_grant': grpc.unary_unary_rpc_method_handler(
+                    servicer.user_grant,
+                    request_deserializer=olama__pb2.UserPrivilegesRequest.FromString,
+                    response_serializer=olama__pb2.UserPrivilegesResponse.SerializeToString,
+            ),
+            'user_revoke': grpc.unary_unary_rpc_method_handler(
+                    servicer.user_revoke,
+                    request_deserializer=olama__pb2.UserPrivilegesRequest.FromString,
+                    response_serializer=olama__pb2.UserPrivilegesResponse.SerializeToString,
+            ),
+            'user_list': grpc.unary_unary_rpc_method_handler(
+                    servicer.user_list,
+                    request_deserializer=olama__pb2.UserListRequest.FromString,
+                    response_serializer=olama__pb2.UserListResponse.SerializeToString,
+            ),
+            'user_describe': grpc.unary_unary_rpc_method_handler(
+                    servicer.user_describe,
+                    request_deserializer=olama__pb2.UserDescribeRequest.FromString,
+                    response_serializer=olama__pb2.UserDescribeResponse.SerializeToString,
             ),
             'get_version': grpc.unary_unary_rpc_method_handler(
                     servicer.get_version,
@@ -742,7 +862,7 @@ class SearchEngine(object):
             metadata=None):
         return grpc.experimental.unary_unary(request, target, '/olama.SearchEngine/keyword_search',
             olama__pb2.SearchRequest.SerializeToString,
-            olama__pb2.SearchRequest.FromString,
+            olama__pb2.SearchResponse.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
@@ -896,6 +1016,125 @@ class SearchEngine(object):
         return grpc.experimental.unary_unary(request, target, '/olama.SearchEngine/describeDatabase',
             olama__pb2.DescribeDatabaseRequest.SerializeToString,
             olama__pb2.DescribeDatabaseResponse.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def user_create(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/olama.SearchEngine/user_create',
+            olama__pb2.UserAccountRequest.SerializeToString,
+            olama__pb2.UserAccountResponse.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def user_drop(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/olama.SearchEngine/user_drop',
+            olama__pb2.UserAccountRequest.SerializeToString,
+            olama__pb2.UserAccountResponse.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def user_change_password(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/olama.SearchEngine/user_change_password',
+            olama__pb2.UserAccountRequest.SerializeToString,
+            olama__pb2.UserAccountResponse.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def user_grant(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/olama.SearchEngine/user_grant',
+            olama__pb2.UserPrivilegesRequest.SerializeToString,
+            olama__pb2.UserPrivilegesResponse.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def user_revoke(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/olama.SearchEngine/user_revoke',
+            olama__pb2.UserPrivilegesRequest.SerializeToString,
+            olama__pb2.UserPrivilegesResponse.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def user_list(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/olama.SearchEngine/user_list',
+            olama__pb2.UserListRequest.SerializeToString,
+            olama__pb2.UserListResponse.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def user_describe(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/olama.SearchEngine/user_describe',
+            olama__pb2.UserDescribeRequest.SerializeToString,
+            olama__pb2.UserDescribeResponse.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 

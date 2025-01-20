@@ -9,9 +9,10 @@ from .httpclient import HTTPClient
 from tcvectordb.model.database import Database
 from tcvectordb import exceptions
 from tcvectordb.model.ai_database import AIDatabase
-from ..model.collection import Collection
-from ..model.document import Document, Filter, AnnSearch, KeywordSearch, Rerank
-from ..model.index import FilterIndex, VectorIndex
+from tcvectordb.model import permission
+from tcvectordb.model.collection import Collection, Embedding, FilterIndexConfig
+from tcvectordb.model.document import Document, Filter, AnnSearch, KeywordSearch, Rerank
+from tcvectordb.model.index import FilterIndex, VectorIndex, Index, IndexField
 
 
 class VectorDBClient:
@@ -25,8 +26,10 @@ class VectorDBClient:
                  timeout=10,
                  adapter: HTTPAdapter = None,
                  pool_size: int = 10,
-                 proxies: Optional[dict] = None):
-        self._conn = HTTPClient(url, username, key, timeout, adapter, pool_size=pool_size, proxies=proxies)
+                 proxies: Optional[dict] = None,
+                 password: Optional[str] = None):
+        self._conn = HTTPClient(url, username, key, timeout, adapter, pool_size=pool_size,
+                                proxies=proxies, password=password)
         self._read_consistency = read_consistency
 
     @property
@@ -152,12 +155,111 @@ class VectorDBClient:
         for db in self.list_databases():
             if db.database_name == database:
                 return db
-        raise exceptions.ParamError(message='Database not exist: {}'.format(database))
+        raise exceptions.ParamError(code=14100, message='Database not exist: {}'.format(database))
 
     def close(self):
         """Close the connection."""
         if self._conn:
             self._conn.close()
+
+    def create_collection(self,
+                          database_name: str,
+                          collection_name: str,
+                          shard: int,
+                          replicas: int,
+                          description: str = None,
+                          index: Index = None,
+                          embedding: Embedding = None,
+                          timeout: float = None,
+                          ttl_config: dict = None,
+                          filter_index_config: FilterIndexConfig = None,
+                          indexes: List[IndexField] = None,
+                          ) -> Collection:
+        """Create a collection.
+
+        Args:
+            database_name (str): The name of the database.
+            collection_name (str): The name of the collection. A collection name can only include
+                numbers, letters, and underscores, and must not begin with a letter, and length
+                must between 1 and 128
+            shard (int): The shard number of the collection. Shard will divide a large dataset into smaller subsets.
+            replicas (int): The replicas number of the collection. Replicas refers to the number of identical copies
+                of each primary shard, used for disaster recovery and load balancing.
+            description (str): An optional description of the collection.
+            index (Index): A list of the index properties for the documents in a collection.
+            embedding (Embedding): An optional embedding for embedding text when upsert documents.
+            timeout (float): An optional duration of time in seconds to allow for the request. When timeout
+                is set to None, will use the connect timeout.
+            ttl_config (dict): TTL configuration, when set {'enable': True, 'timeField': 'expire_at'} means
+                that ttl is enabled and automatically removed when the time set in the expire_at field expires
+            filter_index_config (FilterIndexConfig): Enabling full indexing mode.
+                Where all scalar fields are indexed by default.
+            indexes (List[IndexField]): A list of the index properties for the documents in a collection.
+        Returns:
+            A Collection object.
+        """
+        return Database(conn=self._conn, name=database_name).create_collection(
+            name=collection_name,
+            shard=shard,
+            replicas=replicas,
+            description=description,
+            index=index,
+            embedding=embedding,
+            timeout=timeout,
+            ttl_config=ttl_config,
+            filter_index_config=filter_index_config,
+            indexes=indexes,
+        )
+
+    def create_collection_if_not_exists(self,
+                                        database_name: str,
+                                        collection_name: str,
+                                        shard: int,
+                                        replicas: int,
+                                        description: str = None,
+                                        index: Index = None,
+                                        embedding: Embedding = None,
+                                        timeout: float = None,
+                                        ttl_config: dict = None,
+                                        filter_index_config: FilterIndexConfig = None,
+                                        indexes: List[IndexField] = None,
+                                        ) -> Collection:
+        """Create the collection if it doesn't exist.
+
+        Args:
+            database_name (str): The name of the database.
+            collection_name (str): The name of the collection. A collection name can only include
+                numbers, letters, and underscores, and must not begin with a letter, and length
+                must between 1 and 128
+            shard (int): The shard number of the collection. Shard will divide a large dataset into smaller subsets.
+            replicas (int): The replicas number of the collection. Replicas refers to the number of identical copies
+                of each primary shard, used for disaster recovery and load balancing.
+            description (str): An optional description of the collection.
+            index (Index): A list of the index properties for the documents in a collection.
+            embedding (``Embedding``): An optional embedding for embedding text when upsert documents.
+            timeout (float): An optional duration of time in seconds to allow for the request. When timeout
+                is set to None, will use the connect timeout.
+            ttl_config (dict): TTL configuration, when set {'enable': True, 'timeField': 'expire_at'} means
+                that ttl is enabled and automatically removed when the time set in the expire_at field expires
+            filter_index_config (FilterIndexConfig): Enabling full indexing mode.
+                Where all scalar fields are indexed by default.
+            indexes (List[IndexField]): A list of the index properties for the documents in a collection.
+
+        Returns:
+            Collection: A collection object.
+        """
+        return Database(conn=self._conn, name=database_name).create_collection_if_not_exists(
+            name=collection_name,
+            shard=shard,
+            replicas=replicas,
+            description=description,
+            index=index,
+            embedding=embedding,
+            timeout=timeout,
+            ttl_config=ttl_config,
+            filter_index_config=filter_index_config,
+            indexes=indexes,
+        )
 
     def exists_collection(self,
                           database_name: str,
@@ -172,6 +274,110 @@ class VectorDBClient:
             Bool: True if collection exists else False.
         """
         return Database(conn=self._conn, name=database_name).exists_collection(collection_name)
+
+    def describe_collection(self,
+                            database_name: str,
+                            collection_name: str,
+                            timeout: Optional[float] = None) -> Collection:
+        """Get a Collection by name.
+
+        Args:
+            database_name (str): The name of the database.
+            collection_name (str): The name of the collection.
+            timeout (float): An optional duration of time in seconds to allow for the request. When timeout
+                is set to None, will use the connect timeout.
+
+        Returns:
+            A Collection object.
+        """
+        return Database(conn=self._conn, name=database_name).describe_collection(name=collection_name,
+                                                                                 timeout=timeout)
+
+    def collection(self, database_name: str, collection_name: str) -> Collection:
+        """Get a Collection by name.
+
+        Args:
+            database_name (str): The name of the database.
+            collection_name (str): The name of the collection.
+
+        Returns:
+            A Collection object
+        """
+        return self.describe_collection(database_name=database_name,
+                                        collection_name=collection_name)
+
+    def list_collections(self, database_name: str, timeout: Optional[float] = None) -> List[Collection]:
+        """List all collections in the database.
+
+        Args:
+            database_name (str): The name of the database.
+            timeout (float): An optional duration of time in seconds to allow for the request. When timeout
+                is set to None, will use the connect timeout.
+
+        Returns:
+            List: all Collections
+        """
+        return Database(conn=self._conn, name=database_name).list_collections(timeout=timeout)
+
+    def drop_collection(self,
+                        database_name: str,
+                        collection_name: str,
+                        timeout: Optional[float] = None) -> Dict:
+        """Delete a collection by name.
+
+        Args:
+            database_name (str): The name of the database.
+            collection_name (str): The name of the collection.
+            timeout (float): An optional duration of time in seconds to allow for the request. When timeout
+                is set to None, will use the connect timeout.
+
+        Returns:
+            Dict: Contains code、msg、affectedCount
+        """
+        return Database(conn=self._conn, name=database_name).drop_collection(name=collection_name,
+                                                                             timeout=timeout)
+
+    def truncate_collection(self,
+                            database_name: str,
+                            collection_name: str) -> Dict:
+        """Clear all the data and indexes in the Collection.
+
+        Args:
+            database_name (str): The name of the database.
+            collection_name (str): The name of the collection.
+
+        Returns:
+            Dict: Contains affectedCount
+        """
+        return Database(conn=self._conn, name=database_name).truncate_collection(collection_name=collection_name)
+
+    def set_alias(self,
+                  database_name: str,
+                  collection_name: str,
+                  collection_alias: str) -> Dict:
+        """Set alias for collection.
+
+        Args:
+            database_name (str): The name of the database.
+            collection_name  : The name of the collection.
+            collection_alias : alias name to set.
+        Returns:
+            Dict: Contains affectedCount
+        """
+        return Database(conn=self._conn, name=database_name).set_alias(collection_name=collection_name,
+                                                                       collection_alias=collection_alias)
+
+    def delete_alias(self, database_name: str, alias: str) -> Dict:
+        """Delete alias by name.
+
+        Args:
+            database_name (str): The name of the database.
+            alias  : alias name to delete.
+
+        Returns:
+            Dict: Contains affectedCount
+        """
+        return Database(conn=self._conn, name=database_name).delete_alias(alias=alias)
 
     def upsert(self,
                database_name: str,
@@ -280,6 +486,7 @@ class VectorDBClient:
               filter: Union[Filter, str] = None,
               output_fields: Optional[List[str]] = None,
               timeout: Optional[float] = None,
+              sort: Optional[dict] = None,
               ) -> List[Dict]:
         """Query documents that satisfies the condition.
 
@@ -294,6 +501,7 @@ class VectorDBClient:
             output_fields (List[str]): document's fields to return
             timeout (float): An optional duration of time in seconds to allow for the request.
                              When timeout is set to None, will use the connect timeout.
+            sort: (dict): Set order by, like {'fieldName': 'age', 'direction': 'desc'}, default asc
 
         Returns:
             List[Dict]: all matched documents
@@ -310,6 +518,7 @@ class VectorDBClient:
             filter=filter,
             output_fields=output_fields,
             timeout=timeout,
+            sort=sort,
         )
 
     def count(self,
@@ -537,6 +746,35 @@ class VectorDBClient:
             timeout=timeout,
             **kwargs)
 
+    def rebuild_index(self,
+                      database_name: str,
+                      collection_name: str,
+                      drop_before_rebuild: bool = False,
+                      throttle: Optional[int] = None,
+                      timeout: Optional[float] = None):
+        """Rebuild all indexes under the specified collection.
+
+        Args:
+            database_name (str): The name of the database where the collection resides.
+            collection_name (str): The name of the collection
+            drop_before_rebuild (bool): Whether to delete the old index before rebuilding the new index. Default False.
+                                        true: first delete the old index and then rebuild the index.
+                                        false: after creating the new index, then delete the old index.
+            throttle (int): Whether to limit the number of CPU cores for building an index on a single node.
+                            0: no limit.
+            timeout (float): An optional duration of time in seconds to allow for the request.
+                    When timeout is set to None, will use the connect timeout.
+        """
+        return Collection(
+            db=Database(conn=self._conn, name=database_name),
+            name=collection_name,
+            read_consistency=self._read_consistency,
+        ).rebuild_index(
+            drop_before_rebuild=drop_before_rebuild,
+            throttle=throttle,
+            timeout=timeout,
+        )
+
     def add_index(self,
                   database_name: str,
                   collection_name: str,
@@ -601,3 +839,148 @@ class VectorDBClient:
         ).modify_vector_index(vector_indexes=vector_indexes,
                               rebuild_rules=rebuild_rules,
                               timeout=timeout)
+
+    def create_user(self,
+                    user: str,
+                    password: str) -> dict:
+        """Create a user.
+
+        Args:
+            user (str): The username to create.
+            password (str): The password of user.
+
+        Returns:
+            dict: The API returns a code and msg. For example:
+           {
+             "code": 0,
+             "msg": "operation success"
+           }
+        """
+        return permission.create_user(conn=self._conn,
+                                      user=user,
+                                      password=password)
+
+    def drop_user(self, user: str) -> dict:
+        """Drop a user.
+
+        Args:
+            user (str): The username to create.
+
+        Returns:
+            dict: The API returns a code and msg. For example:
+           {
+             "code": 0,
+             "msg": "operation success"
+           }
+        """
+        return permission.drop_user(conn=self._conn, user=user)
+
+    def describe_user(self, user: str) -> dict:
+        """Get a user info.
+
+        Args:
+            user (str): Username to get.
+
+        Returns:
+            dict: User info contains privileges. For example:
+           {
+              "user": "test_user",
+              "createTime": "2024-10-01 00:00:00",
+              "privileges": [
+                {
+                  "resource": "db0.*",
+                  "actions": ["read"]
+                }
+              ]
+            }
+        """
+        return permission.describe_user(conn=self._conn, user=user)
+
+    def user_list(self) -> List[dict]:
+        """Get all users under the instance.
+
+        Returns:
+            dict: User info list. For example:
+            [
+              {
+                "user": "test_user",
+                "createTime": "2024-10-01 00:00:00",
+                "privileges": [
+                  {
+                    "resource": "db0.*",
+                    "actions": ["read"]
+                  }
+                ]
+              }
+           ]
+        """
+        return permission.user_list(conn=self._conn)
+
+    def change_password(self,
+                        user: str,
+                        password: str) -> dict:
+        """Change password for user.
+
+        Args:
+            user (str): The user to change password.
+            password (str): New password of the user.
+
+        Returns:
+            dict: The API returns a code and msg. For example:
+           {
+             "code": 0,
+             "msg": "operation success"
+           }
+        """
+        return permission.change_password(conn=self._conn,
+                                          user=user,
+                                          password=password)
+
+    def grant_to_user(self,
+                      user: str,
+                      privileges: Union[dict, List[dict]]) -> dict:
+        """Grant permission for user.
+
+        Args:
+            user (str): The user to grant permission.
+            privileges (str): The privileges to grant. For example:
+            {
+              "resource": "db0.*",
+              "actions": ["read"]
+            }
+
+        Returns:
+            dict: The API returns a code and msg. For example:
+           {
+             "code": 0,
+             "msg": "operation success"
+           }
+        """
+        return permission.grant_to_user(conn=self._conn,
+                                        user=user,
+                                        privileges=privileges)
+
+    def revoke_from_user(self,
+                         user: str,
+                         privileges: Union[dict, List[dict]]) -> dict:
+        """Revoke permission for user.
+
+        Args:
+            user (str): The user to revoke permission.
+            privileges (str): The privilege to revoke. For example:
+            {
+              "resource": "db0.*",
+              "actions": ["read"]
+            }
+
+        Returns:
+            dict: The API returns a code and msg. For example:
+           {
+             "code": 0,
+             "msg": "operation success"
+           }
+        """
+        return permission.revoke_from_user(conn=self._conn,
+                                           user=user,
+                                           privileges=privileges)
+

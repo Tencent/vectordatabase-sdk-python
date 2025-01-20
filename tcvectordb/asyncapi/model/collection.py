@@ -87,6 +87,7 @@ class AsyncCollection(Collection):
                     filter: Union[Filter, str] = None,
                     output_fields: Optional[List[str]] = None,
                     timeout: Optional[float] = None,
+                    sort: Optional[dict] = None,
                     ) -> List[Dict]:
         """Query documents that satisfies the condition.
 
@@ -99,6 +100,7 @@ class AsyncCollection(Collection):
             output_fields (List[str]): document's fields to return
             timeout (float): An optional duration of time in seconds to allow for the request.
                              When timeout is set to None, will use the connect timeout.
+            sort: (dict): Set order by, like {'fieldName': 'age', 'direction': 'desc'}, default asc
 
         Returns:
             List[Dict]: all matched documents
@@ -109,7 +111,8 @@ class AsyncCollection(Collection):
                              offset,
                              filter,
                              output_fields,
-                             timeout)
+                             timeout,
+                             sort=sort)
 
     async def search(self,
                      vectors: Union[List[List[float]], ndarray],

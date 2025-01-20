@@ -15,19 +15,19 @@ class Filter:
         self._cond = cond
 
     def And(self, cond: str):
-        self._cond = '{} and ({})'.format(self.cond, cond)
+        self._cond = '({}) and ({})'.format(self.cond, cond)
         return self
 
     def Or(self, cond: str):
-        self._cond = '{} or ({})'.format(self.cond, cond)
+        self._cond = '({}) or ({})'.format(self.cond, cond)
         return self
 
     def AndNot(self, cond: str):
-        self._cond = '{} and not ({})'.format(self.cond, cond)
+        self._cond = '({}) and not ({})'.format(self.cond, cond)
         return self
 
     def OrNot(self, cond: str):
-        self._cond = '{} or not ({})'.format(self.cond, cond)
+        self._cond = '({}) or not ({})'.format(self.cond, cond)
         return self
 
     @classmethod

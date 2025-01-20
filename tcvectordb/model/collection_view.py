@@ -77,7 +77,7 @@ class ParsingProcess:
 
 
 class CollectionView:
-    """CollectionView and about DocumentSet operating."""
+    """The collection view of the document group, composed of multiple DocumentSets."""
 
     def __init__(self,
                  db,

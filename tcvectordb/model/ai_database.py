@@ -1,15 +1,19 @@
-from typing import Optional, List, Dict, Any
+from typing import Optional, List, Dict, Any, Union
 
 from tcvectordb import exceptions
 from tcvectordb.client.httpclient import HTTPClient
 from tcvectordb.model import database
 from tcvectordb.model.collection_view import CollectionView, Embedding, SplitterProcess, ParsingProcess
 from tcvectordb.model.enum import ReadConsistency
-from tcvectordb.model.index import Index
+from tcvectordb.model.index import Index, IndexField
 
 
 class AIDatabase:
-    """AIDatabase and about CollectionView operating."""
+    """AIDatabase is a vector database system specifically designed for uploading and storing files for AI suites.
+
+    Users can directly upload files to the CollectionView under the AIDatabase,
+    which will automatically build a personalized knowledge base.
+    """
 
     def __init__(self,
                  conn: HTTPClient,
@@ -79,6 +83,7 @@ class AIDatabase:
             shard: Optional[int] = None,
             replicas: Optional[int] = None,
             parsing_process: Optional[ParsingProcess] = None,
+            indexes: List[IndexField] = None,
     ) -> CollectionView:
         """Create a collection view.
 
@@ -98,9 +103,14 @@ class AIDatabase:
                                Replicas refers to the number of identical copies of each primary shard,
                                used for disaster recovery and load balancing.
             parsing_process  : Document parsing parameters
+            indexes (List[IndexField]): A list of the index properties for the documents in a collection.
         Returns:
             A CollectionView object
         """
+        if index is None and indexes:
+            index = Index()
+            for idx in indexes:
+                index.add(idx)
         coll = CollectionView(
             db=self,
             name=name,

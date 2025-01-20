@@ -9,11 +9,14 @@ from google.protobuf import json_format
 
 
 class RPCClient:
+    """Grpc client for VectorDB's API"""
+
     def __init__(self,
                  url: str,
                  username: str,
                  key: str,
                  timeout: float = 10,
+                 password: Optional[str] = None,
                  **kwargs):
         options = [
             ('grpc.max_send_message_length', 100 * 1024 * 1024),
@@ -21,7 +24,9 @@ class RPCClient:
         ]
         self.channel = grpc.insecure_channel(self._address(url), options=options)
         self.stub = olama_pb2_grpc.SearchEngineStub(self.channel)
-        authorization = 'Bearer account={0}&api_key={1}'.format(username, key)
+        if password is None:
+            password = key
+        authorization = 'Bearer account={0}&api_key={1}'.format(username, password)
         self.headers = [('authorization', authorization)]
         self.timeout = timeout
         self.direct = False
@@ -38,7 +43,7 @@ class RPCClient:
         else:
             headers.append(('backend-service', 'vdb'))
         headers.extend(self.headers)
-        debug.Debug("Backend %s", backend)
+        # debug.Debug("Backend %s", backend)
         return headers
 
     def _address(self, url: str):
@@ -413,6 +418,125 @@ class RPCClient:
         try:
             ret: olama_pb2.TruncateCollectionResponse = self.stub.truncateCollection(
                 req, metadata=self._get_headers(ai), timeout=timeout)
+            self._result_check(ret)
+            return ret
+        except ServerInternalError as se:
+            raise se
+        except Exception as e:
+            raise GrpcException(message=str(e))
+
+    def create_user(self,
+                    req: olama_pb2.UserAccountRequest,
+                    timeout: Optional[float] = None,
+                    ) -> olama_pb2.UserAccountResponse:
+        self._print_req(req)
+        if timeout is None:
+            timeout = self.timeout
+        try:
+            ret: olama_pb2.UserAccountResponse = self.stub.user_create(
+                req, metadata=self._get_headers(False), timeout=timeout)
+            self._result_check(ret)
+            return ret
+        except ServerInternalError as se:
+            raise se
+        except Exception as e:
+            raise GrpcException(message=str(e))
+
+    def grant_permission(self,
+                         req: olama_pb2.UserPrivilegesRequest,
+                         timeout: Optional[float] = None,
+                         ) -> olama_pb2.UserPrivilegesResponse:
+        self._print_req(req)
+        if timeout is None:
+            timeout = self.timeout
+        try:
+            ret: olama_pb2.UserPrivilegesResponse = self.stub.user_grant(
+                req, metadata=self._get_headers(False), timeout=timeout)
+            self._result_check(ret)
+            return ret
+        except ServerInternalError as se:
+            raise se
+        except Exception as e:
+            raise GrpcException(message=str(e))
+
+    def revoke_permission(self,
+                          req: olama_pb2.UserPrivilegesRequest,
+                          timeout: Optional[float] = None,
+                          ) -> olama_pb2.UserPrivilegesResponse:
+        self._print_req(req)
+        if timeout is None:
+            timeout = self.timeout
+        try:
+            ret: olama_pb2.UserPrivilegesResponse = self.stub.user_revoke(
+                req, metadata=self._get_headers(False), timeout=timeout)
+            self._result_check(ret)
+            return ret
+        except ServerInternalError as se:
+            raise se
+        except Exception as e:
+            raise GrpcException(message=str(e))
+
+    def describe_user(self,
+                      req: olama_pb2.UserDescribeRequest,
+                      timeout: Optional[float] = None,
+                      ) -> olama_pb2.UserDescribeResponse:
+        self._print_req(req)
+        if timeout is None:
+            timeout = self.timeout
+        try:
+            ret: olama_pb2.UserDescribeResponse = self.stub.user_describe(
+                req, metadata=self._get_headers(False), timeout=timeout)
+            self._result_check(ret)
+            return ret
+        except ServerInternalError as se:
+            raise se
+        except Exception as e:
+            raise GrpcException(message=str(e))
+
+    def list_users(self,
+                   req: olama_pb2.UserListRequest,
+                   timeout: Optional[float] = None,
+                   ) -> olama_pb2.UserListResponse:
+        self._print_req(req)
+        if timeout is None:
+            timeout = self.timeout
+        try:
+            ret: olama_pb2.UserListResponse = self.stub.user_list(
+                req, metadata=self._get_headers(False), timeout=timeout)
+            self._result_check(ret)
+            return ret
+        except ServerInternalError as se:
+            raise se
+        except Exception as e:
+            raise GrpcException(message=str(e))
+
+    def drop_user(self,
+                  req: olama_pb2.UserAccountRequest,
+                  timeout: Optional[float] = None,
+                  ) -> olama_pb2.UserAccountResponse:
+        self._print_req(req)
+        if timeout is None:
+            timeout = self.timeout
+        try:
+            ret: olama_pb2.UserAccountResponse = self.stub.user_drop(
+                req, metadata=self._get_headers(False), timeout=timeout)
+            self._result_check(ret)
+            return ret
+        except ServerInternalError as se:
+            raise se
+        except Exception as e:
+            raise GrpcException(message=str(e))
+
+    def change_password(self,
+                        req: olama_pb2.UserAccountRequest,
+                        timeout: Optional[float] = None,
+                        ) -> olama_pb2.UserAccountResponse:
+        self._print_req(req)
+        if timeout is None:
+            timeout = self.timeout
+        try:
+            ret: olama_pb2.UserAccountResponse = self.stub.user_change_password(
+                req, metadata=self._get_headers(False), timeout=timeout)
             self._result_check(ret)
             return ret
         except ServerInternalError as se:

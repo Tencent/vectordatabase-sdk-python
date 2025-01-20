@@ -7,7 +7,7 @@ from tcvectordb import exceptions
 from .ai_database import AIDatabase
 
 from .collection import Collection, Embedding, FilterIndexConfig
-from .index import Index
+from .index import Index, IndexField
 
 
 class Database:
@@ -125,6 +125,7 @@ class Database:
             timeout: float = None,
             ttl_config: dict = None,
             filter_index_config: FilterIndexConfig = None,
+            indexes: List[IndexField] = None,
     ) -> Collection:
         """Create a collection.
 
@@ -144,6 +145,7 @@ class Database:
                 that ttl is enabled and automatically removed when the time set in the expire_at field expires
             filter_index_config (FilterIndexConfig): Enabling full indexing mode.
                 Where all scalar fields are indexed by default.
+            indexes (List[IndexField]): A list of the index properties for the documents in a collection.
         Returns:
             A Collection object.
         """
@@ -158,6 +160,10 @@ class Database:
         }
         if description is not None:
             body['description'] = description
+        if index is None and indexes:
+            index = Index()
+            for idx in indexes:
+                index.add(idx)
         if index is not None:
             body['indexes'] = index.list()
         if ttl_config is not None:
@@ -377,6 +383,7 @@ class Database:
                                         timeout: float = None,
                                         ttl_config: dict = None,
                                         filter_index_config: FilterIndexConfig = None,
+                                        indexes: List[IndexField] = None,
                                         ) -> Collection:
         """Create the collection if it doesn't exist.
 
@@ -396,6 +403,7 @@ class Database:
                 that ttl is enabled and automatically removed when the time set in the expire_at field expires
             filter_index_config (FilterIndexConfig): Enabling full indexing mode.
                 Where all scalar fields are indexed by default.
+            indexes (List[IndexField]): A list of the index properties for the documents in a collection.
 
         Returns:
             Collection: A collection object.
@@ -415,4 +423,5 @@ class Database:
             timeout=timeout,
             ttl_config=ttl_config,
             filter_index_config=filter_index_config,
+            indexes=indexes,
         )

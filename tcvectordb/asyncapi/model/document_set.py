@@ -4,6 +4,7 @@ from tcvectordb.model.document_set import Chunk, DocumentSet
 
 
 class AsyncDocumentSet(DocumentSet):
+    """Async wrap of DocumentSet"""
 
     def __init__(self,
                  collection_view,

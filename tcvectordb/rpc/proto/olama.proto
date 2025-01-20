@@ -401,6 +401,11 @@ message DeleteResponse {
     uint64 affectedCount = 4;
 };
 
+message OrderRule {
+    string fieldName    = 1;
+    bool desc           = 2;
+}
+
 message QueryCond {
     repeated string documentIds     = 1;
     repeated uint64 indexIds        = 2;
@@ -410,6 +415,7 @@ message QueryCond {
     int64 offset                    = 6;
     repeated string outputFields    = 7;
     bool retrieveSparseVector       = 8;  // 目前用户不传，仅用于内部
+    repeated OrderRule sort         = 9;
 }
 
 message QueryRequest {
@@ -636,6 +642,64 @@ message AddIndexResponse {
     string redirect                 = 3;
 };
 
+message User {
+  string name                   = 1;
+  string create_time            = 2;
+  string password               = 3; // 用户密码，用于Authentication建链认证
+  repeated string roles         = 4; // User被赋予的Role集合
+  repeated Privilege privileges = 5; // User被直接授予的操作权限
+  int64 version                 = 6; // 版本号，User变更时更新：新增(删除)Role/Privileges，changePassword
+};
+
+message Privilege {
+  string resource                  = 1;
+  repeated string actions          = 2;
+};
+
+
+message UserAccountRequest {
+  string user         = 1;
+  string password     = 2;
+}
+
+message UserAccountResponse {
+  int32 code           = 1;
+  string msg           = 2;
+  string redirect      = 3;
+}
+
+message UserPrivilegesRequest {
+  string user                   = 1;
+  repeated Privilege privileges = 2;
+}
+
+message UserPrivilegesResponse {
+  int32 code           = 1;
+  string msg           = 2;
+  string redirect      = 3;
+}
+
+message UserListRequest {
+}
+
+message UserListResponse {
+  int32 code          = 1;
+  string msg          = 2;
+  string redirect     = 3;
+  repeated User users = 4;
+}
+
+message UserDescribeRequest {
+  string user         = 1;
+}
+
+message UserDescribeResponse {
+  int32 code          = 1;
+  string msg          = 2;
+  string redirect     = 3;
+  User  user          = 4;
+}
+
 message HttpRequest {};
 
 message HttpResponse {};
@@ -673,7 +737,7 @@ service SearchEngine {
     // 混合搜索
     rpc hybrid_search(SearchRequest) returns (SearchResponse);
     // 关键词检索
-    rpc keyword_search(SearchRequest) returns (SearchRequest);
+    rpc keyword_search(SearchRequest) returns (SearchResponse);
     // 删除向量
     rpc dele(DeleteRequest) returns (DeleteResponse);
 
@@ -694,6 +758,22 @@ service SearchEngine {
     rpc listDatabases(DatabaseRequest) returns (DatabaseResponse);
     // 显示数据库
     rpc describeDatabase(DescribeDatabaseRequest) returns (DescribeDatabaseResponse);
+
+    // RBAC相关接口
+    // 创建用户
+    rpc user_create(UserAccountRequest) returns (UserAccountResponse);
+    // 删除用户
+    rpc user_drop(UserAccountRequest) returns (UserAccountResponse);
+    // 修改用户密码
+    rpc user_change_password(UserAccountRequest) returns (UserAccountResponse);
+    // 授予用户角色或权限
+    rpc user_grant(UserPrivilegesRequest) returns (UserPrivilegesResponse);
+    // 撤销用户角色或权限
+    rpc user_revoke(UserPrivilegesRequest) returns (UserPrivilegesResponse);
+    // 展示所有用户列表
+    rpc user_list(UserListRequest) returns (UserListResponse);
+    // 展示某个用户的详细信息
+    rpc user_describe(UserDescribeRequest) returns (UserDescribeResponse);
 
     // 获取版本（api升级兼容性考虑）
     rpc get_version(GetVersionRequest) returns (GetVersionResponse);

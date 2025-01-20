@@ -2,7 +2,7 @@ from typing import Dict, List, Optional, Any, Union
 
 from numpy import ndarray
 
-from tcvectordb.model.index import IndexField, VectorIndex, FilterIndex
+from tcvectordb.model.index import IndexField, VectorIndex, FilterIndex, SparseVector
 
 from tcvectordb import exceptions
 from .document import Document, Filter, AnnSearch, KeywordSearch, Rerank
@@ -160,6 +160,7 @@ class Query(BaseQuery):
         filter(Filter): filter rows before return result
         document_ids(List): filter rows by id list
         output_fields(List): return columns by column name list
+        sort: (dict): Set order by, like {'fieldName': 'age', 'direction': 'desc'}, default asc
     """
 
     def __init__(self,
@@ -168,14 +169,17 @@ class Query(BaseQuery):
                  retrieve_vector: bool = False,
                  filter: Union[Filter, str] = None,
                  document_ids: Optional[List] = None,
-                 output_fields: Optional[List[str]] = None
+                 output_fields: Optional[List[str]] = None,
+                 sort: Optional[Union[List[dict], dict]] = None,
                  ):
 
         super().__init__(filter, document_ids)
         self._limit = limit
         self._offset = offset
         self._retrieve_vector = retrieve_vector
-
+        self.sort = sort
+        if self.sort is not None and not isinstance(self.sort, list):
+            self.sort = [self.sort]
         if output_fields is not None and len(output_fields) > 0:
             self._output_fields = output_fields
 
@@ -190,6 +194,11 @@ class Query(BaseQuery):
             res["offset"] = self._offset
         if hasattr(self, "_output_fields"):
             res["outputFields"] = self._output_fields
+        if self.sort is not None:
+            for s in self.sort:
+                if s.get('direction') == '':
+                    del s['direction']
+            res['sort'] = self.sort
         res.update(super().__dict__)
         return res
 
@@ -251,7 +260,6 @@ class Search:
                     self._filter = filter
             else:
                 self._filter = filter
-
 
         if output_fields is not None:
             self._output_fields = output_fields
@@ -437,6 +445,7 @@ class Collection():
               filter: Union[Filter, str] = None,
               output_fields: Optional[List[str]] = None,
               timeout: Optional[float] = None,
+              sort: Optional[dict] = None,
               ) -> List[Dict]:
         """Query documents that satisfies the condition.
 
@@ -449,12 +458,13 @@ class Collection():
             output_fields (List[str]): document's fields to return
             timeout (float): An optional duration of time in seconds to allow for the request.
                              When timeout is set to None, will use the connect timeout.
+            sort: (dict): Set order by, like {'fieldName': 'age', 'direction': 'desc'}, default asc
 
         Returns:
             List[Dict]: all matched documents
         """
         query_param = Query(limit=limit, offset=offset, retrieve_vector=retrieve_vector, filter=filter,
-                            document_ids=document_ids, output_fields=output_fields)
+                            document_ids=document_ids, output_fields=output_fields, sort=sort)
         return self.__base_query(query=query_param, read_consistency=self._read_consistency, timeout=timeout)
 
     def __base_query(self,

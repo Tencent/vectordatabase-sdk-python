@@ -24,7 +24,7 @@ class Chunk:
 
 
 class DocumentSet:
-    """DocumentSet"""
+    """DocumentSet is a collection of multiple documents that have been split from a single file."""
 
     def __init__(self,
                  collection_view,

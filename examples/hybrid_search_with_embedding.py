@@ -83,8 +83,8 @@ res = vdb_client.hybrid_search(
             field_name="sparse_vector",
             data=bm25.encode_queries('什么是腾讯云数据库'),
             limit=2,
-            # terminate_after=100,
-            # cutoff_frequency=0.1,
+            terminate_after=4000,
+            cutoff_frequency=0.1,
         ),
     ],
     rerank=WeightedRerank(

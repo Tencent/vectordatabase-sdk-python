@@ -9,6 +9,7 @@ from tcvectordb.model.index import Index
 
 
 class AsyncAIDatabase(AIDatabase):
+    """Async wrap of AIDatabase"""
 
     def __init__(self,
                  conn: HTTPClient,

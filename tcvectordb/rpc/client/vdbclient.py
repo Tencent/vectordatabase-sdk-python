@@ -5,8 +5,8 @@ from tcvectordb.exceptions import ServerInternalError
 from tcvectordb.model.ai_database import AIDatabase
 from tcvectordb.model.collection import Embedding, FilterIndexConfig
 from tcvectordb.model.document import Document, Filter, AnnSearch, KeywordSearch, Rerank, WeightedRerank, RRFRerank
-from tcvectordb.model.enum import ReadConsistency, FieldType, IndexType, MetricType
-from tcvectordb.model.index import Index, VectorIndex, FilterIndex, SparseIndex
+from tcvectordb.model.enum import ReadConsistency, FieldType
+from tcvectordb.model.index import Index, VectorIndex, FilterIndex, SparseIndex, SparseVector, IndexField
 from tcvectordb.rpc.client.rpcclient import RPCClient
 from tcvectordb.rpc.model.collection import RPCCollection
 from tcvectordb.rpc.model.database import RPCDatabase
@@ -14,6 +14,8 @@ from tcvectordb.rpc.proto import olama_pb2
 
 
 class VdbClient:
+    """VectorDB API wrapper use RPCClient"""
+
     def __init__(self,
                  client: RPCClient,
                  read_consistency: ReadConsistency,
@@ -128,7 +130,8 @@ class VdbClient:
               offset: Optional[int] = None,
               filter: Union[Filter, str] = None,
               output_fields: Optional[List[str]] = None,
-              timeout: Optional[float] = None) -> List[Dict]:
+              timeout: Optional[float] = None,
+              sort: Optional[dict] = None) -> List[Dict]:
         query = olama_pb2.QueryCond(
             retrieveVector=retrieve_vector,
         )
@@ -147,6 +150,19 @@ class VdbClient:
             query.offset = offset
         if output_fields is not None:
             query.outputFields.extend(output_fields)
+        if sort is not None:
+            if not isinstance(sort, list):
+                sort = [sort]
+            for s in sort:
+                direction = s.get('direction', '')
+                if direction not in ('', 'asc', 'desc'):
+                    raise ServerInternalError(code=15000,
+                                              message='the sort rule direction must be asc or desc if input')
+                desc = direction == 'desc'
+                query.sort.append(olama_pb2.OrderRule(
+                    fieldName=s.get('fieldName', ''),
+                    desc=desc,
+                ))
         request = olama_pb2.QueryRequest(
             database=database_name,
             collection=collection_name,
@@ -234,7 +250,6 @@ class VdbClient:
         if params is not None:
             if not isinstance(params, dict):
                 params = vars(params)
-            print(params)
             if params.get('ef') is not None:
                 if params.get('ef') == 0:
                     raise ServerInternalError(code=15000,
@@ -462,6 +477,55 @@ class VdbClient:
             rtl = rtl[0]
         return rtl
 
+    def keyword_search(self,
+                       database_name: str,
+                       collection_name: str,
+                       data: SparseVector,
+                       field_name: str = 'sparse_vector',
+                       filter: Union[Filter, str] = None,
+                       retrieve_vector: Optional[bool] = None,
+                       output_fields: Optional[List[str]] = None,
+                       limit: Optional[int] = None,
+                       timeout: Optional[float] = None,
+                       return_pd_object=False,
+                       **kwargs) -> List[Union[Dict, olama_pb2.Document]]:
+        match = KeywordSearch(
+            field_name=field_name,
+            data=data,
+        )
+        search, _ = self._search_cond(
+            match=[match],
+            filter=filter,
+            retrieve_vector=retrieve_vector,
+            output_fields=output_fields,
+            limit=limit,
+            **kwargs
+        )
+        request = olama_pb2.SearchRequest(
+            database=database_name,
+            collection=collection_name,
+            readConsistency=self.read_consistency.value,
+            search=search,
+        )
+        res: olama_pb2.SearchResponse = self.rpc_client.keyword_search(request, timeout=timeout)
+        if res.warning:
+            Warning(res.warning)
+        rtl = []
+        if return_pd_object:
+            for r in res.results:
+                rtl.append(r.documents)
+        else:
+            quick_trans = len(set(output_fields) - {'id', 'score'}) == 0 if output_fields else False
+            for r in res.results:
+                if quick_trans:
+                    docs = [{"id": i.id, "score": i.score} for i in r.documents]
+                else:
+                    docs = []
+                    for d in r.documents:
+                        docs.append(self._pb2doc(d))
+                rtl.append(docs)
+        return rtl[0]
+
     def _pb2doc(self, d: olama_pb2.Document) -> dict:
         doc = {
             'id': d.id,
@@ -687,6 +751,7 @@ class VdbClient:
                           timeout: float = None,
                           ttl_config: dict = None,
                           filter_index_config: FilterIndexConfig = None,
+                          indexes: List[IndexField] = None,
                           ) -> RPCCollection:
         req = olama_pb2.CreateCollectionRequest(database=database_name,
                                                 collection=collection_name,
@@ -694,6 +759,10 @@ class VdbClient:
                                                 replicaNum=replicas)
         if description is not None:
             req.description = description
+        if index is None and indexes:
+            index = Index()
+            for idx in indexes:
+                index.add(idx)
         if index is not None:
             for f_name, f_item in index.indexes.items():
                 column = req.indexes[f_name]
@@ -865,4 +934,211 @@ class VdbClient:
             "code": rsp.code,
             "msg": rsp.msg,
             "affectedCount": rsp.affectedCount,
+        }
+
+    def create_user(self,
+                    user: str,
+                    password: str) -> dict:
+        """Create a user.
+
+        Args:
+            user (str): The username to create.
+            password (str): The password of user.
+
+        Returns:
+            dict: The API returns a code and msg. For example:
+           {
+             "code": 0,
+             "msg": "operation success"
+           }
+        """
+        req = olama_pb2.UserAccountRequest(user=user,
+                                           password=password)
+        rsp: olama_pb2.UserAccountResponse = self.rpc_client.create_user(req=req)
+        return {
+            "code": rsp.code,
+            "msg": rsp.msg,
+        }
+
+    def drop_user(self, user: str) -> dict:
+        """Drop a user.
+
+        Args:
+            user (str): The username to create.
+
+        Returns:
+            dict: The API returns a code and msg. For example:
+           {
+             "code": 0,
+             "msg": "operation success"
+           }
+        """
+        req = olama_pb2.UserAccountRequest(user=user)
+        rsp: olama_pb2.UserAccountResponse = self.rpc_client.drop_user(req=req)
+        return {
+            "code": rsp.code,
+            "msg": rsp.msg,
+        }
+
+    def describe_user(self, user: str) -> dict:
+        """Get a user info.
+
+        Args:
+            user (str): Username to get.
+
+        Returns:
+            dict: User info contains privileges. For example:
+           {
+              "user": "test_user",
+              "createTime": "2024-10-01 00:00:00",
+              "privileges": [
+                {
+                  "resource": "db0.*",
+                  "actions": ["read"]
+                }
+              ]
+            }
+        """
+        req = olama_pb2.UserDescribeRequest(user=user)
+        rsp: olama_pb2.UserDescribeResponse = self.rpc_client.describe_user(req=req)
+        res = {
+            'code': rsp.code,
+            'msg': rsp.msg,
+        }
+        res.update(self._user_convert(rsp.user))
+        return res
+
+    def _user_convert(self, user: olama_pb2.User) -> dict:
+        privileges = []
+        for p in user.privileges:
+            privileges.append({
+                'resource': p.resource,
+                'actions': list(p.actions),
+            })
+        res = {
+            'user': user.name,
+            'createTime': user.create_time,
+            'privileges': privileges,
+        }
+        return res
+
+    def user_list(self) -> List[dict]:
+        """Get all users under the instance.
+
+        Returns:
+            dict: User info list. For example:
+            [
+              {
+                "user": "test_user",
+                "createTime": "2024-10-01 00:00:00",
+                "privileges": [
+                  {
+                    "resource": "db0.*",
+                    "actions": ["read"]
+                  }
+                ]
+              }
+           ]
+        """
+        req = olama_pb2.UserListRequest()
+        rsp: olama_pb2.UserListResponse = self.rpc_client.list_users(req=req)
+        users = []
+        for user in rsp.users:
+            users.append(self._user_convert(user))
+        return users
+
+    def change_password(self,
+                        user: str,
+                        password: str) -> dict:
+        """Change password for user.
+
+        Args:
+            user (str): The user to change password.
+            password (str): New password of the user.
+
+        Returns:
+            dict: The API returns a code and msg. For example:
+           {
+             "code": 0,
+             "msg": "operation success"
+           }
+        """
+        req = olama_pb2.UserAccountRequest(user=user,
+                                           password=password)
+        rsp: olama_pb2.UserAccountResponse = self.rpc_client.change_password(req=req)
+        return {
+            "code": rsp.code,
+            "msg": rsp.msg,
+        }
+
+    def grant_to_user(self,
+                      user: str,
+                      privileges: Union[dict, List[dict]]) -> dict:
+        """Grant permission for user.
+
+        Args:
+            user (str): The user to grant permission.
+            privileges (str): The privileges to grant. For example:
+            {
+              "resource": "db0.*",
+              "actions": ["read"]
+            }
+
+        Returns:
+            dict: The API returns a code and msg. For example:
+           {
+             "code": 0,
+             "msg": "operation success"
+           }
+        """
+        req = olama_pb2.UserPrivilegesRequest(user=user)
+        privileges = privileges if isinstance(privileges, list) else [privileges]
+        for pri in privileges:
+            actions = pri.get('actions')
+            if actions is not None and not isinstance(actions, list):
+                raise ServerInternalError(code=15000, message='actions must be an ARRAY')
+            req.privileges.append(olama_pb2.Privilege(
+                resource=pri.get('resource'),
+                actions=actions,
+            ))
+        rsp: olama_pb2.UserPrivilegesResponse = self.rpc_client.grant_permission(req=req)
+        return {
+            "code": rsp.code,
+            "msg": rsp.msg,
+        }
+
+    def revoke_from_user(self,
+                         user: str,
+                         privileges: Union[dict, List[dict]]) -> dict:
+        """Revoke permission for user.
+
+        Args:
+            user (str): The user to grant permission.
+            privileges (str): The privilege to revoke. For example:
+            {
+              "resource": "db0.*",
+              "actions": ["read"]
+            }
+
+        Returns:
+            dict: The API returns a code and msg. For example:
+           {
+             "code": 0,
+             "msg": "operation success"
+           }
+        """
+        req = olama_pb2.UserPrivilegesRequest(user=user)
+        privileges = privileges if isinstance(privileges, list) else [privileges]
+        for pri in privileges:
+            actions = pri.get('actions')
+            if actions is not None and not isinstance(actions, list):
+                raise ServerInternalError(code=15000, message='actions must be an ARRAY')
+            req.privileges.append(olama_pb2.Privilege(
+                resource=pri.get('resource'),
+                actions=actions,
+            ))
+        rsp: olama_pb2.UserPrivilegesResponse = self.rpc_client.revoke_permission(req=req)
+        return {
+            "code": rsp.code,
+            "msg": rsp.msg,
         }

@@ -14,8 +14,8 @@ from tcvectordb import exceptions, debug
 
 class Response():
     def __init__(self, path, res: requests.Response):
-        """
-        Response parse the requests package Response to code, message and data
+        """Http Response
+
         Args:
             path(str): The request path, used for debug print
             res(requests.Response): The requests response.
@@ -61,7 +61,8 @@ class HTTPClient:
                  timeout: int = 10,
                  adapter: HTTPAdapter = None,
                  pool_size: int = 10,
-                 proxies: Optional[dict] = None):
+                 proxies: Optional[dict] = None,
+                 password: Optional[str] = None):
         """
         Create a httpclient session.
         Args:
@@ -73,6 +74,7 @@ class HTTPClient:
         self.url = url
         self.username = username
         self.key = key
+        self.password = password
         self.timeout = timeout
         self.header = {
             'Authorization': 'Bearer {}'.format(self._authorization()),
@@ -94,7 +96,7 @@ class HTTPClient:
             'backend-service': backend
         }
         header.update(self.header)
-        debug.Debug("Backend %s", backend)
+        # debug.Debug("Backend %s", backend)
         return header
 
     def _set_adapter(self, adapter: HTTPAdapter = None):
@@ -115,13 +117,15 @@ class HTTPClient:
         self.session.mount('https://', adapter)
 
     def _authorization(self):
-        if not self.username or not self.key:
-            raise ParamError
-        return 'account={0}&api_key={1}'.format(self.username, self.key)
+        if self.password is None:
+            self.password = self.key
+        if not self.username or not self.password:
+            raise ParamError(message=exceptions.ERROR_MESSAGE_NETWORK_OR_AUTH)
+        return 'account={0}&api_key={1}'.format(self.username, self.password)
 
     def _get_url(self, path):
         if not self.url:
-            raise ParamError
+            raise ParamError(message=exceptions.ERROR_MESSAGE_NETWORK_OR_AUTH)
         return self.url + path
 
     def _warning(self, headers):

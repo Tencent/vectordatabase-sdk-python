@@ -8,6 +8,7 @@ from tcvectordb.model.index import Index
 
 
 class AsyncCollectionView(CollectionView):
+    """Async wrap of CollectionView"""
 
     def __init__(self,
                  db,

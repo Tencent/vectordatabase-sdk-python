@@ -2,7 +2,9 @@ from typing import Optional, List, Union, Dict
 from numpy import ndarray
 from requests.adapters import HTTPAdapter
 
-from tcvectordb.model.index import VectorIndex, FilterIndex
+from tcvectordb.model.collection import Embedding, FilterIndexConfig
+from tcvectordb.model.index import VectorIndex, FilterIndex, SparseVector, Index, SparseIndex, IndexField
+from tcvectordb.rpc.model.collection import RPCCollection
 from tcvectordb.rpc.proto import olama_pb2
 
 from tcvectordb import VectorDBClient, exceptions
@@ -30,6 +32,7 @@ class RPCVectorDBClient(VectorDBClient):
                  adapter: HTTPAdapter = None,
                  pool_size: int = 10,
                  proxies: Optional[dict] = None,
+                 password: Optional[str] = None,
                  **kwargs):
         self.url = url
         self.username = username
@@ -39,10 +42,12 @@ class RPCVectorDBClient(VectorDBClient):
         self.pool_size = pool_size
         self.proxies = proxies
         self.read_consistency = read_consistency
+        self.password = password
         rpc_client = RPCClient(url=url,
                                username=username,
                                key=key,
                                timeout=timeout,
+                               password=password,
                                **kwargs)
         self.http: Optional[HTTPClient] = None
         self.vdb_client = VdbClient(client=rpc_client, read_consistency=read_consistency)
@@ -131,7 +136,7 @@ class RPCVectorDBClient(VectorDBClient):
                 if isinstance(db, AIDatabase):
                     db.conn = self._get_http()
                 return db
-        raise exceptions.ParamError(message='Database not exist: {}'.format(database))
+        raise exceptions.ParamError(code=14100, message='Database not exist: {}'.format(database))
 
     def create_ai_database(self, database_name: str, timeout: Optional[float] = None) -> AIDatabase:
         """Creates an AI doc database.
@@ -170,6 +175,113 @@ class RPCVectorDBClient(VectorDBClient):
         if self.http:
             self.http.close()
 
+    def create_collection(self,
+                          database_name: str,
+                          collection_name: str,
+                          shard: int,
+                          replicas: int,
+                          description: str = None,
+                          index: Index = None,
+                          embedding: Embedding = None,
+                          timeout: float = None,
+                          ttl_config: dict = None,
+                          filter_index_config: FilterIndexConfig = None,
+                          indexes: List[IndexField] = None,
+                          ) -> RPCCollection:
+        """Create a collection.
+
+        Args:
+            database_name (str): The name of the database.
+            collection_name (str): The name of the collection. A collection name can only include
+                numbers, letters, and underscores, and must not begin with a letter, and length
+                must between 1 and 128
+            shard (int): The shard number of the collection. Shard will divide a large dataset into smaller subsets.
+            replicas (int): The replicas number of the collection. Replicas refers to the number of identical copies
+                of each primary shard, used for disaster recovery and load balancing.
+            description (str): An optional description of the collection.
+            index (Index): A list of the index properties for the documents in a collection.
+            embedding (``Embedding``): An optional embedding for embedding text when upsert documents.
+            timeout (float): An optional duration of time in seconds to allow for the request. When timeout
+                is set to None, will use the connect timeout.
+            ttl_config (dict): TTL configuration, when set {'enable': True, 'timeField': 'expire_at'} means
+                that ttl is enabled and automatically removed when the time set in the expire_at field expires
+            filter_index_config (FilterIndexConfig): Enabling full indexing mode.
+                Where all scalar fields are indexed by default.
+            indexes (List[IndexField]): A list of the index properties for the documents in a collection.
+
+        Returns:
+            A RPCCollection object.
+        """
+        return self.vdb_client.create_collection(
+            database_name=database_name,
+            collection_name=collection_name,
+            shard=shard,
+            replicas=replicas,
+            description=description,
+            index=index,
+            embedding=embedding,
+            timeout=timeout,
+            ttl_config=ttl_config,
+            filter_index_config=filter_index_config,
+            indexes=indexes,
+        )
+
+    def create_collection_if_not_exists(self,
+                                        database_name: str,
+                                        collection_name: str,
+                                        shard: int,
+                                        replicas: int,
+                                        description: str = None,
+                                        index: Index = None,
+                                        embedding: Embedding = None,
+                                        timeout: float = None,
+                                        ttl_config: dict = None,
+                                        filter_index_config: FilterIndexConfig = None,
+                                        indexes: List[IndexField] = None,
+                                        ) -> RPCCollection:
+        """Create the collection if it doesn't exist.
+
+        Args:
+            database_name (str): The name of the database.
+            collection_name (str): The name of the collection. A collection name can only include
+                numbers, letters, and underscores, and must not begin with a letter, and length
+                must between 1 and 128
+            shard (int): The shard number of the collection. Shard will divide a large dataset into smaller subsets.
+            replicas (int): The replicas number of the collection. Replicas refers to the number of identical copies
+                of each primary shard, used for disaster recovery and load balancing.
+            description (str): An optional description of the collection.
+            index (Index): A list of the index properties for the documents in a collection.
+            embedding (``Embedding``): An optional embedding for embedding text when upsert documents.
+            timeout (float): An optional duration of time in seconds to allow for the request. When timeout
+                is set to None, will use the connect timeout.
+            ttl_config (dict): TTL configuration, when set {'enable': True, 'timeField': 'expire_at'} means
+                that ttl is enabled and automatically removed when the time set in the expire_at field expires
+            filter_index_config (FilterIndexConfig): Enabling full indexing mode.
+                Where all scalar fields are indexed by default.
+            indexes (List[IndexField]): A list of the index properties for the documents in a collection.
+
+        Returns:
+            RPCCollection: A collection object.
+        """
+        try:
+            return self.collection(database_name=database_name, collection_name=collection_name)
+        except exceptions.ServerInternalError as e:
+            if e.code != 15302:
+                raise e
+        return self.create_collection(
+            database_name=database_name,
+            collection_name=collection_name,
+            shard=shard,
+            replicas=replicas,
+            description=description,
+            index=index,
+            embedding=embedding,
+            timeout=timeout,
+            ttl_config=ttl_config,
+            filter_index_config=filter_index_config,
+            indexes=indexes,
+        )
+
     def exists_collection(self,
                           database_name: str,
                           collection_name: str) -> bool:
@@ -185,6 +297,114 @@ class RPCVectorDBClient(VectorDBClient):
         return RPCDatabase(name=database_name,
                            read_consistency=self.vdb_client.read_consistency,
                            vdb_client=self.vdb_client).exists_collection(collection_name)
+
+    def describe_collection(self,
+                            database_name: str,
+                            collection_name: str,
+                            timeout: Optional[float] = None) -> RPCCollection:
+        """Get a Collection by name.
+
+        Args:
+            database_name (str): The name of the database.
+            collection_name (str): The name of the collection.
+            timeout (float): An optional duration of time in seconds to allow for the request. When timeout
+                is set to None, will use the connect timeout.
+
+        Returns:
+            A RPCCollection object.
+        """
+        return self.vdb_client.describe_collection(database_name=database_name,
+                                                   collection_name=collection_name,
+                                                   timeout=timeout)
+
+    def collection(self, database_name: str, collection_name: str) -> RPCCollection:
+        """Get a Collection by name.
+
+        Args:
+            database_name (str): The name of the database.
+            collection_name (str): The name of the collection.
+
+        Returns:
+            A RPCCollection object
+        """
+        return self.describe_collection(database_name=database_name,
+                                        collection_name=collection_name)
+
+    def list_collections(self, database_name: str, timeout: Optional[float] = None) -> List[RPCCollection]:
+        """List all collections in the database.
+
+        Args:
+            database_name (str): The name of the database.
+            timeout (float): An optional duration of time in seconds to allow for the request. When timeout
+                is set to None, will use the connect timeout.
+
+        Returns:
+            List: all RPCCollection
+        """
+        return self.vdb_client.list_collections(database_name=database_name, timeout=timeout)
+
+    def drop_collection(self,
+                        database_name: str,
+                        collection_name: str,
+                        timeout: Optional[float] = None) -> Dict:
+        """Delete a collection by name.
+
+        Args:
+            database_name (str): The name of the database.
+            collection_name (str): The name of the collection.
+            timeout (float): An optional duration of time in seconds to allow for the request. When timeout
+                is set to None, will use the connect timeout.
+
+        Returns:
+            Dict: Contains code、msg、affectedCount
+        """
+        return self.vdb_client.drop_collection(database_name=database_name,
+                                               collection_name=collection_name,
+                                               timeout=timeout)
+
+    def truncate_collection(self,
+                            database_name: str,
+                            collection_name: str) -> Dict:
+        """Clear all the data and indexes in the Collection.
+
+        Args:
+            database_name (str): The name of the database.
+            collection_name (str): The name of the collection.
+
+        Returns:
+            Dict: Contains affectedCount
+        """
+        return self.vdb_client.truncate_collection(database_name=database_name,
+                                                   collection_name=collection_name)
+
+    def set_alias(self,
+                  database_name: str,
+                  collection_name: str,
+                  collection_alias: str) -> Dict:
+        """Set alias for collection.
+
+        Args:
+            database_name (str): The name of the database.
+            collection_name  : The name of the collection.
+            collection_alias : alias name to set.
+        Returns:
+            Dict: Contains affectedCount
+        """
+        return self.vdb_client.set_alias(database_name=database_name,
+                                         collection_name=collection_name,
+                                         collection_alias=collection_alias)
+
+    def delete_alias(self, database_name: str, alias: str) -> Dict:
+        """Delete alias by name.
+
+        Args:
+            database_name (str): The name of the database.
+            alias  : alias name to delete.
+
+        Returns:
+            Dict: Contains affectedCount
+        """
+        return self.vdb_client.delete_alias(database_name=database_name, alias=alias)
 
     def upsert(self,
                database_name: str,
@@ -287,6 +507,7 @@ class RPCVectorDBClient(VectorDBClient):
               filter: Union[Filter, str] = None,
               output_fields: Optional[List[str]] = None,
               timeout: Optional[float] = None,
+              sort: Optional[dict] = None,
               ) -> List[Dict]:
         """Query documents that satisfies the condition.
 
@@ -301,6 +522,7 @@ class RPCVectorDBClient(VectorDBClient):
             output_fields (List[str]): document's fields to return
             timeout (float): An optional duration of time in seconds to allow for the request.
                              When timeout is set to None, will use the connect timeout.
+            sort: (dict): Set order by, like {'fieldName': 'age', 'direction': 'desc'}, default asc
 
         Returns:
             List[Dict]: all matched documents
@@ -315,6 +537,7 @@ class RPCVectorDBClient(VectorDBClient):
             filter=filter,
             output_fields=output_fields,
             timeout=timeout,
+            sort=sort,
         )
 
     def count(self,
@@ -544,6 +767,31 @@ class RPCVectorDBClient(VectorDBClient):
             return_pd_object=return_pd_object,
             **kwargs)
 
+    def rebuild_index(self,
+                      database_name: str,
+                      collection_name: str,
+                      drop_before_rebuild: bool = False,
+                      throttle: Optional[int] = None,
+                      timeout: Optional[float] = None):
+        """Rebuild all indexes under the specified collection.
+
+        Args:
+            database_name (str): The name of the database.
+            collection_name (str): The name of the collection
+            drop_before_rebuild (bool): Whether to delete the old index before rebuilding the new index. Default False.
+                                        true: first delete the old index and then rebuild the index.
+                                        false: after creating the new index, then delete the old index.
+            throttle (int): Whether to limit the number of CPU cores for building an index on a single node.
+                            1: no limit.
+            timeout (float): An optional duration of time in seconds to allow for the request.
+                    When timeout is set to None, will use the connect timeout.
+        """
+        self.vdb_client.rebuild_index(database_name=database_name,
+                                      collection_name=collection_name,
+                                      drop_before_rebuild=drop_before_rebuild,
+                                      throttle=throttle,
+                                      timeout=timeout)
+
     def add_index(self,
                   database_name: str,
                   collection_name: str,
@@ -608,3 +856,145 @@ class RPCVectorDBClient(VectorDBClient):
             rebuild_rules=rebuild_rules,
             timeout=timeout,
         )
+
+    def create_user(self,
+                    user: str,
+                    password: str) -> dict:
+        """Create a user.
+
+        Args:
+            user (str): The username to create.
+            password (str): The password of user.
+
+        Returns:
+            dict: The API returns a code and msg. For example:
+           {
+             "code": 0,
+             "msg": "operation success"
+           }
+        """
+        return self.vdb_client.create_user(
+            user=user,
+            password=password
+        )
+
+    def drop_user(self, user: str) -> dict:
+        """Drop a user.
+
+        Args:
+            user (str): The username to create.
+
+        Returns:
+            dict: The API returns a code and msg. For example:
+           {
+             "code": 0,
+             "msg": "operation success"
+           }
+        """
+        return self.vdb_client.drop_user(user=user)
+
+    def describe_user(self, user: str) -> dict:
+        """Get a user info.
+
+        Args:
+            user (str): Username to get.
+
+        Returns:
+            dict: User info contains privileges. For example:
+           {
+              "user": "test_user",
+              "createTime": "2024-10-01 00:00:00",
+              "privileges": [
+                {
+                  "resource": "db0.*",
+                  "actions": ["read"]
+                }
+              ]
+            }
+        """
+        return self.vdb_client.describe_user(user=user)
+
+    def user_list(self) -> List[dict]:
+        """Get all users under the instance.
+
+        Returns:
+            dict: User info list. For example:
+            [
+              {
+                "user": "test_user",
+                "createTime": "2024-10-01 00:00:00",
+                "privileges": [
+                  {
+                    "resource": "db0.*",
+                    "actions": ["read"]
+                  }
+                ]
+              }
+           ]
+        """
+        return self.vdb_client.user_list()
+
+    def change_password(self,
+                        user: str,
+                        password: str) -> dict:
+        """Change password for user.
+
+        Args:
+            user (str): The user to change password.
+            password (str): New password of the user.
+
+        Returns:
+            dict: The API returns a code and msg. For example:
+           {
+             "code": 0,
+             "msg": "operation success"
+           }
+        """
+        return self.vdb_client.change_password(user=user,
+                                               password=password)
+
+    def grant_to_user(self,
+                      user: str,
+                      privileges: Union[dict, List[dict]]) -> dict:
+        """Grant permission for user.
+
+        Args:
+            user (str): The user to grant permission.
+            privileges (str): The privileges to grant. For example:
+            {
+              "resource": "db0.*",
+              "actions": ["read"]
+            }
+
+        Returns:
+            dict: The API returns a code and msg. For example:
+           {
+             "code": 0,
+             "msg": "operation success"
+           }
+        """
+        return self.vdb_client.grant_to_user(user=user,
+                                             privileges=privileges)
+
+    def revoke_from_user(self,
+                         user: str,
+                         privileges: Union[dict, List[dict]]) -> dict:
+        """Revoke permission for user.
+
+        Args:
+            user (str): The user to revoke permission.
+            privileges (str): The privilege to revoke. For example:
+            {
+              "resource": "db0.*",
+              "actions": ["read"]
+            }
+
+        Returns:
+            dict: The API returns a code and msg. For example:
+           {
+             "code": 0,
+             "msg": "operation success"
+           }
+        """
+        return self.vdb_client.revoke_from_user(user=user,
+                                                privileges=privileges)

@@ -715,8 +715,16 @@ class DeleteResponse(_message.Message):
     affectedCount: int
     def __init__(self, code: _Optional[int] = ..., msg: _Optional[str] = ..., redirect: _Optional[str] = ..., affectedCount: _Optional[int] = ...) -> None: ...
 
+class OrderRule(_message.Message):
+    __slots__ = ["fieldName", "desc"]
+    FIELDNAME_FIELD_NUMBER: _ClassVar[int]
+    DESC_FIELD_NUMBER: _ClassVar[int]
+    fieldName: str
+    desc: bool
+    def __init__(self, fieldName: _Optional[str] = ..., desc: bool = ...) -> None: ...
+
 class QueryCond(_message.Message):
-    __slots__ = ["documentIds", "indexIds", "retrieveVector", "filter", "limit", "offset", "outputFields", "retrieveSparseVector"]
+    __slots__ = ["documentIds", "indexIds", "retrieveVector", "filter", "limit", "offset", "outputFields", "retrieveSparseVector", "sort"]
     DOCUMENTIDS_FIELD_NUMBER: _ClassVar[int]
     INDEXIDS_FIELD_NUMBER: _ClassVar[int]
     RETRIEVEVECTOR_FIELD_NUMBER: _ClassVar[int]
@@ -725,6 +733,7 @@ class QueryCond(_message.Message):
     OFFSET_FIELD_NUMBER: _ClassVar[int]
     OUTPUTFIELDS_FIELD_NUMBER: _ClassVar[int]
     RETRIEVESPARSEVECTOR_FIELD_NUMBER: _ClassVar[int]
+    SORT_FIELD_NUMBER: _ClassVar[int]
     documentIds: _containers.RepeatedScalarFieldContainer[str]
     indexIds: _containers.RepeatedScalarFieldContainer[int]
     retrieveVector: bool
@@ -733,7 +742,8 @@ class QueryCond(_message.Message):
     offset: int
     outputFields: _containers.RepeatedScalarFieldContainer[str]
     retrieveSparseVector: bool
-    def __init__(self, documentIds: _Optional[_Iterable[str]] = ..., indexIds: _Optional[_Iterable[int]] = ..., retrieveVector: bool = ..., filter: _Optional[str] = ..., limit: _Optional[int] = ..., offset: _Optional[int] = ..., outputFields: _Optional[_Iterable[str]] = ..., retrieveSparseVector: bool = ...) -> None: ...
+    sort: _containers.RepeatedCompositeFieldContainer[OrderRule]
+    def __init__(self, documentIds: _Optional[_Iterable[str]] = ..., indexIds: _Optional[_Iterable[int]] = ..., retrieveVector: bool = ..., filter: _Optional[str] = ..., limit: _Optional[int] = ..., offset: _Optional[int] = ..., outputFields: _Optional[_Iterable[str]] = ..., retrieveSparseVector: bool = ..., sort: _Optional[_Iterable[_Union[OrderRule, _Mapping]]] = ...) -> None: ...
 
 class QueryRequest(_message.Message):
     __slots__ = ["database", "collection", "query", "readConsistency"]
@@ -1142,6 +1152,100 @@ class AddIndexResponse(_message.Message):
     msg: str
     redirect: str
     def __init__(self, code: _Optional[int] = ..., msg: _Optional[str] = ..., redirect: _Optional[str] = ...) -> None: ...
+
+class User(_message.Message):
+    __slots__ = ["name", "create_time", "password", "roles", "privileges", "version"]
+    NAME_FIELD_NUMBER: _ClassVar[int]
+    CREATE_TIME_FIELD_NUMBER: _ClassVar[int]
+    PASSWORD_FIELD_NUMBER: _ClassVar[int]
+    ROLES_FIELD_NUMBER: _ClassVar[int]
+    PRIVILEGES_FIELD_NUMBER: _ClassVar[int]
+    VERSION_FIELD_NUMBER: _ClassVar[int]
+    name: str
+    create_time: str
+    password: str
+    roles: _containers.RepeatedScalarFieldContainer[str]
+    privileges: _containers.RepeatedCompositeFieldContainer[Privilege]
+    version: int
+    def __init__(self, name: _Optional[str] = ..., create_time: _Optional[str] = ..., password: _Optional[str] = ..., roles: _Optional[_Iterable[str]] = ..., privileges: _Optional[_Iterable[_Union[Privilege, _Mapping]]] = ..., version: _Optional[int] = ...) -> None: ...
+
+class Privilege(_message.Message):
+    __slots__ = ["resource", "actions"]
+    RESOURCE_FIELD_NUMBER: _ClassVar[int]
+    ACTIONS_FIELD_NUMBER: _ClassVar[int]
+    resource: str
+    actions: _containers.RepeatedScalarFieldContainer[str]
+    def __init__(self, resource: _Optional[str] = ..., actions: _Optional[_Iterable[str]] = ...) -> None: ...
+
+class UserAccountRequest(_message.Message):
+    __slots__ = ["user", "password"]
+    USER_FIELD_NUMBER: _ClassVar[int]
+    PASSWORD_FIELD_NUMBER: _ClassVar[int]
+    user: str
+    password: str
+    def __init__(self, user: _Optional[str] = ..., password: _Optional[str] = ...) -> None: ...
+
+class UserAccountResponse(_message.Message):
+    __slots__ = ["code", "msg", "redirect"]
+    CODE_FIELD_NUMBER: _ClassVar[int]
+    MSG_FIELD_NUMBER: _ClassVar[int]
+    REDIRECT_FIELD_NUMBER: _ClassVar[int]
+    code: int
+    msg: str
+    redirect: str
+    def __init__(self, code: _Optional[int] = ..., msg: _Optional[str] = ..., redirect: _Optional[str] = ...) -> None: ...
+
+class UserPrivilegesRequest(_message.Message):
+    __slots__ = ["user", "privileges"]
+    USER_FIELD_NUMBER: _ClassVar[int]
+    PRIVILEGES_FIELD_NUMBER: _ClassVar[int]
+    user: str
+    privileges: _containers.RepeatedCompositeFieldContainer[Privilege]
+    def __init__(self, user: _Optional[str] = ..., privileges: _Optional[_Iterable[_Union[Privilege, _Mapping]]] = ...) -> None: ...
+
+class UserPrivilegesResponse(_message.Message):
+    __slots__ = ["code", "msg", "redirect"]
+    CODE_FIELD_NUMBER: _ClassVar[int]
+    MSG_FIELD_NUMBER: _ClassVar[int]
+    REDIRECT_FIELD_NUMBER: _ClassVar[int]
+    code: int
+    msg: str
+    redirect: str
+    def __init__(self, code: _Optional[int] = ..., msg: _Optional[str] = ..., redirect: _Optional[str] = ...) -> None: ...
+
+class UserListRequest(_message.Message):
+    __slots__ = []
+    def __init__(self) -> None: ...
+
+class UserListResponse(_message.Message):
+    __slots__ = ["code", "msg", "redirect", "users"]
+    CODE_FIELD_NUMBER: _ClassVar[int]
+    MSG_FIELD_NUMBER: _ClassVar[int]
+    REDIRECT_FIELD_NUMBER: _ClassVar[int]
+    USERS_FIELD_NUMBER: _ClassVar[int]
+    code: int
+    msg: str
+    redirect: str
+    users: _containers.RepeatedCompositeFieldContainer[User]
+    def __init__(self, code: _Optional[int] = ..., msg: _Optional[str] = ..., redirect: _Optional[str] = ..., users: _Optional[_Iterable[_Union[User, _Mapping]]] = ...) -> None: ...
+
+class UserDescribeRequest(_message.Message):
+    __slots__ = ["user"]
+    USER_FIELD_NUMBER: _ClassVar[int]
+    user: str
+    def __init__(self, user: _Optional[str] = ...) -> None: ...
+
+class UserDescribeResponse(_message.Message):
+    __slots__ = ["code", "msg", "redirect", "user"]
+    CODE_FIELD_NUMBER: _ClassVar[int]
+    MSG_FIELD_NUMBER: _ClassVar[int]
+    REDIRECT_FIELD_NUMBER: _ClassVar[int]
+    USER_FIELD_NUMBER: _ClassVar[int]
+    code: int
+    msg: str
+    redirect: str
+    user: User
+    def __init__(self, code: _Optional[int] = ..., msg: _Optional[str] = ..., redirect: _Optional[str] = ..., user: _Optional[_Union[User, _Mapping]] = ...) -> None: ...
 
 class HttpRequest(_message.Message):
     __slots__ = []

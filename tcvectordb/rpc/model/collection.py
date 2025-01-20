@@ -7,8 +7,7 @@ from tcvectordb.model.collection import Collection, FilterIndexConfig
 from tcvectordb.model.collection_view import Embedding
 from tcvectordb.model.document import Document, Filter, AnnSearch, KeywordSearch, Rerank
 from tcvectordb.model.enum import ReadConsistency
-from tcvectordb.model.index import Index, VectorIndex, FilterIndex
-# from tcvectordb.rpc.client.vdbclient import VdbClient
+from tcvectordb.model.index import Index, VectorIndex, FilterIndex, SparseVector
 
 
 class RPCCollection(Collection):
@@ -94,6 +93,7 @@ class RPCCollection(Collection):
               filter: Union[Filter, str] = None,
               output_fields: Optional[List[str]] = None,
               timeout: Optional[float] = None,
+              sort: Optional[dict] = None,
               ) -> List[Dict]:
         """Query documents that satisfies the condition.
 
@@ -106,6 +106,7 @@ class RPCCollection(Collection):
             output_fields (List[str]): document's fields to return
             timeout (float): An optional duration of time in seconds to allow for the request.
                              When timeout is set to None, will use the connect timeout.
+            sort: (dict): Set order by, like {'fieldName': 'age', 'direction': 'desc'}, default asc
 
         Returns:
             List[Dict]: all matched documents
@@ -120,6 +121,7 @@ class RPCCollection(Collection):
             filter=filter,
             output_fields=output_fields,
             timeout=timeout,
+            sort=sort,
         )
 
     def delete(self,
