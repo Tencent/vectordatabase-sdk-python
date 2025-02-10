@@ -544,15 +544,19 @@ class VdbClient:
                 sp_vector.append([item.term_id, item.score])
             doc['sparse_vector'] = sp_vector
         for k, v in d.fields.items():
-            if len(v.val_str) > 0:
+            if v.HasField('val_str'):
                 doc[k] = str(v.val_str, encoding='utf-8')
-            elif len(v.val_str_arr.str_arr) > 0:
+            elif v.HasField('val_u64'):
+                doc[k] = v.val_u64
+            elif v.HasField('val_double'):
+                doc[k] = v.val_double
+            elif v.HasField('val_str_arr'):
                 arr = []
                 for a in v.val_str_arr.str_arr:
                     arr.append(str(a, encoding='utf-8'))
                 doc[k] = arr
             else:
-                doc[k] = v.val_u64
+                pass
         return doc
 
     def _doc2pb(self, doc: Union[Document, Dict]) -> olama_pb2.Document:

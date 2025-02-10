@@ -18,6 +18,11 @@ class BaseTokenizer(object):
         self._stop_words = None if stop_words is None else StopWords(vocab=stop_words)
         self.kwargs = kwargs
 
+    def set_stopwords(self,
+                      stop_words: Union[bool, str, Dict[str, Any], List[str], Set[str]] = True):
+        self.stop_words = stop_words
+        self._stop_words = None if stop_words is None else StopWords(vocab=stop_words)
+
     def updated_parameter(self,
                           hash_function: Callable[[Union[str, int]], int],
                           stop_words: Union[bool, str, Dict[str, Any], List[str], Set[str]] = None,
