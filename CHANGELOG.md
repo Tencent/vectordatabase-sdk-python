@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.6.3
+* feat: `RPCVectorDBClient` support upload file to a `BASE_DB`.
+
 
 ## 1.6.2
 * feat: Support `Json` FieldType.
