@@ -42,6 +42,7 @@ class FieldType(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     TYPE_STRING: _ClassVar[FieldType]
     TYPE_ARRAY: _ClassVar[FieldType]
     TYPE_UINT64: _ClassVar[FieldType]
+    TYPE_JSON: _ClassVar[FieldType]
 
 class FieldElementType(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     __slots__ = []
@@ -65,6 +66,7 @@ ENGINE_HNSWLIB: IndexEngineType
 TYPE_STRING: FieldType
 TYPE_ARRAY: FieldType
 TYPE_UINT64: FieldType
+TYPE_JSON: FieldType
 ELEMENT_TYPE_STRING: FieldElementType
 
 class Document(_message.Message):
@@ -101,7 +103,7 @@ class Document(_message.Message):
     def __init__(self, id: _Optional[str] = ..., vector: _Optional[_Iterable[float]] = ..., score: _Optional[float] = ..., fields: _Optional[_Mapping[str, Field]] = ..., index_id: _Optional[int] = ..., from_peer: _Optional[str] = ..., shard_idx: _Optional[int] = ..., vector_offset: _Optional[int] = ..., doc_info: _Optional[bytes] = ..., sparse_vector: _Optional[_Iterable[_Union[SparseVecItem, _Mapping]]] = ..., data_expr: _Optional[str] = ...) -> None: ...
 
 class Field(_message.Message):
-    __slots__ = ["val_str", "val_u64", "val_double", "val_str_arr"]
+    __slots__ = ["val_str", "val_u64", "val_double", "val_str_arr", "val_json"]
     class StringArray(_message.Message):
         __slots__ = ["str_arr"]
         STR_ARR_FIELD_NUMBER: _ClassVar[int]
@@ -111,11 +113,13 @@ class Field(_message.Message):
     VAL_U64_FIELD_NUMBER: _ClassVar[int]
     VAL_DOUBLE_FIELD_NUMBER: _ClassVar[int]
     VAL_STR_ARR_FIELD_NUMBER: _ClassVar[int]
+    VAL_JSON_FIELD_NUMBER: _ClassVar[int]
     val_str: bytes
     val_u64: int
     val_double: float
     val_str_arr: Field.StringArray
-    def __init__(self, val_str: _Optional[bytes] = ..., val_u64: _Optional[int] = ..., val_double: _Optional[float] = ..., val_str_arr: _Optional[_Union[Field.StringArray, _Mapping]] = ...) -> None: ...
+    val_json: bytes
+    def __init__(self, val_str: _Optional[bytes] = ..., val_u64: _Optional[int] = ..., val_double: _Optional[float] = ..., val_str_arr: _Optional[_Union[Field.StringArray, _Mapping]] = ..., val_json: _Optional[bytes] = ...) -> None: ...
 
 class SparseVecItem(_message.Message):
     __slots__ = ["term_id", "score"]
@@ -465,7 +469,7 @@ class IndexParams(_message.Message):
     def __init__(self, M: _Optional[int] = ..., efConstruction: _Optional[int] = ..., nprobe: _Optional[int] = ..., nlist: _Optional[int] = ...) -> None: ...
 
 class IndexColumn(_message.Message):
-    __slots__ = ["fieldName", "fieldType", "indexType", "dimension", "metricType", "params", "fieldElementType"]
+    __slots__ = ["fieldName", "fieldType", "indexType", "dimension", "metricType", "params", "fieldElementType", "autoId"]
     FIELDNAME_FIELD_NUMBER: _ClassVar[int]
     FIELDTYPE_FIELD_NUMBER: _ClassVar[int]
     INDEXTYPE_FIELD_NUMBER: _ClassVar[int]
@@ -473,6 +477,7 @@ class IndexColumn(_message.Message):
     METRICTYPE_FIELD_NUMBER: _ClassVar[int]
     PARAMS_FIELD_NUMBER: _ClassVar[int]
     FIELDELEMENTTYPE_FIELD_NUMBER: _ClassVar[int]
+    AUTOID_FIELD_NUMBER: _ClassVar[int]
     fieldName: str
     fieldType: str
     indexType: str
@@ -480,7 +485,8 @@ class IndexColumn(_message.Message):
     metricType: str
     params: IndexParams
     fieldElementType: str
-    def __init__(self, fieldName: _Optional[str] = ..., fieldType: _Optional[str] = ..., indexType: _Optional[str] = ..., dimension: _Optional[int] = ..., metricType: _Optional[str] = ..., params: _Optional[_Union[IndexParams, _Mapping]] = ..., fieldElementType: _Optional[str] = ...) -> None: ...
+    autoId: str
+    def __init__(self, fieldName: _Optional[str] = ..., fieldType: _Optional[str] = ..., indexType: _Optional[str] = ..., dimension: _Optional[int] = ..., metricType: _Optional[str] = ..., params: _Optional[_Union[IndexParams, _Mapping]] = ..., fieldElementType: _Optional[str] = ..., autoId: _Optional[str] = ...) -> None: ...
 
 class indexStatus(_message.Message):
     __slots__ = ["status", "progress", "startTime"]

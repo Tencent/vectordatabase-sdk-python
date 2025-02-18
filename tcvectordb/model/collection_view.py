@@ -3,7 +3,7 @@ import json
 import os
 import urllib
 from enum import Enum, unique
-from typing import Optional, List, Union
+from typing import Optional, List, Union, Dict
 
 from qcloud_cos import CosConfig, CosS3Client
 
@@ -563,3 +563,105 @@ class CollectionView:
                           )
             res.append(chunk)
         return res
+
+    def upload_file(self,
+                    local_file_path: str,
+                    file_name: Optional[str] = None,
+                    splitter_process: Optional[SplitterProcess] = None,
+                    parsing_process: Optional[ParsingProcess] = None,
+                    embedding_model: Optional[str] = None,
+                    field_mappings: Optional[Dict[str, str]] = None,
+                    metadata: Optional[dict] = None,
+                    ) -> dict:
+        """Upload file to a Base Database.
+
+        Args:
+            local_file_path (str): File path to load
+            file_name (str): File name as DocumentSet
+            splitter_process (SplitterProcess): Args for splitter process
+            parsing_process (ParsingProcess): Document parsing parameters
+            embedding_model (str): embedding model
+            metadata (Dict): Extra properties to save
+            field_mappings (Dict): Field mappings for Collection to save. filename must be a filter index
+                For example: {"filename": "file_name", "text": "text", "imageList": "image_list"}
+
+        Returns:
+            dict
+        """
+        # file check
+        if not os.path.exists(local_file_path):
+            raise exceptions.ParamError(message="file not found: {}".format(local_file_path))
+        if not os.path.isfile(local_file_path):
+            raise exceptions.ParamError(message="not a file: {}".format(local_file_path))
+        # chunk splitter check
+        self._chunk_splitter_check(local_file_path, splitter_process)
+        # metadata check
+        cos_metadata = self._get_cos_metadata(metadata=metadata)
+        _, f_name = os.path.split(local_file_path)
+        if not file_name:
+            file_name = f_name
+        # request cos upload accredit
+        body = {
+            'database': self.db.database_name,
+            'collection': self.name,
+            'fileName': file_name,
+        }
+        if splitter_process:
+            body['splitterPreprocess'] = vars(splitter_process)
+        if parsing_process:
+            body['parsingProcess'] = vars(parsing_process)
+        if embedding_model:
+            body['embeddingModel'] = embedding_model
+        if field_mappings:
+            body['fieldMappings'] = field_mappings
+        res = self.db.conn.post('/ai/document/uploadUrl', body)
+        upload_condition = res.body.get('uploadCondition')
+        credentials = res.body.get('credentials')
+        if not upload_condition or not credentials:
+            raise exceptions.ParamError(message="get file upload url failed")
+        self._check_file_size(local_file_path, upload_condition.get('maxSupportContentLength', 0))
+        warning = res.body.get('warning')
+        if warning:
+            Warning(warning)
+        # upload to cos
+        upload_path = res.body.get('uploadPath')
+        cos_endpoint = res.body.get('cosEndpoint')
+        bucket = cos_endpoint.split('.')[0].replace('https://', '').replace('http://', '')
+        endpoint = cos_endpoint.split('.', 1)[1]
+        config = CosConfig(Endpoint=endpoint,
+                           SecretId=credentials.get('TmpSecretId'),
+                           SecretKey=credentials.get('TmpSecretKey'),
+                           Token=credentials.get('Token'))
+        client = CosS3Client(config)
+        cos_metadata['x-cos-meta-source'] = 'PythonSDK'
+        with open(local_file_path, 'rb') as fp:
+            response = client.put_object(
+                Bucket=bucket,
+                Key=upload_path,
+                Body=fp,
+                Metadata=cos_metadata
+            )
+        Debug("Put cos object response:")
+        Debug(response)
+        body['id'] = file_name
+        return body
+
+    def get_image_url(self,
+                      document_ids: List[str],
+                      file_name: str) -> List[List[dict]]:
+        """Get image urls for document.
+
+        Args:
+            document_ids (List[str]): Document ids
+            file_name (str): file name
+        Returns:
+            List[List[dict]]:
+        """
+        body = {
+            'database': self.db.database_name,
+            'collection': self.name,
+            'documentIds': document_ids,
+            'fileName': file_name,
+        }
+        res = self.db.conn.post('/ai/document/getImageUrl', body)
+        return res.data().get('images', [])

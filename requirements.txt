@@ -6,3 +6,4 @@ cachetools
 urllib3
 tcvdb-text
 numpy
+ujson=5.9.0

@@ -168,15 +168,19 @@ class FilterIndex(IndexField):
                  name: str,
                  field_type: FieldType,
                  index_type: IndexType,
+                 auto_id: Optional[str] = None,
                  **kwargs) -> None:
         super().__init__(name=name,
                          field_type=field_type,
                          index_type=index_type)
+        self.auto_id = auto_id
         self.kwargs = kwargs
 
     @property
     def __dict__(self):
         obj = super().__dict__
+        if self.auto_id is not None:
+            obj['autoId'] = self.auto_id
         obj.update(self.kwargs)
         return obj
 
@@ -259,6 +263,7 @@ class Index:
                     kwargs.pop('fieldName', ''),
                     FieldType(field_type),
                     IndexType(kwargs.pop('indexType', None)),
+                    auto_id=kwargs.pop('autoId', None),
                     **kwargs,
                 )
         if index.name in self._indexes:

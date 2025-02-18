@@ -11,6 +11,7 @@ from tcvectordb import exceptions
 from tcvectordb.model.ai_database import AIDatabase
 from tcvectordb.model import permission
 from tcvectordb.model.collection import Collection, Embedding, FilterIndexConfig
+from tcvectordb.model.collection_view import SplitterProcess, ParsingProcess, CollectionView
 from tcvectordb.model.document import Document, Filter, AnnSearch, KeywordSearch, Rerank
 from tcvectordb.model.index import FilterIndex, VectorIndex, Index, IndexField
 
@@ -984,3 +985,66 @@ class VectorDBClient:
                                            user=user,
                                            privileges=privileges)
 
+    def upload_file(self,
+                    database_name: str,
+                    collection_name: str,
+                    local_file_path: str,
+                    file_name: Optional[str] = None,
+                    splitter_process: Optional[SplitterProcess] = None,
+                    parsing_process: Optional[ParsingProcess] = None,
+                    embedding_model: Optional[str] = None,
+                    field_mappings: Optional[Dict[str, str]] = None,
+                    metadata: Optional[dict] = None,
+                    ) -> dict:
+        """Upload file to a Base Database.
+
+        Args:
+            database_name (str): The name of the database where the collection resides.
+            collection_name (str): The name of the collection
+            local_file_path (str): File path to load
+            file_name (str): File name as DocumentSet
+            splitter_process (SplitterProcess): Args for splitter process
+            parsing_process (ParsingProcess): Document parsing parameters
+            embedding_model (str): embedding model
+            metadata (Dict): Extra properties to save
+            field_mappings (Dict): Field mappings for Collection to save. filename must be a filter index
+                For example: {"filename": "file_name", "text": "text", "imageList": "images"}
+
+        Returns:
+            dict
+        """
+        return CollectionView(
+            db=AIDatabase(conn=self._conn, name=database_name),
+            name=collection_name,
+        ).upload_file(
+            local_file_path=local_file_path,
+            file_name=file_name,
+            splitter_process=splitter_process,
+            parsing_process=parsing_process,
+            embedding_model=embedding_model,
+            field_mappings=field_mappings,
+            metadata=metadata,
+        )
+
+    def get_image_url(self,
+                      database_name: str,
+                      collection_name: str,
+                      document_ids: List[str],
+                      file_name: str) -> List[List[dict]]:
+        """Get image urls for document.
+
+        Args:
+            database_name (str): The name of the database where the collection resides.
+            collection_name (str): The name of the collection
+            document_ids (List[str]): Document ids
+            file_name (str): file name
+        Returns:
+            List[List[dict]]:
+        """
+        return CollectionView(
+            db=AIDatabase(conn=self._conn, name=database_name),
+            name=collection_name,
+        ).get_image_url(
+            document_ids=document_ids,
+            file_name=file_name,
+        )

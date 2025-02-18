@@ -10,6 +10,7 @@ class FieldType(Enum):
     Uint64 = "uint64"
     String = "string"
     Array = "array"
+    Json = "json"
 
     # vector field type
     Vector = "vector"

@@ -1,5 +1,7 @@
 import time
 from typing import List, Union, Dict, Optional, Any
+
+import ujson
 from numpy import ndarray
 from tcvectordb.exceptions import ServerInternalError
 from tcvectordb.model.ai_database import AIDatabase
@@ -533,10 +535,6 @@ class VdbClient:
         if d.score is not None:
             doc['score'] = d.score
         if d.vector:
-            # vecs = []
-            # for v in d.vector:
-            #     vecs.append(v.real)
-            # doc['vector'] = vecs
             doc['vector'] = list(d.vector)
         if d.sparse_vector:
             sp_vector = []
@@ -555,6 +553,8 @@ class VdbClient:
                 for a in v.val_str_arr.str_arr:
                     arr.append(str(a, encoding='utf-8'))
                 doc[k] = arr
+            elif v.HasField('val_json'):
+                doc[k] = ujson.loads(v.val_json)
             else:
                 pass
         return doc
@@ -585,6 +585,8 @@ class VdbClient:
                 for arr in v:
                     al.append(bytes(arr, encoding='utf-8'))
                 d.fields[k].val_str_arr.str_arr.extend(al)
+            elif isinstance(v, dict):
+                d.fields[k].val_json = bytes(ujson.dumps(v), encoding='utf-8')
         return d
 
     def create_database(self, database_name: str, timeout: Optional[float] = None) -> RPCDatabase:
@@ -785,6 +787,8 @@ class VdbClient:
                     column.metricType = f_item.metricType.value
                 if f_item.field_type == FieldType.Array:
                     column.fieldElementType = 'string'
+                if hasattr(f_item, 'auto_id') and f_item.auto_id is not None:
+                    column.autoId = f_item.auto_id
         if embedding is not None:
             emb = vars(embedding)
             req.embeddingParams.field = emb.get('field')
@@ -861,6 +865,8 @@ class VdbClient:
                 field['dimension'] = f_item.dimension
             if f_item.metricType:
                 field['metricType'] = f_item.metricType
+            if f_item.autoId:
+                field['autoId'] = f_item.autoId
             if f_item.params:
                 params = {}
                 if f_item.params.nprobe:
