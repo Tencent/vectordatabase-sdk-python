@@ -154,6 +154,7 @@ class AIDatabase:
             col['collectionView'],
         )
         coll.load_fields(col)
+        coll.conn_name = collection_view_name
         return coll
 
     def list_collection_view(self, timeout: Optional[float] = None) -> List[CollectionView]:

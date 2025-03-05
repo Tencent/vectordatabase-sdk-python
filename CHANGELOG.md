@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.6.4
+* fix: Keep using alias to access the interface within the Collection object.
+
+
 ## 1.6.3
 * feat: `RPCVectorDBClient` support upload file to a `BASE_DB`.
 

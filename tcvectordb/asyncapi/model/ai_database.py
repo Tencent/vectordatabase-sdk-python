@@ -108,7 +108,9 @@ class AsyncAIDatabase(AIDatabase):
             A AsyncCollectionView object
         """
         cv = super().describe_collection_view(collection_view_name, timeout)
-        return cv_convert(cv)
+        acv = cv_convert(cv)
+        acv.conn_name = collection_view_name,
+        return acv
 
     async def list_collection_view(self, timeout: Optional[float] = None) -> List[AsyncCollectionView]:
         """Get collection view list.

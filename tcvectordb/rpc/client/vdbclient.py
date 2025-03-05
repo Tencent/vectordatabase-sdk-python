@@ -932,7 +932,9 @@ class VdbClient:
         req = olama_pb2.DescribeCollectionRequest(database=database_name,
                                                   collection=collection_name)
         rsp: olama_pb2.DescribeCollectionResponse = self.rpc_client.describe_collection(req=req, timeout=timeout)
-        return self._pb2coll(rsp.collection)
+        col = self._pb2coll(rsp.collection)
+        col.conn_name = collection_name
+        return col
 
     def truncate_collection(self,
                             database_name: str,

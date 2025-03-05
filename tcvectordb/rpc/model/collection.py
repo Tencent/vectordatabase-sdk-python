@@ -78,7 +78,7 @@ class RPCCollection(Collection):
         """
         return self.vdb_client.upsert(
             database_name=self.database_name,
-            collection_name=self.collection_name,
+            collection_name=self.conn_name,
             documents=documents,
             timeout=timeout,
             build_index=build_index,
@@ -113,7 +113,7 @@ class RPCCollection(Collection):
         """
         return self.vdb_client.query(
             database_name=self.database_name,
-            collection_name=self.collection_name,
+            collection_name=self.conn_name,
             document_ids=document_ids,
             retrieve_vector=retrieve_vector,
             limit=limit,
@@ -144,7 +144,7 @@ class RPCCollection(Collection):
         """
         return self.vdb_client.delete(
             database_name=self.database_name,
-            collection_name=self.collection_name,
+            collection_name=self.conn_name,
             document_ids=document_ids,
             filter=filter,
             timeout=timeout,
@@ -171,7 +171,7 @@ class RPCCollection(Collection):
         """
         return self.vdb_client.update(
             database_name=self.database_name,
-            collection_name=self.collection_name,
+            collection_name=self.conn_name,
             data=data,
             filter=filter,
             document_ids=document_ids,
@@ -194,7 +194,7 @@ class RPCCollection(Collection):
         """
         return self.vdb_client.count(
             database_name=self.database_name,
-            collection_name=self.collection_name,
+            collection_name=self.conn_name,
             filter=filter,
             timeout=timeout,
         )
@@ -235,7 +235,7 @@ class RPCCollection(Collection):
         """
         return self.vdb_client.search(
             database_name=self.database_name,
-            collection_name=self.collection_name,
+            collection_name=self.conn_name,
             vectors=vectors,
             filter=filter,
             params=params,
@@ -283,7 +283,7 @@ class RPCCollection(Collection):
         """
         return self.vdb_client.search(
             database_name=self.database_name,
-            collection_name=self.collection_name,
+            collection_name=self.conn_name,
             document_ids=document_ids,
             filter=filter,
             params=params,
@@ -332,7 +332,7 @@ class RPCCollection(Collection):
         """
         return self.vdb_client.search_with_warning(
             database_name=self.database_name,
-            collection_name=self.collection_name,
+            collection_name=self.conn_name,
             embedding_items=embeddingItems,
             filter=filter,
             params=params,
@@ -374,7 +374,7 @@ class RPCCollection(Collection):
         """
         return self.vdb_client.hybrid_search(
             database_name=self.database_name,
-            collection_name=self.collection_name,
+            collection_name=self.conn_name,
             ann=ann,
             match=match,
             filter=filter,

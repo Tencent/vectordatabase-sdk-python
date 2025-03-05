@@ -100,12 +100,13 @@ class CollectionView:
         self.index: Optional[Index] = index
         self.expected_file_num: Optional[int] = expected_file_num
         self.average_file_size: Optional[int] = average_file_size
-        self.shard : Optional[int] = shard
+        self.shard: Optional[int] = shard
         self.replicas: Optional[int] = replicas
         self.parsing_process: Optional[ParsingProcess] = parsing_process
         self.create_time: Optional[str] = None
         self.stats: Optional[dict] = None
         self.alias: Optional[list] = None
+        self.conn_name = name
 
     @property
     def __dict__(self):
@@ -261,7 +262,7 @@ class CollectionView:
         # request cos upload accredit
         body = {
             'database': self.db.database_name,
-            'collectionView': self.name,
+            'collectionView': self.conn_name,
             'documentSetName': document_set_name,
         }
         if parsing_process:
@@ -337,7 +338,7 @@ class CollectionView:
         )
         body = {
             'database': self.db.database_name,
-            'collectionView': self.name,
+            'collectionView': self.conn_name,
             'search': vars(search_param)
         }
         res = self.db.conn.post('/ai/documentSet/search', body, timeout)
@@ -374,7 +375,7 @@ class CollectionView:
         """
         body = {
             'database': self.db.database_name,
-            'collectionView': self.name,
+            'collectionView': self.conn_name,
         }
         query = {}
         if document_set_id is not None:
@@ -437,7 +438,7 @@ class CollectionView:
             raise exceptions.ParamError(message="please provide document_set_id or document_set_name")
         body = {
             "database": self.db.database_name,
-            "collectionView": self.name,
+            "collectionView": self.conn_name,
             "documentSetName": document_set_name,
             "documentSetId": document_set_id,
         }
@@ -475,7 +476,7 @@ class CollectionView:
         query = QueryParam(document_set_id=document_set_id, document_set_name=document_set_name, filter=filter)
         body = {
             "database": self.db.database_name,
-            "collectionView": self.name,
+            "collectionView": self.conn_name,
             "query": vars(query),
         }
         res = self.db.conn.post('/ai/documentSet/delete', body, timeout)
@@ -511,7 +512,7 @@ class CollectionView:
         query = QueryParam(document_set_id=document_set_id, document_set_name=document_set_name, filter=filter)
         body = {
             "database": self.db.database_name,
-            "collectionView": self.name,
+            "collectionView": self.conn_name,
             "query": vars(query),
             "update": vars(data)
         }
@@ -541,7 +542,7 @@ class CollectionView:
             raise exceptions.ParamError(message="please provide document_set_id or document_set_name")
         body = {
             'database': self.db.database_name,
-            'collectionView': self.name,
+            'collectionView': self.conn_name,
         }
         if document_set_id is not None:
             body['documentSetId'] = document_set_id
@@ -603,7 +604,7 @@ class CollectionView:
         # request cos upload accredit
         body = {
             'database': self.db.database_name,
-            'collection': self.name,
+            'collection': self.conn_name,
             'fileName': file_name,
         }
         if splitter_process:
@@ -659,7 +660,7 @@ class CollectionView:
         """
         body = {
             'database': self.db.database_name,
-            'collection': self.name,
+            'collection': self.conn_name,
             'documentIds': document_ids,
             'fileName': file_name,
         }

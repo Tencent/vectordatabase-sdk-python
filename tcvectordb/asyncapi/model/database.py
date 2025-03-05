@@ -175,7 +175,9 @@ class AsyncDatabase(Database):
             A AsyncCollection object.
         """
         coll = super().describe_collection(name, timeout)
-        return coll_convert(coll)
+        acoll = coll_convert(coll)
+        acoll.conn_name = name
+        return acoll
 
     async def drop_collection(self, name: str, timeout: Optional[float] = None) -> Dict:
         """Delete a collection by name.

@@ -249,7 +249,9 @@ class Database:
             raise exceptions.DescribeCollectionException(
                 code=-1, message=str(res.body))
         col = res.body['collection']
-        return self._generate_collection(col)
+        col = self._generate_collection(col)
+        col.conn_name = name
+        return col
 
     def drop_collection(self, name: str, timeout: Optional[float] = None) -> Dict:
         """Delete a collection by name.

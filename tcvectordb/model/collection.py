@@ -348,6 +348,7 @@ class Collection():
         self.index_status = kwargs.pop("indexStatus", None)
         self._read_consistency = read_consistency
         self.kwargs = kwargs
+        self.conn_name = name
 
     @property
     def database_name(self):
@@ -419,7 +420,7 @@ class Collection():
         res_build_index = buildIndex and build_index
         body = {
             'database': self.database_name,
-            'collection': self.collection_name,
+            'collection': self.conn_name,
             'buildIndex': res_build_index,
             'documents': []
         }
@@ -477,7 +478,7 @@ class Collection():
 
         body = {
             'database': self.database_name,
-            'collection': self.collection_name,
+            'collection': self.conn_name,
             'query': vars(query),
             'readConsistency': read_consistency.value
         }
@@ -649,7 +650,7 @@ class Collection():
 
         body = {
             'database': self.database_name,
-            'collection': self.collection_name,
+            'collection': self.conn_name,
             'readConsistency': read_consistency.value,
             'search': vars(search)
         }
@@ -749,7 +750,7 @@ class Collection():
         search.update(kwargs)
         body = {
             'database': self.database_name,
-            'collection': self.collection_name,
+            'collection': self.conn_name,
             'readConsistency': self._read_consistency.value,
             'search': search,
         }
@@ -809,7 +810,7 @@ class Collection():
             raise exceptions.ParamError(message="database_name or collection_name is blank")
         body = {
             "database": self.database_name,
-            "collection": self.collection_name,
+            "collection": self.conn_name,
             "query": vars(delete_query)
         }
         res = self._conn.post('/document/delete', body, timeout)
@@ -831,7 +832,7 @@ class Collection():
         """
         body = {
             "database": self.database_name,
-            "collection": self.collection_name,
+            "collection": self.conn_name,
         }
         query = {}
         if filter is not None:
@@ -877,7 +878,7 @@ class Collection():
             raise exceptions.ParamError(code=-1, message='document is None')
         body = {
             'database': self.database_name,
-            'collection': self.collection_name,
+            'collection': self.conn_name,
             'query': vars(update_query)
         }
         ai = False
