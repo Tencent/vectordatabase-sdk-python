@@ -455,6 +455,7 @@ message CountRequest {
     string database         = 1;
     string collection       = 2;
     QueryCond query         = 3;
+    string readConsistency  = 4;
 };
 
 message CountResponse {
@@ -645,6 +646,19 @@ message AddIndexResponse {
     string redirect                 = 3;
 };
 
+message DropIndexRequest {
+  string database            = 1;
+  string collection          = 2;
+  repeated string fieldNames = 3;
+}
+
+message DropIndexResponse {
+  int32 code      = 1;
+  string msg      = 2;
+  string redirect = 3;
+}
+
+
 message User {
   string name                   = 1;
   string create_time            = 2;
@@ -784,4 +798,6 @@ service SearchEngine {
     rpc modifyVectorIndex(ModifyVectorIndexRequest) returns (ModifyVectorIndexResponse);
     // 新增scalar的索引
     rpc addIndex(AddIndexRequest) returns (AddIndexResponse);
+    // 删除scalar的索引
+    rpc dropIndex(DropIndexRequest) returns (DropIndexResponse);
 };

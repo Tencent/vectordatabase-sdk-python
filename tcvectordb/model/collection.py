@@ -13,7 +13,7 @@ from .index import Index
 class Embedding:
     """init Embedding"""
 
-    def __init__(self, vector_field: str = None, status: str = 'disabled', field: str = None,
+    def __init__(self, vector_field: str = None, status: str = 'enabled', field: str = None,
                  model: EmbeddingModel = None, model_name: str = None):
         """
         init Embedding when create embedding collection
@@ -834,6 +834,8 @@ class Collection():
             "database": self.database_name,
             "collection": self.conn_name,
         }
+        if self._read_consistency is not None:
+            body['readConsistency'] = self._read_consistency.value
         query = {}
         if filter is not None:
             query['filter'] = filter if isinstance(filter, str) else filter.cond
@@ -953,6 +955,31 @@ class Collection():
         if build_existed_data is not None:
             body['buildExistedData'] = build_existed_data
         res = self._conn.post('/index/add', body, timeout)
+        return res.data()
+
+    def drop_index(self,
+                   field_names: List[str],
+                   timeout: Optional[float] = None) -> dict:
+        """Drop scalar field index from an existing collection.
+
+        Args:
+            field_names (List[str]): Field names to be dropped.
+            timeout (float): An optional duration of time in seconds to allow for the request.
+                    When timeout is set to None, will use the connect timeout.
+
+        Returns:
+            dict: The API returns a code and msg. For example: {"code": 0,  "msg": "Operation success"}
+        """
+        if not self.database_name or not self.collection_name:
+            raise exceptions.ParamError(message="database_name or collection_name is blank")
+        if not isinstance(field_names, list):
+            raise exceptions.ParamError(message='Invalid value for List[str] field: field_names')
+        body = {
+            'database': self.database_name,
+            'collection': self.collection_name,
+            'fieldNames': field_names,
+        }
+        res = self._conn.post('/index/drop', body, timeout)
         return res.data()
 
     def modify_vector_index(self,

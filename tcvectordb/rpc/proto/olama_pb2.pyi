@@ -804,14 +804,16 @@ class ExplainResponse(_message.Message):
     def __init__(self, code: _Optional[int] = ..., msg: _Optional[str] = ..., redirect: _Optional[str] = ..., affectedTable: _Optional[_Iterable[int]] = ..., affectedCount: _Optional[int] = ...) -> None: ...
 
 class CountRequest(_message.Message):
-    __slots__ = ["database", "collection", "query"]
+    __slots__ = ["database", "collection", "query", "readConsistency"]
     DATABASE_FIELD_NUMBER: _ClassVar[int]
     COLLECTION_FIELD_NUMBER: _ClassVar[int]
     QUERY_FIELD_NUMBER: _ClassVar[int]
+    READCONSISTENCY_FIELD_NUMBER: _ClassVar[int]
     database: str
     collection: str
     query: QueryCond
-    def __init__(self, database: _Optional[str] = ..., collection: _Optional[str] = ..., query: _Optional[_Union[QueryCond, _Mapping]] = ...) -> None: ...
+    readConsistency: str
+    def __init__(self, database: _Optional[str] = ..., collection: _Optional[str] = ..., query: _Optional[_Union[QueryCond, _Mapping]] = ..., readConsistency: _Optional[str] = ...) -> None: ...
 
 class CountResponse(_message.Message):
     __slots__ = ["code", "msg", "redirect", "count"]
@@ -1150,6 +1152,26 @@ class AddIndexRequest(_message.Message):
     def __init__(self, database: _Optional[str] = ..., collection: _Optional[str] = ..., indexes: _Optional[_Mapping[str, IndexColumn]] = ..., buildExistedData: bool = ...) -> None: ...
 
 class AddIndexResponse(_message.Message):
+    __slots__ = ["code", "msg", "redirect"]
+    CODE_FIELD_NUMBER: _ClassVar[int]
+    MSG_FIELD_NUMBER: _ClassVar[int]
+    REDIRECT_FIELD_NUMBER: _ClassVar[int]
+    code: int
+    msg: str
+    redirect: str
+    def __init__(self, code: _Optional[int] = ..., msg: _Optional[str] = ..., redirect: _Optional[str] = ...) -> None: ...
+
+class DropIndexRequest(_message.Message):
+    __slots__ = ["database", "collection", "fieldNames"]
+    DATABASE_FIELD_NUMBER: _ClassVar[int]
+    COLLECTION_FIELD_NUMBER: _ClassVar[int]
+    FIELDNAMES_FIELD_NUMBER: _ClassVar[int]
+    database: str
+    collection: str
+    fieldNames: _containers.RepeatedScalarFieldContainer[str]
+    def __init__(self, database: _Optional[str] = ..., collection: _Optional[str] = ..., fieldNames: _Optional[_Iterable[str]] = ...) -> None: ...
+
+class DropIndexResponse(_message.Message):
     __slots__ = ["code", "msg", "redirect"]
     CODE_FIELD_NUMBER: _ClassVar[int]
     MSG_FIELD_NUMBER: _ClassVar[int]

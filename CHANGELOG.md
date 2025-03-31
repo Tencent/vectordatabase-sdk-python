@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.7.0
+* feat: support drop_index interface
+* feat: count support the read_consistency param
+
+
 ## 1.6.4
 * fix: Keep using alias to access the interface within the Collection object.
 

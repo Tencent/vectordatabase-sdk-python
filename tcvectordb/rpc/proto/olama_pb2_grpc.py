@@ -184,6 +184,11 @@ class SearchEngineStub(object):
                 request_serializer=olama__pb2.AddIndexRequest.SerializeToString,
                 response_deserializer=olama__pb2.AddIndexResponse.FromString,
                 )
+        self.dropIndex = channel.unary_unary(
+                '/index/drop',
+                request_serializer=olama__pb2.DropIndexRequest.SerializeToString,
+                response_deserializer=olama__pb2.DropIndexResponse.FromString,
+                )
 
 
 class SearchEngineServicer(object):
@@ -428,6 +433,13 @@ class SearchEngineServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def dropIndex(self, request, context):
+        """删除scalar的索引
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
 
 def add_SearchEngineServicer_to_server(servicer, server):
     rpc_method_handlers = {
@@ -600,6 +612,11 @@ def add_SearchEngineServicer_to_server(servicer, server):
                     servicer.addIndex,
                     request_deserializer=olama__pb2.AddIndexRequest.FromString,
                     response_serializer=olama__pb2.AddIndexResponse.SerializeToString,
+            ),
+            'dropIndex': grpc.unary_unary_rpc_method_handler(
+                    servicer.dropIndex,
+                    request_deserializer=olama__pb2.DropIndexRequest.FromString,
+                    response_serializer=olama__pb2.DropIndexResponse.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -1186,5 +1203,22 @@ class SearchEngine(object):
         return grpc.experimental.unary_unary(request, target, '/olama.SearchEngine/addIndex',
             olama__pb2.AddIndexRequest.SerializeToString,
             olama__pb2.AddIndexResponse.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def dropIndex(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/olama.SearchEngine/dropIndex',
+            olama__pb2.DropIndexRequest.SerializeToString,
+            olama__pb2.DropIndexResponse.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)

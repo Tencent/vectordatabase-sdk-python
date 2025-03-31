@@ -1,4 +1,4 @@
-# add_index example
+# add and drop index example
 import time
 import numpy as np
 
@@ -10,14 +10,17 @@ from tcvectordb.model.index import Index, VectorIndex, FilterIndex, HNSWParams
 
 vdb_url = "http://10.x.x.x"
 vdb_key = "xB2i************************************"
-db_name = "python-sdk-test-add-index"
-coll_name = "sdk_collection_add_index"
+db_name = "python-sdk-test-index"
+coll_name = "sdk_collection_index"
+
+# tcvectordb.debug.DebugEnable = True
 
 
 # create VectorDBClient
 vdb_client = tcvectordb.RPCVectorDBClient(url=vdb_url,
                                           key=vdb_key,
-                                          username='root')
+                                          username='root',
+                                          )
 # vdb_client.drop_database(db_name)
 # create Database
 db = vdb_client.create_database_if_not_exists(database_name=db_name)
@@ -28,7 +31,7 @@ index.add(VectorIndex('vector', 32, IndexType.HNSW, MetricType.IP, HNSWParams(m=
 coll = db.create_collection_if_not_exists(
     name=coll_name,
     shard=1,
-    replicas=0,
+    replicas=1,
     description='test collection',
     index=index,
 )
@@ -94,6 +97,14 @@ print(res, flush=True)
 res = coll.query(filter=Filter(Filter.Include('interest', ['Swimming'])), limit=10)
 print(res, flush=True)
 
+# drop index
+print(vdb_client.drop_index(database_name=db_name,
+                            collection_name=coll_name,
+                            field_names=['username'],
+                            ))
+# describe collection
+coll = db.describe_collection(coll_name)
+print(vars(coll))
 
 # clear env
 vdb_client.drop_database(db_name)

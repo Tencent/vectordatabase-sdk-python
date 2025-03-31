@@ -3,7 +3,7 @@ from typing import List, Union, Dict, Optional, Any
 
 import ujson
 from numpy import ndarray
-from tcvectordb.exceptions import ServerInternalError
+from tcvectordb.exceptions import ServerInternalError, ParamError
 from tcvectordb.model.ai_database import AIDatabase
 from tcvectordb.model.collection import Embedding, FilterIndexConfig
 from tcvectordb.model.document import Document, Filter, AnnSearch, KeywordSearch, Rerank, WeightedRerank, RRFRerank
@@ -188,6 +188,8 @@ class VdbClient:
             database=database_name,
             collection=collection_name,
         )
+        if self.read_consistency is not None:
+            request.readConsistency = self.read_consistency.value
         if filter is not None:
             request.query.filter = filter if isinstance(filter, str) else filter.cond
         result: olama_pb2.CountResponse = self.rpc_client.count(request, timeout=timeout)
@@ -281,8 +283,7 @@ class VdbClient:
         res: olama_pb2.SearchResponse = self.rpc_client.search(request, timeout=timeout)
         rtl = []
         if return_pd_object:
-            for r in res.results:
-                rtl.append(r.documents)
+            rtl = [r.documents for r in res.results]
         else:
             quick_trans = len(set(output_fields) - {'id', 'score'}) == 0 if output_fields else False
             for r in res.results:
@@ -533,7 +534,7 @@ class VdbClient:
             'id': d.id,
         }
         if d.score is not None:
-            doc['score'] = d.score
+            doc['score'] = round(d.score, 5)
         if d.vector:
             doc['vector'] = list(d.vector)
         if d.sparse_vector:
@@ -698,7 +699,7 @@ class VdbClient:
                     raise ServerInternalError(code=15000,
                                               message=f'The value of nlist cannot be 0.')
                 column.params.nlist = param.get('nlist', 0)
-        if index.metric_type is not None:
+        if hasattr(index, 'metric_type') and index.metric_type is not None:
             column.metricType = index.metricType.value
 
     def add_index(self,
@@ -715,6 +716,24 @@ class VdbClient:
             column: olama_pb2.IndexColumn = req.indexes[index.name]
             self._field2pb(index, column)
         rsp = self.rpc_client.add_index(req=req, timeout=timeout)
+        return {
+            "code": rsp.code,
+            "msg": rsp.msg,
+        }
+
+    def drop_index(self,
+                   database_name: str,
+                   collection_name: str,
+                   field_names: List[str],
+                   timeout: Optional[float] = None) -> dict:
+        """Drop scalar field index from an existing collection."""
+        req = olama_pb2.DropIndexRequest(database=database_name,
+                                         collection=collection_name,
+                                         )
+        if not isinstance(field_names, list):
+            raise ParamError(message='Invalid value for List[str] field: field_names')
+        req.fieldNames.extend(field_names)
+        rsp = self.rpc_client.drop_index(req=req, timeout=timeout)
         return {
             "code": rsp.code,
             "msg": rsp.msg,

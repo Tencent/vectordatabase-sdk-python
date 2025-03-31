@@ -323,6 +323,23 @@ class RPCClient:
         except Exception as e:
             raise GrpcException(message=str(e))
 
+    def drop_index(self,
+                   req: olama_pb2.DropIndexRequest,
+                   timeout: Optional[float] = None,
+                   ai: bool = False) -> olama_pb2.DropIndexResponse:
+        self._print_req(req)
+        if timeout is None:
+            timeout = self.timeout
+        try:
+            ret: olama_pb2.DropIndexResponse = self.stub.dropIndex(
+                req, metadata=self._get_headers(ai), timeout=timeout)
+            self._result_check(ret)
+            return ret
+        except ServerInternalError as se:
+            raise se
+        except Exception as e:
+            raise GrpcException(message=str(e))
+
     def modify_vector_index(self,
                             req: olama_pb2.ModifyVectorIndexRequest,
                             timeout: Optional[float] = None,

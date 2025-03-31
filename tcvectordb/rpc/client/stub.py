@@ -821,6 +821,30 @@ class RPCVectorDBClient(VectorDBClient):
             timeout=timeout,
         )
 
+    def drop_index(self,
+                   database_name: str,
+                   collection_name: str,
+                   field_names: List[str],
+                   timeout: Optional[float] = None) -> dict:
+        """Drop scalar field index from an existing collection.
+
+        Args:
+            database_name (str): The name of the database where the collection resides.
+            collection_name (str): The name of the collection.
+            field_names (List[str]): Field names to be dropped.
+            timeout (float): An optional duration of time in seconds to allow for the request.
+                    When timeout is set to None, will use the connect timeout.
+
+        Returns:
+            dict: The API returns a code and msg. For example: {"code": 0,  "msg": "Operation success"}
+        """
+        return self.vdb_client.drop_index(
+            database_name=database_name,
+            collection_name=collection_name,
+            field_names=field_names,
+            timeout=timeout,
+        )
+
     def modify_vector_index(self,
                             database_name: str,
                             collection_name: str,
