@@ -103,14 +103,14 @@ class RPCClient:
         except Exception as e:
             raise GrpcException(message=str(e))
 
-    def keyword_search(self,
-                       req: olama_pb2.SearchRequest,
-                       timeout: Optional[float] = None) -> olama_pb2.SearchResponse:
+    def fulltext_search(self,
+                        req: olama_pb2.SearchRequest,
+                        timeout: Optional[float] = None) -> olama_pb2.SearchResponse:
         self._print_req(req)
         if timeout is None:
             timeout = self.timeout
         try:
-            ret: olama_pb2.SearchResponse = self.stub.keyword_search(
+            ret: olama_pb2.SearchResponse = self.stub.full_text_search(
                 req, metadata=self._get_headers(False), timeout=timeout)
             self._result_check(ret, ret.warning)
             return ret

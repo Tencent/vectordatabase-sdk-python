@@ -264,6 +264,7 @@ class CollectionView:
             'database': self.db.database_name,
             'collectionView': self.conn_name,
             'documentSetName': document_set_name,
+            'byteLength': os.stat(local_file_path).st_size,
         }
         if parsing_process:
             body['parsingProcess'] = vars(parsing_process)
@@ -606,6 +607,7 @@ class CollectionView:
             'database': self.db.database_name,
             'collection': self.conn_name,
             'fileName': file_name,
+            'byteLength': os.stat(local_file_path).st_size,
         }
         if splitter_process:
             body['splitterPreprocess'] = vars(splitter_process)

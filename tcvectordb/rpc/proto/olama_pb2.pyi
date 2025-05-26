@@ -608,20 +608,22 @@ class TruncateCollectionResponse(_message.Message):
     def __init__(self, code: _Optional[int] = ..., msg: _Optional[str] = ..., redirect: _Optional[str] = ..., affectedCount: _Optional[int] = ...) -> None: ...
 
 class RebuildIndexRequest(_message.Message):
-    __slots__ = ["database", "collection", "dropBeforeRebuild", "throttle", "disable_train", "force_rebuild"]
+    __slots__ = ["database", "collection", "dropBeforeRebuild", "throttle", "disable_train", "force_rebuild", "fieldName"]
     DATABASE_FIELD_NUMBER: _ClassVar[int]
     COLLECTION_FIELD_NUMBER: _ClassVar[int]
     DROPBEFOREREBUILD_FIELD_NUMBER: _ClassVar[int]
     THROTTLE_FIELD_NUMBER: _ClassVar[int]
     DISABLE_TRAIN_FIELD_NUMBER: _ClassVar[int]
     FORCE_REBUILD_FIELD_NUMBER: _ClassVar[int]
+    FIELDNAME_FIELD_NUMBER: _ClassVar[int]
     database: str
     collection: str
     dropBeforeRebuild: bool
     throttle: int
     disable_train: bool
     force_rebuild: bool
-    def __init__(self, database: _Optional[str] = ..., collection: _Optional[str] = ..., dropBeforeRebuild: bool = ..., throttle: _Optional[int] = ..., disable_train: bool = ..., force_rebuild: bool = ...) -> None: ...
+    fieldName: str
+    def __init__(self, database: _Optional[str] = ..., collection: _Optional[str] = ..., dropBeforeRebuild: bool = ..., throttle: _Optional[int] = ..., disable_train: bool = ..., force_rebuild: bool = ..., fieldName: _Optional[str] = ...) -> None: ...
 
 class RebuildIndexResponse(_message.Message):
     __slots__ = ["code", "msg", "redirect", "task_ids"]

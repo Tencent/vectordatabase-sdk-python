@@ -18,17 +18,19 @@ coll_name = "sdk_collection_upload"
 
 # create VectorDBClient
 vdb_client = tcvectordb.RPCVectorDBClient(url=vdb_url,
-                                          key=vdb_key,
-                                          username='root')
+                                       key=vdb_key,
+                                       username='root')
 # vdb_client.drop_database(db_name)
 # create Database
 db = vdb_client.create_database_if_not_exists(database_name=db_name)
 # create Collection with embedding
-# ebd = Embedding(vector_field='vector', field='text', model_name='bge-base-zh')
+ebd = Embedding(vector_field='vector', field='text', model_name='bge-base-zh')
 index = Index()
 index.add(FilterIndex('id', FieldType.String, IndexType.PRIMARY_KEY))
 index.add(VectorIndex('vector', 768, IndexType.HNSW, MetricType.IP, HNSWParams(m=16, efconstruction=200)))
 index.add(FilterIndex(name='file_name', field_type=FieldType.String, index_type=IndexType.FILTER))
+index.add(FilterIndex(name='chunk_num', field_type=FieldType.Uint64, index_type=IndexType.FILTER))
+index.add(FilterIndex(name='section_num', field_type=FieldType.Uint64, index_type=IndexType.FILTER))
 coll = vdb_client.create_collection_if_not_exists(
     database_name=db_name,
     collection_name=coll_name,
@@ -36,7 +38,7 @@ coll = vdb_client.create_collection_if_not_exists(
     replicas=1,
     description='test collection',
     index=index,
-    # embedding=ebd,
+    embedding=ebd,
 )
 
 # upload file
@@ -60,26 +62,63 @@ vdb_client.upload_file(
     field_mappings={
         "filename": "file_name",
         "text": "text",
-        "imageList": "image_list"
+        "imageList": "image_list",
+        "chunkNum": "chunk_num",
+        "sectionNum": "section_num"
     }
 )
 
 # wait for the file parsing to complete.
 time.sleep(15)
 # query file chunks
-res = vdb_client.query(
+res = vdb_client.search_by_text(
     database_name=db_name,
     collection_name=coll_name,
     filter='file_name="tcvdb.pdf"',
-    limit=100,
+    embedding_items=['向量数据库产品简介'],
+    limit=5
 )
 print(json.dumps(res, ensure_ascii=False))
+
 # get image urls for document
+doc = res[0][0]
 print(vdb_client.get_image_url(database_name=db_name,
                                collection_name=coll_name,
-                               document_ids=[res[0].get('id')],
+                               document_ids=[doc.get('id')],
                                file_name='tcvdb.pdf',
                                ))
+
+# get neighbor chunks, since version 1.7.1
+chunk_num = doc.get('chunk_num')
+if chunk_num is not None:
+    res = vdb_client.query(
+        database_name=db_name,
+        collection_name=coll_name,
+        filter=f'chunk_num>={0 if chunk_num-2 <= 0 else chunk_num-2} and '
+               f'chunk_num<={chunk_num+2} and file_name=\"tcvdb.pdf\"',
+        sort={
+            'fieldName': 'chunk_num',
+            'direction': 'asc',
+        },
+        limit=10,
+    )
+    print(json.dumps(res, ensure_ascii=False))
+
+    # get neighbor chunks within same section
+    chunk_num = doc.get('chunk_num')
+    section_num = doc.get('section_num')
+    res = vdb_client.query(
+        database_name=db_name,
+        collection_name=coll_name,
+        filter=f'chunk_num>={0 if chunk_num-2 <= 0 else chunk_num-2} and '
+               f'chunk_num<={chunk_num+2} and section_num={section_num} and file_name=\"tcvdb.pdf\"',
+        sort={
+            'fieldName': 'chunk_num',
+            'direction': 'asc',
+        },
+        limit=10,
+    )
+    print(json.dumps(res, ensure_ascii=False))
 
 # clear env
 vdb_client.drop_database(db_name)

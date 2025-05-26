@@ -84,8 +84,8 @@ class SearchEngineStub(object):
                 request_serializer=olama__pb2.SearchRequest.SerializeToString,
                 response_deserializer=olama__pb2.SearchResponse.FromString,
                 )
-        self.keyword_search = channel.unary_unary(
-                '/document/keywordSearch',
+        self.full_text_search = channel.unary_unary(
+                '/olama.SearchEngine/full_text_search',
                 request_serializer=olama__pb2.SearchRequest.SerializeToString,
                 response_deserializer=olama__pb2.SearchResponse.FromString,
                 )
@@ -292,8 +292,8 @@ class SearchEngineServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
-    def keyword_search(self, request, context):
-        """关键词检索
+    def full_text_search(self, request, context):
+        """全文搜索
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -513,8 +513,8 @@ def add_SearchEngineServicer_to_server(servicer, server):
                     request_deserializer=olama__pb2.SearchRequest.FromString,
                     response_serializer=olama__pb2.SearchResponse.SerializeToString,
             ),
-            'keyword_search': grpc.unary_unary_rpc_method_handler(
-                    servicer.keyword_search,
+            'full_text_search': grpc.unary_unary_rpc_method_handler(
+                    servicer.full_text_search,
                     request_deserializer=olama__pb2.SearchRequest.FromString,
                     response_serializer=olama__pb2.SearchResponse.SerializeToString,
             ),
@@ -867,7 +867,7 @@ class SearchEngine(object):
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
     @staticmethod
-    def keyword_search(request,
+    def full_text_search(request,
             target,
             options=(),
             channel_credentials=None,
@@ -877,7 +877,7 @@ class SearchEngine(object):
             wait_for_ready=None,
             timeout=None,
             metadata=None):
-        return grpc.experimental.unary_unary(request, target, '/olama.SearchEngine/keyword_search',
+        return grpc.experimental.unary_unary(request, target, '/olama.SearchEngine/full_text_search',
             olama__pb2.SearchRequest.SerializeToString,
             olama__pb2.SearchResponse.FromString,
             options, channel_credentials,

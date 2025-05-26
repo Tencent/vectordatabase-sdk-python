@@ -345,6 +345,7 @@ message RebuildIndexRequest {
     int32 throttle         = 4;
     bool disable_train     = 5;
     bool force_rebuild     = 6;
+    string fieldName       = 7;
 };
 
 message RebuildIndexResponse {
@@ -753,8 +754,8 @@ service SearchEngine {
     rpc search(SearchRequest) returns (SearchResponse);
     // 混合搜索
     rpc hybrid_search(SearchRequest) returns (SearchResponse);
-    // 关键词检索
-    rpc keyword_search(SearchRequest) returns (SearchResponse);
+    // 全文搜索
+    rpc full_text_search(SearchRequest) returns (SearchResponse);
     // 删除向量
     rpc dele(DeleteRequest) returns (DeleteResponse);
 

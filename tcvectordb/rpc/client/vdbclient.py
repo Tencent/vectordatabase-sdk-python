@@ -480,18 +480,18 @@ class VdbClient:
             rtl = rtl[0]
         return rtl
 
-    def keyword_search(self,
-                       database_name: str,
-                       collection_name: str,
-                       data: SparseVector,
-                       field_name: str = 'sparse_vector',
-                       filter: Union[Filter, str] = None,
-                       retrieve_vector: Optional[bool] = None,
-                       output_fields: Optional[List[str]] = None,
-                       limit: Optional[int] = None,
-                       timeout: Optional[float] = None,
-                       return_pd_object=False,
-                       **kwargs) -> List[Union[Dict, olama_pb2.Document]]:
+    def fulltext_search(self,
+                        database_name: str,
+                        collection_name: str,
+                        data: SparseVector,
+                        field_name: str = 'sparse_vector',
+                        filter: Union[Filter, str] = None,
+                        retrieve_vector: Optional[bool] = None,
+                        output_fields: Optional[List[str]] = None,
+                        limit: Optional[int] = None,
+                        timeout: Optional[float] = None,
+                        return_pd_object=False,
+                        **kwargs) -> List[Union[Dict, olama_pb2.Document]]:
         match = KeywordSearch(
             field_name=field_name,
             data=data,
@@ -510,7 +510,7 @@ class VdbClient:
             readConsistency=self.read_consistency.value,
             search=search,
         )
-        res: olama_pb2.SearchResponse = self.rpc_client.keyword_search(request, timeout=timeout)
+        res: olama_pb2.SearchResponse = self.rpc_client.fulltext_search(request, timeout=timeout)
         if res.warning:
             Warning(res.warning)
         rtl = []
@@ -578,7 +578,10 @@ class VdbClient:
                         score=sp[1],
                     ))
             elif isinstance(v, int):
-                d.fields[k].val_u64 = v
+                if v < 0:
+                    d.fields[k].val_double = v
+                else:
+                    d.fields[k].val_u64 = v
             elif isinstance(v, str):
                 d.fields[k].val_str = bytes(v, encoding='utf-8')
             elif isinstance(v, list):
@@ -588,6 +591,8 @@ class VdbClient:
                 d.fields[k].val_str_arr.str_arr.extend(al)
             elif isinstance(v, dict):
                 d.fields[k].val_json = bytes(ujson.dumps(v), encoding='utf-8')
+            elif isinstance(v, float):
+                d.fields[k].val_double = v
         return d
 
     def create_database(self, database_name: str, timeout: Optional[float] = None) -> RPCDatabase:
