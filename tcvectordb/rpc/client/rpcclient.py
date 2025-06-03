@@ -1,3 +1,4 @@
+import random
 from typing import Optional
 from urllib.parse import urlparse
 
@@ -17,22 +18,32 @@ class RPCClient:
                  key: str,
                  timeout: float = 10,
                  password: Optional[str] = None,
+                 pool_size: int = 1,
                  **kwargs):
-        options = [
-            ('grpc.max_send_message_length', 100 * 1024 * 1024),
-            ('grpc.max_receive_message_length', 100 * 1024 * 1024)
-        ]
-        self.channel = grpc.insecure_channel(self._address(url), options=options)
-        self.stub = olama_pb2_grpc.SearchEngineStub(self.channel)
+        self.url = url
         if password is None:
             password = key
         authorization = 'Bearer account={0}&api_key={1}'.format(username, password)
         self.headers = [('authorization', authorization)]
         self.timeout = timeout
+        self.pool_size = pool_size
         self.direct = False
+        self.channels = [ self.create_stub(index=i) for i in range(pool_size)]
+        self.stubs = [olama_pb2_grpc.SearchEngineStub(channel) for channel in self.channels]
+
+    def create_stub(self, index=0):
+        options = [
+            ('grpc.max_send_message_length', 100 * 1024 * 1024 + index),
+            ('grpc.max_receive_message_length', 100 * 1024 * 1024 + index)
+        ]
+        return grpc.insecure_channel(self._address(self.url), options=options)
+
+    def get_stub(self) -> olama_pb2_grpc.SearchEngineStub:
+        return self.stubs[random.randrange(self.pool_size)]
 
     def close(self):
-        self.channel.close()
+        for ch in self.channels:
+            ch.close()
 
     def _get_headers(self, ai: bool):
         headers = []
@@ -60,7 +71,7 @@ class RPCClient:
         if timeout is None:
             timeout = self.timeout
         try:
-            ret: olama_pb2.UpsertResponse = self.stub.upsert(
+            ret: olama_pb2.UpsertResponse = self.get_stub().upsert(
                 req, metadata=self._get_headers(ai), timeout=timeout)
             self._result_check(ret, ret.warning)
             return ret
@@ -77,7 +88,7 @@ class RPCClient:
         if timeout is None:
             timeout = self.timeout
         try:
-            ret: olama_pb2.SearchResponse = self.stub.search(
+            ret: olama_pb2.SearchResponse = self.get_stub().search(
                 req, metadata=self._get_headers(ai), timeout=timeout)
             self._result_check(ret, ret.warning)
             return ret
@@ -94,7 +105,7 @@ class RPCClient:
         if timeout is None:
             timeout = self.timeout
         try:
-            ret: olama_pb2.SearchResponse = self.stub.hybrid_search(
+            ret: olama_pb2.SearchResponse = self.get_stub().hybrid_search(
                 req, metadata=self._get_headers(ai), timeout=timeout)
             self._result_check(ret, ret.warning)
             return ret
@@ -110,7 +121,7 @@ class RPCClient:
         if timeout is None:
             timeout = self.timeout
         try:
-            ret: olama_pb2.SearchResponse = self.stub.full_text_search(
+            ret: olama_pb2.SearchResponse = self.get_stub().full_text_search(
                 req, metadata=self._get_headers(False), timeout=timeout)
             self._result_check(ret, ret.warning)
             return ret
@@ -127,7 +138,7 @@ class RPCClient:
         if timeout is None:
             timeout = self.timeout
         try:
-            ret: olama_pb2.QueryResponse = self.stub.query(
+            ret: olama_pb2.QueryResponse = self.get_stub().query(
                 req, metadata=self._get_headers(ai), timeout=timeout)
             self._result_check(ret)
             return ret
@@ -144,7 +155,7 @@ class RPCClient:
         if timeout is None:
             timeout = self.timeout
         try:
-            ret: olama_pb2.DeleteResponse = self.stub.dele(
+            ret: olama_pb2.DeleteResponse = self.get_stub().dele(
                 req, metadata=self._get_headers(ai), timeout=timeout)
             self._result_check(ret)
             return ret
@@ -161,7 +172,7 @@ class RPCClient:
         if timeout is None:
             timeout = self.timeout
         try:
-            ret: olama_pb2.UpdateResponse = self.stub.update(
+            ret: olama_pb2.UpdateResponse = self.get_stub().update(
                 req, metadata=self._get_headers(ai), timeout=timeout)
             self._result_check(ret, ret.warning)
             return ret
@@ -178,7 +189,7 @@ class RPCClient:
         if timeout is None:
             timeout = self.timeout
         try:
-            ret: olama_pb2.ExplainResponse = self.stub.explain(
+            ret: olama_pb2.ExplainResponse = self.get_stub().explain(
                 req, metadata=self._get_headers(False), timeout=timeout)
             self._result_check(ret)
             return ret
@@ -195,7 +206,7 @@ class RPCClient:
         if timeout is None:
             timeout = self.timeout
         try:
-            ret: olama_pb2.CountResponse = self.stub.count(
+            ret: olama_pb2.CountResponse = self.get_stub().count(
                 req, metadata=self._get_headers(False), timeout=timeout)
             self._result_check(ret)
             return ret
@@ -212,7 +223,7 @@ class RPCClient:
         if timeout is None:
             timeout = self.timeout
         try:
-            ret: olama_pb2.DatabaseResponse = self.stub.createDatabase(
+            ret: olama_pb2.DatabaseResponse = self.get_stub().createDatabase(
                 req, metadata=self._get_headers(ai), timeout=timeout)
             self._result_check(ret)
             return ret
@@ -229,7 +240,7 @@ class RPCClient:
         if timeout is None:
             timeout = self.timeout
         try:
-            ret: olama_pb2.DatabaseResponse = self.stub.dropDatabase(
+            ret: olama_pb2.DatabaseResponse = self.get_stub().dropDatabase(
                 req, metadata=self._get_headers(ai), timeout=timeout)
             self._result_check(ret)
             return ret
@@ -246,7 +257,7 @@ class RPCClient:
         if timeout is None:
             timeout = self.timeout
         try:
-            ret: olama_pb2.DatabaseResponse = self.stub.listDatabases(
+            ret: olama_pb2.DatabaseResponse = self.get_stub().listDatabases(
                 req, metadata=self._get_headers(ai), timeout=timeout)
             self._result_check(ret)
             return ret
@@ -263,7 +274,7 @@ class RPCClient:
         if timeout is None:
             timeout = self.timeout
         try:
-            ret: olama_pb2.UpdateAliasResponse = self.stub.setAlias(
+            ret: olama_pb2.UpdateAliasResponse = self.get_stub().setAlias(
                 req, metadata=self._get_headers(ai), timeout=timeout)
             self._result_check(ret)
             return ret
@@ -280,7 +291,7 @@ class RPCClient:
         if timeout is None:
             timeout = self.timeout
         try:
-            ret: olama_pb2.UpdateAliasResponse = self.stub.deleteAlias(
+            ret: olama_pb2.UpdateAliasResponse = self.get_stub().deleteAlias(
                 req, metadata=self._get_headers(ai), timeout=timeout)
             self._result_check(ret)
             return ret
@@ -297,7 +308,7 @@ class RPCClient:
         if timeout is None:
             timeout = self.timeout
         try:
-            ret: olama_pb2.RebuildIndexResponse = self.stub.rebuildIndex(
+            ret: olama_pb2.RebuildIndexResponse = self.get_stub().rebuildIndex(
                 req, metadata=self._get_headers(ai), timeout=timeout)
             self._result_check(ret)
             return ret
@@ -314,7 +325,7 @@ class RPCClient:
         if timeout is None:
             timeout = self.timeout
         try:
-            ret: olama_pb2.AddIndexResponse = self.stub.addIndex(
+            ret: olama_pb2.AddIndexResponse = self.get_stub().addIndex(
                 req, metadata=self._get_headers(ai), timeout=timeout)
             self._result_check(ret)
             return ret
@@ -331,7 +342,7 @@ class RPCClient:
         if timeout is None:
             timeout = self.timeout
         try:
-            ret: olama_pb2.DropIndexResponse = self.stub.dropIndex(
+            ret: olama_pb2.DropIndexResponse = self.get_stub().dropIndex(
                 req, metadata=self._get_headers(ai), timeout=timeout)
             self._result_check(ret)
             return ret
@@ -348,7 +359,7 @@ class RPCClient:
         if timeout is None:
             timeout = self.timeout
         try:
-            ret: olama_pb2.ModifyVectorIndexResponse = self.stub.modifyVectorIndex(
+            ret: olama_pb2.ModifyVectorIndexResponse = self.get_stub().modifyVectorIndex(
                 req, metadata=self._get_headers(ai), timeout=timeout)
             self._result_check(ret)
             return ret
@@ -365,7 +376,7 @@ class RPCClient:
         if timeout is None:
             timeout = self.timeout
         try:
-            ret: olama_pb2.CreateCollectionResponse = self.stub.createCollection(
+            ret: olama_pb2.CreateCollectionResponse = self.get_stub().createCollection(
                 req, metadata=self._get_headers(ai), timeout=timeout)
             self._result_check(ret)
             return ret
@@ -382,7 +393,7 @@ class RPCClient:
         if timeout is None:
             timeout = self.timeout
         try:
-            ret: olama_pb2.DropCollectionResponse = self.stub.dropCollection(
+            ret: olama_pb2.DropCollectionResponse = self.get_stub().dropCollection(
                 req, metadata=self._get_headers(ai), timeout=timeout)
             self._result_check(ret)
             return ret
@@ -399,7 +410,7 @@ class RPCClient:
         if timeout is None:
             timeout = self.timeout
         try:
-            ret: olama_pb2.ListCollectionsResponse = self.stub.listCollections(
+            ret: olama_pb2.ListCollectionsResponse = self.get_stub().listCollections(
                 req, metadata=self._get_headers(ai), timeout=timeout)
             self._result_check(ret)
             return ret
@@ -416,7 +427,7 @@ class RPCClient:
         if timeout is None:
             timeout = self.timeout
         try:
-            ret: olama_pb2.DescribeCollectionResponse = self.stub.describeCollection(
+            ret: olama_pb2.DescribeCollectionResponse = self.get_stub().describeCollection(
                 req, metadata=self._get_headers(ai), timeout=timeout)
             self._result_check(ret)
             return ret
@@ -433,7 +444,7 @@ class RPCClient:
         if timeout is None:
             timeout = self.timeout
         try:
-            ret: olama_pb2.TruncateCollectionResponse = self.stub.truncateCollection(
+            ret: olama_pb2.TruncateCollectionResponse = self.get_stub().truncateCollection(
                 req, metadata=self._get_headers(ai), timeout=timeout)
             self._result_check(ret)
             return ret
@@ -450,7 +461,7 @@ class RPCClient:
         if timeout is None:
             timeout = self.timeout
         try:
-            ret: olama_pb2.UserAccountResponse = self.stub.user_create(
+            ret: olama_pb2.UserAccountResponse = self.get_stub().user_create(
                 req, metadata=self._get_headers(False), timeout=timeout)
             self._result_check(ret)
             return ret
@@ -467,7 +478,7 @@ class RPCClient:
         if timeout is None:
             timeout = self.timeout
         try:
-            ret: olama_pb2.UserPrivilegesResponse = self.stub.user_grant(
+            ret: olama_pb2.UserPrivilegesResponse = self.get_stub().user_grant(
                 req, metadata=self._get_headers(False), timeout=timeout)
             self._result_check(ret)
             return ret
@@ -484,7 +495,7 @@ class RPCClient:
         if timeout is None:
             timeout = self.timeout
         try:
-            ret: olama_pb2.UserPrivilegesResponse = self.stub.user_revoke(
+            ret: olama_pb2.UserPrivilegesResponse = self.get_stub().user_revoke(
                 req, metadata=self._get_headers(False), timeout=timeout)
             self._result_check(ret)
             return ret
@@ -501,7 +512,7 @@ class RPCClient:
         if timeout is None:
             timeout = self.timeout
         try:
-            ret: olama_pb2.UserDescribeResponse = self.stub.user_describe(
+            ret: olama_pb2.UserDescribeResponse = self.get_stub().user_describe(
                 req, metadata=self._get_headers(False), timeout=timeout)
             self._result_check(ret)
             return ret
@@ -518,7 +529,7 @@ class RPCClient:
         if timeout is None:
             timeout = self.timeout
         try:
-            ret: olama_pb2.UserListResponse = self.stub.user_list(
+            ret: olama_pb2.UserListResponse = self.get_stub().user_list(
                 req, metadata=self._get_headers(False), timeout=timeout)
             self._result_check(ret)
             return ret
@@ -535,7 +546,7 @@ class RPCClient:
         if timeout is None:
             timeout = self.timeout
         try:
-            ret: olama_pb2.UserAccountResponse = self.stub.user_drop(
+            ret: olama_pb2.UserAccountResponse = self.get_stub().user_drop(
                 req, metadata=self._get_headers(False), timeout=timeout)
             self._result_check(ret)
             return ret
@@ -552,7 +563,7 @@ class RPCClient:
         if timeout is None:
             timeout = self.timeout
         try:
-            ret: olama_pb2.UserAccountResponse = self.stub.user_change_password(
+            ret: olama_pb2.UserAccountResponse = self.get_stub().user_change_password(
                 req, metadata=self._get_headers(False), timeout=timeout)
             self._result_check(ret)
             return ret

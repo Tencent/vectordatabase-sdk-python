@@ -1,8 +1,17 @@
 # Changelog
 
+## 1.7.2
+* feat: `RPCVectorDBClient` support the pool_size parameter to establish multiple connections.
+* feat: HNSW supports BF16 and FP16 quantization. `FieldType` now includes new types: float16_vector and bfloat16_vector.
+* feat: Added the `query_file_details` interface to query the status of documents when files are uploaded to a Collection.
+
+## 1.7.1
+* feat: support chunk_num and section_num for get neighbor chunks.
+* feat: support to check file byte size when uploading files.
+
 ## 1.7.0
-* feat: support drop_index interface
-* feat: count support the read_consistency param
+* feat: support drop_index interface.
+* feat: count support the read_consistency param.
 
 
 ## 1.6.4

@@ -1072,3 +1072,40 @@ class VectorDBClient:
             document_ids=document_ids,
             file_name=file_name,
         )
+
+    def query_file_details(self,
+                           database_name: str,
+                           collection_name: str,
+                           file_names: List[str] = None,
+                           filter: Union[Filter, str] = None,
+                           output_fields: Optional[List[str]] = None,
+                           limit: Optional[int] = None,
+                           offset: Optional[int] = None,
+                           ) -> List[Dict]:
+        """Query documents that satisfies the condition.
+
+        Args:
+            database_name (str): The name of the database.
+            collection_name (str): The name of the collection.
+            file_names (List[str]): The list of the filename
+            filter (Union[Filter, str]): Filter condition of the scalar index field
+            output_fields (List[str]): document's fields to return
+            limit (int): All ids of the document to be queried
+            offset (int): Page offset, used to control the starting position of the results
+
+        Returns:
+            List[Dict]: all matched documents
+        """
+        return CollectionView(
+            db=AIDatabase(conn=self._conn, name=database_name),
+            name=collection_name,
+        ).query_file_details(
+            database_name=database_name,
+            collection_name=collection_name,
+            file_names=file_names,
+            filter=filter,
+            output_fields=output_fields,
+            limit=limit,
+            offset=offset,
+            read_consistency=self._read_consistency,
+        )

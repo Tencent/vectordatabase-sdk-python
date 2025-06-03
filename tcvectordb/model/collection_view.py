@@ -12,6 +12,7 @@ from tcvectordb.debug import Debug, Warning
 from tcvectordb.model.document import Filter, Document
 from tcvectordb.model.document_set import DocumentSet, SearchParam, QueryParam, \
     Rerank, SearchResult, Chunk
+from tcvectordb.model.enum import ReadConsistency
 from tcvectordb.model.index import Index
 
 
@@ -668,3 +669,54 @@ class CollectionView:
         }
         res = self.db.conn.post('/ai/document/getImageUrl', body)
         return res.data().get('images', [])
+
+    def query_file_details(self,
+                           database_name: str,
+                           collection_name: str,
+                           file_names: List[str] = None,
+                           filter: Union[Filter, str] = None,
+                           output_fields: Optional[List[str]] = None,
+                           limit: Optional[int] = None,
+                           offset: Optional[int] = None,
+                           read_consistency: ReadConsistency = ReadConsistency.EVENTUAL_CONSISTENCY,
+                           ) -> List[Dict]:
+        """Query documents that satisfies the condition.
+
+        Args:
+            database_name (str): The name of the database.
+            collection_name (str): The name of the collection.
+            file_names (List[str]): The list of the filename
+            filter (Union[Filter, str]): Filter condition of the scalar index field
+            output_fields (List[str]): document's fields to return
+            limit (int): All ids of the document to be queried
+            offset (int): Page offset, used to control the starting position of the results
+            read_consistency: (ReadConsistency): Control the consistency level for read operations.
+
+        Returns:
+            List[Dict]: all matched documents
+        """
+        query = {}
+        if file_names is not None:
+            query['fileNames'] = file_names
+        if filter is not None:
+            query['filter'] = filter if isinstance(filter, str) else filter.cond
+        if limit is not None:
+            query['limit'] = limit
+        if offset is not None:
+            query['offset'] = offset
+        if output_fields:
+            query['outputFields'] = output_fields
+        body = {
+            'database': database_name,
+            'collection': collection_name,
+            'query': query,
+            'readConsistency': read_consistency.value
+        }
+        res = self.db.conn.post('/ai/document/queryFileDetails', body)
+        documents = res.body.get('documents', None)
+        res = []
+        if not documents:
+            return []
+        for doc in documents:
+            res.append(doc)
+        return res

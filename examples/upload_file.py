@@ -18,8 +18,8 @@ coll_name = "sdk_collection_upload"
 
 # create VectorDBClient
 vdb_client = tcvectordb.RPCVectorDBClient(url=vdb_url,
-                                       key=vdb_key,
-                                       username='root')
+                                          key=vdb_key,
+                                          username='root')
 # vdb_client.drop_database(db_name)
 # create Database
 db = vdb_client.create_database_if_not_exists(database_name=db_name)
@@ -70,6 +70,16 @@ vdb_client.upload_file(
 
 # wait for the file parsing to complete.
 time.sleep(15)
+
+# query file details
+res = vdb_client.query_file_details(
+    database_name=db_name,
+    collection_name=coll_name,
+    file_names=['tcvdb.pdf'],
+    limit=2,
+)
+print(f'file_details={json.dumps(res, ensure_ascii=False)}')
+
 # query file chunks
 res = vdb_client.search_by_text(
     database_name=db_name,

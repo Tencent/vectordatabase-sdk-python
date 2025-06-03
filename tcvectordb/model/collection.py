@@ -1009,7 +1009,12 @@ class Collection():
         """
         if not self.database_name or not self.collection_name:
             raise exceptions.ParamError(message="database_name or collection_name is blank")
-        indexes = [vars(item) for item in vector_indexes]
+        indexes = []
+        for item in vector_indexes:
+            index = vars(item)
+            if hasattr(item, 'field_type_none') and item.field_type_none:
+                del index['fieldType']
+            indexes.append(index)
         body = {
             'database': self.database_name,
             'collection': self.collection_name,

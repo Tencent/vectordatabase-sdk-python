@@ -85,7 +85,10 @@ class IndexField:
         return self.index_type
 
     def is_vector_field(self) -> bool:
-        return self.field_type == FieldType.Vector or self.field_type == FieldType.BinaryVector
+        return self.field_type == FieldType.Vector or \
+            self.field_type == FieldType.BinaryVector or \
+            self.field_type == FieldType.Float16Vector or \
+            self.field_type == FieldType.BFloat16Vector
 
     def is_sparse_vector_field(self) -> bool:
         return self.field_type == FieldType.SparseVector
@@ -115,9 +118,13 @@ class VectorIndex(IndexField):
         index_type: Optional[IndexType] = None,
         metric_type: Optional[MetricType] = None,
         params=None,
-        field_type: FieldType = FieldType.Vector,
+        field_type: Optional[FieldType] = None,
         **kwargs
     ):
+        self.field_type_none = False
+        if field_type is None:
+            field_type = FieldType.Vector
+            self.field_type_none = True
         super().__init__(name=name,
                          field_type=field_type,
                          index_type=index_type)
@@ -240,7 +247,8 @@ class Index:
         if not index and kwargs:
             metric_type = kwargs.pop('metricType', None)
             field_type = kwargs.pop('fieldType', '')
-            if field_type == FieldType.Vector.value or field_type == FieldType.BinaryVector.value:
+            if field_type in {FieldType.Vector.value, FieldType.BinaryVector.value,
+                              FieldType.Float16Vector.value, FieldType.BFloat16Vector.value}:
                 index = VectorIndex(
                     kwargs.pop('fieldName', ''),
                     kwargs.pop('dimension', None),

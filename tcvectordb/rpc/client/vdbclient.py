@@ -682,28 +682,27 @@ class VdbClient:
         column.fieldType = index.field_type.value
         if index.indexType:
             column.indexType = index.indexType.value
-        if index.field_type == FieldType.Vector:
-            if column.dimension:
-                column.dimension = index.dimension
-            param = index.param if index.param else {}
-            param = vars(param) if hasattr(param, '__dict__') else param
-            if param.get('M') is not None:
-                if param.get('M') == 0:
-                    raise ServerInternalError(code=15000,
-                                              message=f'The value of M cannot be 0.')
-                column.params.M = param.get('M')
-            if param.get('efConstruction') is not None:
-                if param.get('efConstruction') == 0:
-                    raise ServerInternalError(code=15000,
-                                              message=f'The value of efConstruction cannot be 0.')
-                column.params.efConstruction = param.get('efConstruction')
-            if param.get('nprobe') is not None:
-                column.params.nprobe = param.get('nprobe')
-            if param.get('nlist') is not None:
-                if param.get('nlist') == 0:
-                    raise ServerInternalError(code=15000,
-                                              message=f'The value of nlist cannot be 0.')
-                column.params.nlist = param.get('nlist', 0)
+        if hasattr(index, 'dimension') and index.dimension is not None:
+            column.dimension = index.dimension
+        param = index.param if index.param else {}
+        param = vars(param) if hasattr(param, '__dict__') else param
+        if param.get('M') is not None:
+            if param.get('M') == 0:
+                raise ServerInternalError(code=15000,
+                                          message=f'The value of M cannot be 0.')
+            column.params.M = param.get('M')
+        if param.get('efConstruction') is not None:
+            if param.get('efConstruction') == 0:
+                raise ServerInternalError(code=15000,
+                                          message=f'The value of efConstruction cannot be 0.')
+            column.params.efConstruction = param.get('efConstruction')
+        if param.get('nprobe') is not None:
+            column.params.nprobe = param.get('nprobe')
+        if param.get('nlist') is not None:
+            if param.get('nlist') == 0:
+                raise ServerInternalError(code=15000,
+                                          message=f'The value of nlist cannot be 0.')
+            column.params.nlist = param.get('nlist', 0)
         if hasattr(index, 'metric_type') and index.metric_type is not None:
             column.metricType = index.metricType.value
 
@@ -757,6 +756,8 @@ class VdbClient:
         for index in vector_indexes:
             column: olama_pb2.IndexColumn = req.vectorIndexes[index.name]
             self._field2pb(index, column)
+            if hasattr(index, 'field_type_none') and index.field_type_none:
+                column.fieldType = ""
         if rebuild_rules is not None:
             if 'drop_before_rebuild' in rebuild_rules:
                 rebuild_rules['dropBeforeRebuild'] = rebuild_rules.pop('drop_before_rebuild')
@@ -797,10 +798,15 @@ class VdbClient:
             for f_name, f_item in index.indexes.items():
                 column = req.indexes[f_name]
                 column.fieldName = f_item.name
-                column.fieldType = f_item.field_type.value
-                column.indexType = f_item.indexType.value
-                if f_item.field_type == FieldType.Vector or f_item.field_type == FieldType.BinaryVector:
+                if hasattr(f_item, 'field_type') and f_item.field_type is not None:
+                    column.fieldType = f_item.field_type.value
+                if hasattr(index, 'field_type_none') and index.field_type_none:
+                    column.fieldType = FieldType.Vector.value
+                if hasattr(f_item, 'indexType') and f_item.indexType is not None:
+                    column.indexType = f_item.indexType.value
+                if hasattr(f_item, 'dimension') and f_item.dimension is not None:
                     column.dimension = f_item.dimension
+                if hasattr(f_item, 'param') and f_item.param is not None:
                     param = f_item.param if f_item.param else {}
                     param = vars(param) if hasattr(param, '__dict__') else param
                     column.params.M = param.get('M', 0)

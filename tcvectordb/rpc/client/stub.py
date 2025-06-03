@@ -31,7 +31,7 @@ class RPCVectorDBClient(VectorDBClient):
                  read_consistency: ReadConsistency = ReadConsistency.EVENTUAL_CONSISTENCY,
                  timeout=10,
                  adapter: HTTPAdapter = None,
-                 pool_size: int = 2,
+                 pool_size: int = 1,
                  proxies: Optional[dict] = None,
                  password: Optional[str] = None,
                  **kwargs):
@@ -49,18 +49,21 @@ class RPCVectorDBClient(VectorDBClient):
                                key=key,
                                timeout=timeout,
                                password=password,
+                               pool_size=pool_size,
                                **kwargs)
         self.http: Optional[HTTPClient] = None
         self.vdb_client = VdbClient(client=rpc_client, read_consistency=read_consistency)
 
     def _get_http(self) -> HTTPClient:
         if not self.http:
+            pool_size = 2 if self.pool_size > 1 else 1
             self.http = HTTPClient(url=self.url,
                                    username=self.username,
                                    key=self.key,
+                                   password=self.password,
                                    timeout=self.timeout,
                                    adapter=self.adapter,
-                                   pool_size=self.pool_size,
+                                   pool_size=pool_size,
                                    proxies=self.proxies)
         return self.http
 
@@ -1086,4 +1089,41 @@ class RPCVectorDBClient(VectorDBClient):
         ).get_image_url(
             document_ids=document_ids,
             file_name=file_name,
+        )
+
+    def query_file_details(self,
+                           database_name: str,
+                           collection_name: str,
+                           file_names: List[str] = None,
+                           filter: Union[Filter, str] = None,
+                           output_fields: Optional[List[str]] = None,
+                           limit: Optional[int] = None,
+                           offset: Optional[int] = None,
+                           ) -> List[Dict]:
+        """Query documents that satisfies the condition.
+
+        Args:
+            database_name (str): The name of the database.
+            collection_name (str): The name of the collection.
+            file_names (List[str]): The list of the filename
+            filter (Union[Filter, str]): Filter condition of the scalar index field
+            output_fields (List[str]): document's fields to return
+            limit (int): All ids of the document to be queried
+            offset (int): Page offset, used to control the starting position of the results
+
+        Returns:
+            List[Dict]: all matched documents
+        """
+        return CollectionView(
+            db=AIDatabase(conn=self._get_http(), name=database_name),
+            name=collection_name,
+        ).query_file_details(
+            database_name=database_name,
+            collection_name=collection_name,
+            file_names=file_names,
+            filter=filter,
+            output_fields=output_fields,
+            limit=limit,
+            offset=offset,
+            read_consistency=self.read_consistency,
         )

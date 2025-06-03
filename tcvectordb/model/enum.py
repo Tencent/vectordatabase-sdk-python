@@ -14,6 +14,11 @@ class FieldType(Enum):
 
     # vector field type
     Vector = "vector"
+    # float16 vector
+    Float16Vector = "float16_vector"
+    # bfloat16 vector
+    BFloat16Vector = "bfloat16_vector"
+    # Binary Vector
     BinaryVector = "binary_vector"
     # sparse vector type
     SparseVector = "sparseVector"

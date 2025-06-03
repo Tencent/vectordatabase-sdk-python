@@ -22,8 +22,6 @@ from .rpc.client.stub import RPCVectorDBClient
 from .exceptions import VectorDBException
 
 
-__version__ = "0.0.3"
-
 __all__ = [
     "VectorDBClient",
     "VectorDBException",
