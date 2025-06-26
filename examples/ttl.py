@@ -29,8 +29,9 @@ index = Index()
 index.add(FilterIndex('id', FieldType.String, IndexType.PRIMARY_KEY))
 index.add(VectorIndex('vector', 32, IndexType.HNSW, MetricType.IP, HNSWParams(m=16, efconstruction=200)))
 index.add(FilterIndex('expire_at', FieldType.Uint64, index_type=IndexType.FILTER))
-coll = db.create_collection_if_not_exists(
-    name=coll_name,
+coll = vdb_client.create_collection_if_not_exists(
+    database_name=db_name,
+    collection_name=coll_name,
     shard=1,
     replicas=0,
     description='test collection',
@@ -45,7 +46,9 @@ print(coll.ttl_config)
 
 # upsert docs
 vecs: ndarray = np.random.rand(2, 32)
-res = coll.upsert(
+res = vdb_client.upsert(
+    database_name=db_name,
+    collection_name=coll_name,
     documents=[
         {
             'id': '0001',
@@ -64,7 +67,9 @@ print(res, flush=True)
 
 # query
 time.sleep(61*60)
-res = coll.query(document_ids=['0001', '0002'])
+res = vdb_client.query(database_name=db_name,
+                       collection_name=coll_name,
+                       document_ids=['0001', '0002'])
 print(res, flush=True)                      # doc(0002) is invalid and will not be searchable after it is cleared
 
 

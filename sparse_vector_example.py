@@ -1,9 +1,6 @@
 import json
 from typing import Optional, List
-from tcvectordb import exceptions
 import tcvectordb
-from tcvectordb.model.collection import Collection
-from tcvectordb.model.database import Database
 from tcvectordb.model.document import Document, AnnSearch, WeightedRerank, RRFRerank, KeywordSearch
 from tcvectordb.model.enum import FieldType, IndexType, MetricType, ReadConsistency
 from tcvectordb.model.index import Index, VectorIndex, FilterIndex, HNSWParams, SparseVector, SparseIndex
@@ -19,36 +16,26 @@ vecs: List[List[float]] = np.random.rand(5, 768).tolist()
 
 class Example:
 
-    def __init__(self, url: str, key: str, username: str = "root", timeout: int = 30):
+    def __init__(self,
+                 url: str,
+                 key: str,
+                 username: str = "root",
+                 timeout: int = 30,
+                 db_name: str ='python-sdk2-test-sparsevector',
+                 coll_name: str = 'sdk2_collection-sparsevector'):
         """Create VectorDBClient"""
         self._client = tcvectordb.RPCVectorDBClient(url=url,
                                                     username=username,
                                                     key=key,
                                                     read_consistency=ReadConsistency.EVENTUAL_CONSISTENCY,
                                                     timeout=timeout)
-        self.db: Optional[Database] = None
-        self.coll: Optional[Collection] = None
         self.bm25 = BM25Encoder.default('zh')
+        self.db_name = db_name
+        self.coll_name = coll_name
 
-    def create_database(self, db_name='python-sdk2-test-sparsevector') -> Database:
-        print('========1.1 Check and clean the Database with the same name', flush=True)
-        try:
-            db = self._client.database(db_name)
-            if db:
-                self._client.drop_database(db_name)
-        except exceptions.ParamError:
-            pass
-        print('========1.2 Create Database: {}'.format(db_name), flush=True)
-        db = self._client.create_database(db_name)
-        print("========1.3 List Database: ", flush=True)
-        database_list = self._client.list_databases()
-        for d in database_list:
-            print(d.database_name, flush=True)
-        return db
-
-    def link_database(self, db_name='python-sdk2-test-sparsevector'):
-        print('========1.1 Connect to an existing Database', flush=True)
-        return self._client.database(db_name)
+    def create_database(self):
+        print('========1.2 Create Database: {}'.format(self.db_name), flush=True)
+        self._client.create_database_if_not_exists(database_name=self.db_name)
 
     @staticmethod
     def get_index():
@@ -63,27 +50,23 @@ class Example:
                               ))
         return index
 
-    def create_collection(self, coll_name='sdk2_collection-sparsevector') -> Collection:
-        print('========2 Create Collection: {}'.format(coll_name), flush=True)
-        coll = self.db.create_collection(
-            name=coll_name,
+    def create_collection(self, ):
+        print('========2 Create Collection: {}'.format(self.coll_name), flush=True)
+        coll = self._client.create_collection_if_not_exists(
+            database_name=self.db_name,
+            collection_name=self.coll_name,
             shard=1,
             replicas=0,
             description='test collection',
             index=Example.get_index(),
-            timeout=100,
+            timeout=10,
         )
         print(vars(coll), flush=True)
-        return coll
-
-    def link_collection(self, coll_name='sdk2_collection-sparsevector') -> Collection:
-        print('========2 Connect to an existing Collection: {}'.format(coll_name), flush=True)
-        coll = self.db.collection(coll_name)
-        return coll
 
     def collection_info(self):
         print('========3 Describe Collection:', flush=True)
-        coll = self.db.describe_collection(self.coll.collection_name)
+        coll = self._client.describe_collection(database_name=self.db_name,
+                                                collection_name=self.coll_name)
         print(json.dumps(vars(coll), indent=2), flush=True)
 
     def upsert_data(self):
@@ -95,33 +78,39 @@ class Example:
             '腾讯云向量数据库可以和大语言模型 LLM 配合使用。企业的私域数据在经过文本分割、向量化后，可以存储在腾讯云向量数据库中，构建起企业专属的外部知识库，从而在后续的检索任务中，为大模型提供提示信息，辅助大模型生成更加准确的答案。',
         ])
         print('========4.1 Upsert docs:', flush=True)
-        res = self.coll.upsert(documents=[
-            Document(id='0001',
-                     vector=vecs[0],
-                     sparse_vector=sparse_vectors[0],
-                     ),
-            Document(id='0002',
-                     vector=vecs[1],
-                     sparse_vector=sparse_vectors[1],
-                     ),
-            Document(id='0003',
-                     vector=vecs[2],
-                     sparse_vector=sparse_vectors[2],
-                     ),
-            Document(id='0004',
-                     vector=vecs[3],
-                     sparse_vector=sparse_vectors[3],
-                     ),
-            Document(id='0005',
-                     vector=vecs[4],
-                     sparse_vector=sparse_vectors[4],
-                     )
-        ])
+        res = self._client.upsert(
+            database_name=self.db_name,
+            collection_name=self.coll_name,
+            documents=[
+                Document(id='0001',
+                         vector=vecs[0],
+                         sparse_vector=sparse_vectors[0],
+                         ),
+                Document(id='0002',
+                         vector=vecs[1],
+                         sparse_vector=sparse_vectors[1],
+                         ),
+                Document(id='0003',
+                         vector=vecs[2],
+                         sparse_vector=sparse_vectors[2],
+                         ),
+                Document(id='0004',
+                         vector=vecs[3],
+                         sparse_vector=sparse_vectors[3],
+                         ),
+                Document(id='0005',
+                         vector=vecs[4],
+                         sparse_vector=sparse_vectors[4],
+                         )
+            ]
+        )
         print(res, flush=True)
 
     def search(self):
         print('========5.1 HybridSearch:', flush=True)
-        res = self.coll.hybrid_search(
+        res = self._client.hybrid_search(
+            database_name=self.db_name,
+            collection_name=self.coll_name,
             ann=[
                 AnnSearch(
                     field_name="vector",
@@ -151,14 +140,12 @@ class Example:
 
     def delete_db(self):
         print('========6 Delete Database:', flush=True)
-        res = self._client.drop_database(self.db.database_name)
-        print(res, flush=True)
+        res = self._client.drop_database(self.db_name)
+        print(res)
 
     def example(self):
-        self.db = self.create_database()
-        self.coll = self.create_collection()
-        # self.db = example.link_database()
-        # self.coll = self.link_collection()
+        self.create_database()
+        self.create_collection()
         try:
             self.collection_info()
             self.upsert_data()
@@ -169,6 +156,6 @@ class Example:
 
 
 if __name__ == '__main__':
-    example = Example('vdb http url or ip and post', key='key get from web console', username='vdb username')
+    example = Example('vdb http url or ip and post', key='key get from web console', username='root')
     # example = Example('http://127.0.0.1:8100', key='vdb-key', username='root')
     example.example()

@@ -6,7 +6,7 @@ from tcvectordb.model.collection import Collection, FilterIndexConfig
 from tcvectordb.model.collection_view import Embedding
 from tcvectordb.model.document import Document, Filter, AnnSearch, KeywordSearch, Rerank
 from tcvectordb.model.enum import ReadConsistency
-from tcvectordb.model.index import Index
+from tcvectordb.model.index import Index, SparseVector
 
 
 class AsyncCollection(Collection):
@@ -275,6 +275,46 @@ class AsyncCollection(Collection):
             timeout=timeout,
             **kwargs)
 
+    async def fulltext_search(self,
+                              data: SparseVector,
+                              field_name: str = 'sparse_vector',
+                              filter: Union[Filter, str] = None,
+                              retrieve_vector: Optional[bool] = None,
+                              output_fields: Optional[List[str]] = None,
+                              limit: Optional[int] = None,
+                              terminate_after: Optional[int] = None,
+                              cutoff_frequency: Optional[float] = None,
+                              **kwargs) -> List[Dict]:
+        """Sparse Vector retrieval
+
+        Args:
+            database_name (str): The name of the database where the collection resides.
+            collection_name (str): The name of the collection
+            data (List[List[Union[int, float]]]): sparse vector to search.
+            field_name (str): Sparse Vector field name, default: sparse_vector
+            filter (Union[Filter, str]): The optional filter condition of the scalar index field.
+            retrieve_vector (bool):  Whether to return vector values.
+            output_fields (List[str]): document's fields to return.
+            limit (int): return TopK=limit document.
+            terminate_after(int): Set the upper limit for the number of retrievals.
+                    This can effectively control the rate. For large datasets, the recommended empirical value is 4000.
+            cutoff_frequency(float): Sets the upper limit for the frequency or occurrence count of high-frequency terms.
+                    If the term frequency exceeds the value of cutoffFrequency, the keyword is ignored.
+
+        Returns:
+            [List[Dict]: the list of the matched document
+        """
+        return super().fulltext_search(
+            data=data,
+            field_name=field_name,
+            filter=filter,
+            retrieve_vector=retrieve_vector,
+            output_fields=output_fields,
+            limit=limit,
+            terminate_after=terminate_after,
+            cutoff_frequency=cutoff_frequency,
+            **kwargs)
+
     async def delete(self,
                      document_ids: List[str] = None,
                      filter: Union[Filter, str] = None,
@@ -316,7 +356,8 @@ class AsyncCollection(Collection):
     async def rebuild_index(self,
                             drop_before_rebuild: bool = False,
                             throttle: Optional[int] = None,
-                            timeout: Optional[float] = None):
+                            timeout: Optional[float] = None,
+                            field_name: Optional[str] = None):
         """Rebuild all indexes under the specified collection.
 
         Args:
@@ -327,5 +368,10 @@ class AsyncCollection(Collection):
                             0: no limit.
             timeout (float): An optional duration of time in seconds to allow for the request.
                     When timeout is set to None, will use the connect timeout.
+            field_name (str): Specify the fields for the reconstructed index.
+                              One of vector or sparse_vector. Default vector.
         """
-        super().rebuild_index(drop_before_rebuild, throttle, timeout)
+        super().rebuild_index(drop_before_rebuild=drop_before_rebuild,
+                              throttle=throttle,
+                              timeout=timeout,
+                              field_name=field_name)

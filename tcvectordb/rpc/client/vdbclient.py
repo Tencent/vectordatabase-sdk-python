@@ -489,12 +489,15 @@ class VdbClient:
                         retrieve_vector: Optional[bool] = None,
                         output_fields: Optional[List[str]] = None,
                         limit: Optional[int] = None,
-                        timeout: Optional[float] = None,
+                        terminate_after: Optional[int] = None,
+                        cutoff_frequency: Optional[float] = None,
                         return_pd_object=False,
                         **kwargs) -> List[Union[Dict, olama_pb2.Document]]:
         match = KeywordSearch(
             field_name=field_name,
             data=data,
+            terminate_after=terminate_after,
+            cutoff_frequency=cutoff_frequency,
         )
         search, _ = self._search_cond(
             match=[match],
@@ -510,7 +513,7 @@ class VdbClient:
             readConsistency=self.read_consistency.value,
             search=search,
         )
-        res: olama_pb2.SearchResponse = self.rpc_client.fulltext_search(request, timeout=timeout)
+        res: olama_pb2.SearchResponse = self.rpc_client.fulltext_search(request)
         if res.warning:
             Warning(res.warning)
         rtl = []
@@ -666,13 +669,16 @@ class VdbClient:
                       collection_name: str,
                       drop_before_rebuild: bool = False,
                       throttle: Optional[int] = None,
-                      timeout: Optional[float] = None):
+                      timeout: Optional[float] = None,
+                      field_name: Optional[str] = None):
         req = olama_pb2.RebuildIndexRequest(database=database_name,
                                             collection=collection_name,
                                             dropBeforeRebuild=drop_before_rebuild,
                                             )
         if throttle is None:
             req.throttle = 1
+        if field_name:
+            req.fieldName = field_name
         self.rpc_client.rebuild_index(req=req, timeout=timeout)
 
     def _field2pb(self,
@@ -684,25 +690,26 @@ class VdbClient:
             column.indexType = index.indexType.value
         if hasattr(index, 'dimension') and index.dimension is not None:
             column.dimension = index.dimension
-        param = index.param if index.param else {}
-        param = vars(param) if hasattr(param, '__dict__') else param
-        if param.get('M') is not None:
-            if param.get('M') == 0:
-                raise ServerInternalError(code=15000,
-                                          message=f'The value of M cannot be 0.')
-            column.params.M = param.get('M')
-        if param.get('efConstruction') is not None:
-            if param.get('efConstruction') == 0:
-                raise ServerInternalError(code=15000,
-                                          message=f'The value of efConstruction cannot be 0.')
-            column.params.efConstruction = param.get('efConstruction')
-        if param.get('nprobe') is not None:
-            column.params.nprobe = param.get('nprobe')
-        if param.get('nlist') is not None:
-            if param.get('nlist') == 0:
-                raise ServerInternalError(code=15000,
-                                          message=f'The value of nlist cannot be 0.')
-            column.params.nlist = param.get('nlist', 0)
+        if hasattr(index, 'param') and index.param is not None:
+            param = index.param if index.param else {}
+            param = vars(param) if hasattr(param, '__dict__') else param
+            if param.get('M') is not None:
+                if param.get('M') == 0:
+                    raise ServerInternalError(code=15000,
+                                              message=f'The value of M cannot be 0.')
+                column.params.M = param.get('M')
+            if param.get('efConstruction') is not None:
+                if param.get('efConstruction') == 0:
+                    raise ServerInternalError(code=15000,
+                                              message=f'The value of efConstruction cannot be 0.')
+                column.params.efConstruction = param.get('efConstruction')
+            if param.get('nprobe') is not None:
+                column.params.nprobe = param.get('nprobe')
+            if param.get('nlist') is not None:
+                if param.get('nlist') == 0:
+                    raise ServerInternalError(code=15000,
+                                              message=f'The value of nlist cannot be 0.')
+                column.params.nlist = param.get('nlist', 0)
         if hasattr(index, 'metric_type') and index.metric_type is not None:
             column.metricType = index.metricType.value
 

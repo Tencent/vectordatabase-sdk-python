@@ -770,6 +770,73 @@ class Collection():
             documents_res = documents_res[0]
         return documents_res
 
+    def fulltext_search(self,
+                        data: SparseVector,
+                        field_name: str = 'sparse_vector',
+                        filter: Union[Filter, str] = None,
+                        retrieve_vector: Optional[bool] = None,
+                        output_fields: Optional[List[str]] = None,
+                        limit: Optional[int] = None,
+                        terminate_after: Optional[int] = None,
+                        cutoff_frequency: Optional[float] = None,
+                        **kwargs) -> List[Dict]:
+        """Sparse Vector retrieval
+
+        Args:
+            data (List[List[Union[int, float]]]): sparse vector to search.
+            field_name (str): Sparse Vector field name, default: sparse_vector
+            filter (Union[Filter, str]): The optional filter condition of the scalar index field.
+            retrieve_vector (bool):  Whether to return vector values.
+            output_fields (List[str]): document's fields to return.
+            limit (int): return TopK=limit document.
+            terminate_after(int): Set the upper limit for the number of retrievals.
+                    This can effectively control the rate. For large datasets, the recommended empirical value is 4000.
+            cutoff_frequency(float): Sets the upper limit for the frequency or occurrence count of high-frequency terms.
+                    If the term frequency exceeds the value of cutoffFrequency, the keyword is ignored.
+
+        Returns:
+            [List[Dict]: the list of the matched document
+        """
+        match = {
+            "fieldName": field_name,
+            "data": [data],
+        }
+        if terminate_after is not None:
+            match['terminateAfter'] = terminate_after
+        if cutoff_frequency is not None:
+            match['cutoffFrequency'] = cutoff_frequency
+        search = {
+            'match': match
+        }
+        if filter:
+            search['filter'] = filter if isinstance(filter, str) else filter.cond
+        if retrieve_vector is not None:
+            search['retrieveVector'] = retrieve_vector
+        if output_fields:
+            search['outputFields'] = output_fields
+        if limit is not None:
+            search['limit'] = limit
+        search.update(kwargs)
+        body = {
+            'database': self.database_name,
+            'collection': self.collection_name,
+            'readConsistency': self._read_consistency.value,
+            'search': search,
+        }
+        res = self._conn.post('/document/fullTextSearch', body)
+        if 'warning' in res.body:
+            Warning(res.body.get('warning'))
+        documents = res.body.get('documents', None)
+        if not documents:
+            return []
+        documents_res = []
+        for arr in documents:
+            tmp = []
+            for elem in arr:
+                tmp.append(elem)
+            documents_res.append(tmp)
+        return documents_res[0]
+
     def delete(self,
                document_ids: List[str] = None,
                filter: Union[Filter, str] = None,
@@ -904,7 +971,8 @@ class Collection():
     def rebuild_index(self,
                       drop_before_rebuild: bool = False,
                       throttle: Optional[int] = None,
-                      timeout: Optional[float] = None):
+                      timeout: Optional[float] = None,
+                      field_name: Optional[str] = None):
         """Rebuild all indexes under the specified collection.
 
         Args:
@@ -915,6 +983,8 @@ class Collection():
                             0: no limit.
             timeout (float): An optional duration of time in seconds to allow for the request.
                     When timeout is set to None, will use the connect timeout.
+            field_name (str): Specify the fields for the reconstructed index.
+                              One of vector or sparse_vector. Default vector.
         """
         if not self.database_name or not self.collection_name:
             raise exceptions.ParamError(message="database_name or collection_name is blank")
@@ -926,6 +996,8 @@ class Collection():
         }
         if throttle is not None:
             body['throttle'] = throttle
+        if field_name is not None:
+            body['fieldName'] = field_name
         self._conn.post('/index/rebuild', body, timeout)
 
     def add_index(self,
