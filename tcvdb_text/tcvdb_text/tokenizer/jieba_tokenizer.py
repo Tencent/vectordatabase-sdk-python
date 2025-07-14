@@ -1,3 +1,4 @@
+import logging
 import os
 from typing import List, Union, Dict, Any, Set, Callable, Optional
 
@@ -5,6 +6,8 @@ import jieba
 
 from tcvdb_text.hash import Hash
 from tcvdb_text.tokenizer import BaseTokenizer
+
+jieba.setLogLevel(log_level=logging.ERROR)
 
 
 class JiebaTokenizer(BaseTokenizer):
@@ -39,7 +42,7 @@ class JiebaTokenizer(BaseTokenizer):
                          stop_words=stop_words,
                          lower_case=lower_case,
                          dict_file=dict_file,
-                         kwargs=kwargs)
+                         **kwargs)
         self.cut_all = cut_all
         self.for_search = for_search
         self.HMM = HMM
@@ -64,7 +67,7 @@ class JiebaTokenizer(BaseTokenizer):
                                   stop_words=stop_words,
                                   lower_case=lower_case,
                                   dict_file=dict_file,
-                                  kwargs=kwargs)
+                                  **kwargs)
         self.cut_all = cut_all
         self.for_search = for_search
         self.HMM = HMM

@@ -15,13 +15,19 @@ class BaseTokenizer(object):
         self.stop_words = stop_words
         self.lower_case = lower_case
         self.dict_file = dict_file
-        self._stop_words = None if stop_words is None else StopWords(vocab=stop_words)
+        self.file_encoding = kwargs.get('file_encoding')
+        self._stop_words = None if stop_words is None else StopWords(vocab=stop_words,
+                                                                     file_encoding=self.file_encoding)
         self.kwargs = kwargs
 
     def set_stopwords(self,
-                      stop_words: Union[bool, str, Dict[str, Any], List[str], Set[str]] = True):
+                      stop_words: Union[bool, str, Dict[str, Any], List[str], Set[str]] = True,
+                      file_encoding: Optional[str] = None):
         self.stop_words = stop_words
-        self._stop_words = None if stop_words is None else StopWords(vocab=stop_words)
+        if file_encoding:
+            self.file_encoding = file_encoding
+        self._stop_words = None if stop_words is None else StopWords(vocab=stop_words,
+                                                                     file_encoding=self.file_encoding)
 
     def updated_parameter(self,
                           hash_function: Callable[[Union[str, int]], int],
@@ -34,7 +40,10 @@ class BaseTokenizer(object):
         self.stop_words = stop_words
         self.lower_case = lower_case
         self.dict_file = dict_file
-        self._stop_words = None if stop_words is None else StopWords(vocab=stop_words)
+        if kwargs.get('file_encoding'):
+            self.file_encoding = kwargs.get('file_encoding')
+        self._stop_words = None if stop_words is None else StopWords(vocab=stop_words,
+                                                                     file_encoding=self.file_encoding)
         self.kwargs = kwargs
 
     def get_parameter(self):
@@ -70,17 +79,20 @@ class BaseTokenizer(object):
 
 
 class StopWords(object):
-    def __init__(self, vocab: Union[bool, Dict[str, Any], List[str], Set[str]] = None):
-
+    def __init__(self, vocab: Union[bool, Dict[str, Any], List[str], Set[str]] = None,
+                 file_encoding: Optional[str] = "utf-8"):
+        if file_encoding is None:
+            file_encoding = "utf-8"
         self._set = set([])
         if isinstance(vocab, bool) and vocab is True:
-            with open(file=os.path.dirname(os.path.realpath(__file__)) + "/../data/stopwords.txt", mode="r", encoding="utf-8") as f:
+            with open(file=os.path.dirname(os.path.realpath(__file__)) + "/../data/stopwords.txt",
+                      mode="r", encoding="utf-8") as f:
                 for line in f:
                     self._set.add(line.rstrip())
         elif isinstance(vocab, str):
             if not os.path.isfile(vocab):
                 vocab = os.path.dirname(os.path.realpath(__file__)) + vocab
-            with open(file=vocab, mode="r") as f:
+            with open(file=vocab, mode="r", encoding=file_encoding) as f:
                 for line in f:
                     self._set.add(line.rstrip())
         elif isinstance(vocab, (dict, list)):

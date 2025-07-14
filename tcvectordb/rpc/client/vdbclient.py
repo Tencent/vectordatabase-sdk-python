@@ -1,9 +1,10 @@
+import math
 import time
 from typing import List, Union, Dict, Optional, Any
 
 import ujson
 from numpy import ndarray
-from tcvectordb.exceptions import ServerInternalError, ParamError
+from tcvectordb.exceptions import ServerInternalError, ParamError, GrpcException
 from tcvectordb.model.ai_database import AIDatabase
 from tcvectordb.model.collection import Embedding, FilterIndexConfig
 from tcvectordb.model.document import Document, Filter, AnnSearch, KeywordSearch, Rerank, WeightedRerank, RRFRerank
@@ -24,6 +25,7 @@ class VdbClient:
                  ):
         self.rpc_client = client
         self.read_consistency = read_consistency
+        self._split_cache = {}
 
     def close(self):
         self.rpc_client.close()
@@ -171,11 +173,52 @@ class VdbClient:
             query=query,
             readConsistency=self.read_consistency.value,
         )
-        result: olama_pb2.QueryResponse = self.rpc_client.query(request, timeout=timeout)
+        # result: olama_pb2.QueryResponse = self.rpc_client.query(request, timeout=timeout)
+        result: Optional[olama_pb2.QueryResponse] = None
+        key = f'query/{database_name}/{collection_name}/{retrieve_vector}'
+        split_size = self._split_cache.get(key, 16385*2)
+        if limit >= split_size:
+            result = self._query_batch(request, key=key, timeout=timeout, suggest_limit=math.ceil(split_size / 2))
+        else:
+            try:
+                result = self.rpc_client.query(request, timeout=timeout)
+            except GrpcException as e:
+                if "Received RST_STREAM with error code 3" in str(e) and "grpc_status:13" in str(e):
+                    self._split_cache[key] = limit
+                    result = self._query_batch(request, key=key, timeout=timeout, suggest_limit=math.ceil(limit / 2))
+                else:
+                    raise e
         res = []
         for d in result.documents:
             res.append(self._pb2doc(d))
         return res
+
+    def _query_batch(self, req: olama_pb2.QueryRequest,
+                     key: str,
+                     timeout: Optional[float] = None,
+                     suggest_limit: int = 512) -> olama_pb2.QueryResponse:
+        result: Optional[olama_pb2.QueryResponse] = None
+        ori_limit = req.query.limit
+        ori_offset = req.query.offset
+        for i in range(math.ceil(ori_limit / suggest_limit)):
+            offset = ori_offset + i * suggest_limit
+            limit = min(suggest_limit, ori_limit-i * suggest_limit)
+            req.query.limit = limit
+            req.query.offset = offset
+            try:
+                res: olama_pb2.QueryResponse = self.rpc_client.query(req, timeout=timeout)
+            except GrpcException as e:
+                if "Received RST_STREAM with error code 3" in str(e) and "grpc_status:13" in str(e):
+                    self._split_cache[key] = limit
+                    res: olama_pb2.QueryResponse = self._query_batch(req, key=key, timeout=timeout,
+                                                                     suggest_limit=math.ceil(suggest_limit/2))
+                else:
+                    raise e
+            if result is None:
+                result = res
+            else:
+                result.documents.extend(res.documents)
+        return result
 
     def count(self,
               database_name: str,
@@ -242,15 +285,19 @@ class VdbClient:
                             radius: Optional[float] = None,
                             ) -> Dict[str, Any]:
         search = olama_pb2.SearchCond()
+        batch = 0
         if vectors is not None:
             if isinstance(vectors, ndarray):
                 vectors = vectors.tolist()
             for v in vectors:
                 search.vectors.append(olama_pb2.VectorArray(vector=v))
+            batch = len(search.vectors)
         if document_ids is not None:
             search.documentIds.extend(document_ids)
+            batch = len(search.outputfields)
         if embedding_items is not None:
             search.embeddingItems.extend(embedding_items)
+            batch = len(search.embeddingItems)
         if params is not None:
             if not isinstance(params, dict):
                 params = vars(params)
@@ -280,7 +327,20 @@ class VdbClient:
             readConsistency=self.read_consistency.value,
             search=search,
         )
-        res: olama_pb2.SearchResponse = self.rpc_client.search(request, timeout=timeout)
+        # res: olama_pb2.SearchResponse = self.rpc_client.search(request, timeout=timeout)
+        key = f'search/{database_name}/{collection_name}/{batch}/{retrieve_vector}'
+        split_size = self._split_cache.get(key, 163840)
+        if limit >= split_size:
+            res = self._search_by_split(self.rpc_client.search, request, timeout=timeout)
+        else:
+            try:
+                res = self.rpc_client.search(request, timeout=timeout)
+            except GrpcException as e:
+                if "Received RST_STREAM with error code 3" in str(e) and "grpc_status:13" in str(e):
+                    self._split_cache[key] = limit
+                    res = self._search_by_split(self.rpc_client.search, request, timeout=timeout)
+                else:
+                    raise e
         rtl = []
         if return_pd_object:
             rtl = [r.documents for r in res.results]
@@ -432,16 +492,19 @@ class VdbClient:
                       return_pd_object=False,
                       **kwargs) -> List[List[Union[Dict, olama_pb2.Document]]]:
         single = True
+        batch = 0
         if ann:
             if isinstance(ann, List):
                 single = False
             else:
                 ann = [ann]
+            batch = len(ann)
         if match:
             if isinstance(match, List):
                 single = False
             else:
                 match = [match]
+            batch = len(match)
         search, ai = self._search_cond(
             ann=ann,
             match=match,
@@ -459,7 +522,21 @@ class VdbClient:
             readConsistency=self.read_consistency.value,
             search=search,
         )
-        res: olama_pb2.SearchResponse = self.rpc_client.hybrid_search(request, timeout=timeout, ai=ai)
+        # res: olama_pb2.SearchResponse = self.rpc_client.hybrid_search(request, timeout=timeout, ai=ai)
+        res: Optional[olama_pb2.SearchResponse] = None
+        key = f'hybrid_search/{database_name}/{collection_name}/{batch}/{retrieve_vector}'
+        split_size = self._split_cache.get(key, 163840)
+        if limit >= split_size:
+            res = self._search_by_split(self.rpc_client.hybrid_search, request, timeout=timeout, ai=ai)
+        else:
+            try:
+                res = self.rpc_client.hybrid_search(request, timeout=timeout, ai=ai)
+            except GrpcException as e:
+                if "Received RST_STREAM with error code 3" in str(e) and "grpc_status:13" in str(e):
+                    self._split_cache[key] = limit
+                    res = self._search_by_split(self.rpc_client.hybrid_search, request, timeout=timeout, ai=ai)
+                else:
+                    raise e
         if 'warning' in res.warning:
             Warning(res.warning)
         rtl = []
@@ -513,7 +590,20 @@ class VdbClient:
             readConsistency=self.read_consistency.value,
             search=search,
         )
-        res: olama_pb2.SearchResponse = self.rpc_client.fulltext_search(request)
+        res: Optional[olama_pb2.SearchResponse] = None
+        key = f'fulltext_search/{database_name}/{collection_name}/1/{retrieve_vector}'
+        split_size = self._split_cache.get(key, 163840)
+        if limit >= split_size:
+            res = self._search_by_split(self.rpc_client.fulltext_search, request)
+        else:
+            try:
+                res = self.rpc_client.fulltext_search(request)
+            except GrpcException as e:
+                if "Received RST_STREAM with error code 3" in str(e) and "grpc_status:13" in str(e):
+                    self._split_cache[key] = limit
+                    res = self._search_by_split(self.rpc_client.fulltext_search, request)
+                else:
+                    raise e
         if res.warning:
             Warning(res.warning)
         rtl = []
@@ -531,6 +621,45 @@ class VdbClient:
                         docs.append(self._pb2doc(d))
                 rtl.append(docs)
         return rtl[0]
+
+    def _search_by_split(self,
+                         function,
+                         req: olama_pb2.SearchRequest,
+                         timeout: Optional[float] = None,
+                         ai: bool = False,
+                         ) -> olama_pb2.SearchResponse:
+        output_fields = list(req.search.outputfields)
+        retrieve_vector = req.search.retrieveVector
+        for i in range(len(req.search.outputfields)):
+            req.search.outputfields.pop()
+        req.search.outputfields.append('id')
+        req.search.retrieveVector = False
+        res: olama_pb2.SearchResponse = function(req, timeout=timeout, ai=ai)
+        key = f'query/{req.database}/{req.collection}/{retrieve_vector}'
+        for batch in res.results:
+            query_req = olama_pb2.QueryRequest(
+                database=req.database,
+                collection=req.collection,
+                query=olama_pb2.QueryCond(
+                    retrieveVector=retrieve_vector,
+                    offset=0,
+                    outputFields=output_fields,
+                )
+            )
+            doc_ids = [doc.id for doc in batch.documents]
+            query_req.query.documentIds.extend(doc_ids)
+            query_req.query.limit = len(doc_ids)
+            query_limit = len(doc_ids)
+            split_size = self._split_cache.get(key, 16385 * 2)
+            while query_limit >= split_size:
+                query_limit = math.ceil(query_limit/2)
+            query_res = self._query_batch(query_req, key=key, suggest_limit=query_limit)
+            for i, doc in enumerate(query_res.documents):
+                doc.score = batch.documents[i].score
+            for i in range(len(batch.documents)):
+                batch.documents.pop()
+            batch.documents.extend(query_res.documents)
+        return res
 
     def _pb2doc(self, d: olama_pb2.Document) -> dict:
         doc = {

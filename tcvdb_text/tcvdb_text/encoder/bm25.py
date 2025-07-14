@@ -24,9 +24,11 @@ class BM25Encoder(BaseSparseEncoder):
         """
         Args:
             b (float): default = 0.75.
-                Controls the effect of document length on the calculation of the score. a larger b parameter indicates that the document length has a greater effect on the score, and vice versa.
+                Controls the effect of document length on the calculation of the score.
+                a larger b parameter indicates that the document length has a greater effect on the score, and vice versa.
             k1 (float): default = 1.2.
-                Controls the effect of query item frequency on the computed score. a larger k1 parameter indicates a larger effect of query item frequency on the score and vice versa.
+                Controls the effect of query item frequency on the computed score.
+                a larger k1 parameter indicates a larger effect of query item frequency on the score and vice versa.
             tokenizer: default = jieba tokenizer.
                 Support for user-defined incoming tokenize method.
         """
@@ -219,11 +221,13 @@ class BM25Encoder(BaseSparseEncoder):
         except Exception as e:
             raise RuntimeError("download params error: " + str(e))
 
-    def set_params(self, params_file: str = "./bm25_params.json"):
+    def set_params(self, params_file: str = "./bm25_params.json",
+                   file_encoding: Optional[str] = None):
         """设置BM25参数
 
         Args:
             params_file：参数文件，根据文件中的参数替换编码过程中的参数
+            file_encoding：stopwords文件文本编码，默认utf-8
         """
         if not isinstance(params_file, str):
             raise TypeError("input path must be str")
@@ -253,6 +257,7 @@ class BM25Encoder(BaseSparseEncoder):
                                          for_search=data.get('for_search', False),
                                          HMM=data.get('HMM', True),
                                          use_paddle=data.get('use_paddle', False),
+                                         file_encoding=file_encoding,
                                          )
         return self
 

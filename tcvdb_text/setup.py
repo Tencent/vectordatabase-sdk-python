@@ -4,7 +4,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='tcvdb_text',
-    version='1.1.1',
+    version='1.1.2',
     description='Tencent VectorDB Sparse Vector SDK',
     author='tencent vdb team',
     url='',
