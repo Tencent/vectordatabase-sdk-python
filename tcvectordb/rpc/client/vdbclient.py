@@ -177,7 +177,7 @@ class VdbClient:
         result: Optional[olama_pb2.QueryResponse] = None
         key = f'query/{database_name}/{collection_name}/{retrieve_vector}'
         split_size = self._split_cache.get(key, 16385*2)
-        if limit >= split_size:
+        if limit and limit >= split_size:
             result = self._query_batch(request, key=key, timeout=timeout, suggest_limit=math.ceil(split_size / 2))
         else:
             try:
@@ -526,7 +526,7 @@ class VdbClient:
         res: Optional[olama_pb2.SearchResponse] = None
         key = f'hybrid_search/{database_name}/{collection_name}/{batch}/{retrieve_vector}'
         split_size = self._split_cache.get(key, 163840)
-        if limit >= split_size:
+        if limit and limit >= split_size:
             res = self._search_by_split(self.rpc_client.hybrid_search, request, timeout=timeout, ai=ai)
         else:
             try:
@@ -593,7 +593,7 @@ class VdbClient:
         res: Optional[olama_pb2.SearchResponse] = None
         key = f'fulltext_search/{database_name}/{collection_name}/1/{retrieve_vector}'
         split_size = self._split_cache.get(key, 163840)
-        if limit >= split_size:
+        if limit and limit >= split_size:
             res = self._search_by_split(self.rpc_client.fulltext_search, request)
         else:
             try:
