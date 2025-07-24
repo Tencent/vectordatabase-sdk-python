@@ -1,4 +1,5 @@
 import random
+import threading
 from typing import Optional
 from urllib.parse import urlparse
 
@@ -30,6 +31,8 @@ class RPCClient:
         self.direct = False
         self.channels = [ self.create_stub(index=i) for i in range(pool_size)]
         self.stubs = [olama_pb2_grpc.SearchEngineStub(channel) for channel in self.channels]
+        self.lock = threading.Lock()
+        self.cursor = 0
 
     def create_stub(self, index=0):
         options = [
@@ -39,7 +42,14 @@ class RPCClient:
         return grpc.insecure_channel(self._address(self.url), options=options)
 
     def get_stub(self) -> olama_pb2_grpc.SearchEngineStub:
-        return self.stubs[random.randrange(self.pool_size)]
+        index = 0
+        if self.pool_size > 1:
+            with self.lock:
+                index = self.cursor
+                self.cursor += 1
+                if self.cursor >= self.pool_size:
+                    self.cursor = 0
+        return self.stubs[index]
 
     def close(self):
         for ch in self.channels:
