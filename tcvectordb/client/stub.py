@@ -9,7 +9,7 @@ from .httpclient import HTTPClient
 from tcvectordb.model.database import Database
 from tcvectordb import exceptions
 from tcvectordb.model.ai_database import AIDatabase
-from tcvectordb.model import permission
+from tcvectordb.model import permission, atomic_function
 from tcvectordb.model.collection import Collection, Embedding, FilterIndexConfig
 from tcvectordb.model.collection_view import SplitterProcess, ParsingProcess, CollectionView
 from tcvectordb.model.document import Document, Filter, AnnSearch, KeywordSearch, Rerank
@@ -1159,3 +1159,37 @@ class VectorDBClient:
             offset=offset,
             read_consistency=self._read_consistency,
         )
+
+    def embedding(self,
+                  model: str,
+                  data: Union[List[str]],
+                  params: Optional[Dict] = None,
+                  data_type: Optional[str] = None,
+                  ) -> Dict:
+        """Embedding API.
+
+        Args:
+            model (str): The model to use.
+            data (Union[List[str]): The data to embedding.
+            params (Dict): Model parameters, only required for certain models.
+                returnDenseVector (bool): Specifies whether to return a dense vector. Defaults to true.
+                returnSparseVector (bool): Specifies whether to return a sparse vector.
+                                    Currently, only the bge-m3 model supports sparse vectors.
+            data_type (str): Embedding data type, currently, only passing `text` is supported for text-embedding
+
+
+        Returns:
+            Dict: Return a dict, for example:
+           {
+             "code": 0,
+             "message": "Operation success"
+             "tokenUsed": 100,
+             "denseVector": [[0.12, 0.12, 0.12], [0.72, 0.72, 0.72]],
+             "sparseVector": [{'test': 0.08362077, 'text1': 0.08146}, {'test': 0.08362077, 'text2': 0.08146}]
+           }
+        """
+        return atomic_function.embedding(conn=self._conn,
+                                         model=model,
+                                         data=data,
+                                         params=params,
+                                         data_type=data_type)

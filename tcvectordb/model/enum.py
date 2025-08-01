@@ -47,6 +47,7 @@ class IndexType(Enum):
     IVF_SQ16 = "IVF_SQ16"
     BIN_FLAT = "BIN_FLAT"
     BIN_HNSW = "BIN_HNSW"
+    DISK_FLAT = "DISK_FLAT"
 
     # scalar index type
     PRIMARY_KEY = "primaryKey"

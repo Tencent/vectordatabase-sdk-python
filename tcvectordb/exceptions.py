@@ -7,10 +7,13 @@ class ErrorCode(IntEnum):
 
 
 class VectorDBException(Exception):
-    def __init__(self, code: int = ErrorCode.UNEXPECTED_ERROR, message: str = "") -> None:
+    def __init__(self, code: int = ErrorCode.UNEXPECTED_ERROR,
+                 message: str = "",
+                 req_id: str = None) -> None:
         super().__init__()
         self._code = code
         self._message = message
+        self.req_id = req_id
 
     @property
     def code(self):
@@ -21,7 +24,10 @@ class VectorDBException(Exception):
         return self._message
 
     def __str__(self) -> str:
-        return f"<{type(self).__name__}: (code={self.code}, message={self.message})>"
+        if self.req_id:
+            return f"<{type(self).__name__}: (code={self.code}, message={self.message}, requestId={self.req_id})>"
+        else:
+            return f"<{type(self).__name__}: (code={self.code}, message={self.message})>"
 
 
 class ParamError(VectorDBException):

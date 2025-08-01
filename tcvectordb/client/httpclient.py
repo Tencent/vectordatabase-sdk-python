@@ -31,6 +31,7 @@ class Response():
             response = res.json()
             self._code = int(response.get('code', 0))
             self._message = response.get('msg', '')
+            self.req_id = response.get('requestId', None)
             self._body = response
             # print debug message if set DebugEnable is True
             debug.Debug("Response %s, content=%s", path, response)
@@ -151,7 +152,7 @@ class HTTPClient:
         response = Response(path, res)
         if response.code != 0:
             raise ServerInternalError(
-                code=response.code, message=response.message)
+                code=response.code, message=response.message, req_id=response.req_id)
         return response
 
     """ wrap the requests post method
@@ -174,7 +175,7 @@ class HTTPClient:
         response = Response(path, res)
         if response.code != 0:
             raise ServerInternalError(
-                code=response.code, message=response.message)
+                code=response.code, message=response.message, req_id=response.req_id)
         return response
 
     def close(self):

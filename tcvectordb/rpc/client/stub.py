@@ -2,6 +2,7 @@ from typing import Optional, List, Union, Dict
 from numpy import ndarray
 from requests.adapters import HTTPAdapter
 
+from tcvectordb.model import atomic_function
 from tcvectordb.model.collection import Embedding, FilterIndexConfig
 from tcvectordb.model.collection_view import CollectionView, SplitterProcess, ParsingProcess
 from tcvectordb.model.index import VectorIndex, FilterIndex, SparseVector, Index, SparseIndex, IndexField
@@ -1175,3 +1176,37 @@ class RPCVectorDBClient(VectorDBClient):
             offset=offset,
             read_consistency=self.read_consistency,
         )
+
+    def embedding(self,
+                  model: str,
+                  data: Union[List[str]],
+                  params: Optional[Dict] = None,
+                  data_type: Optional[str] = None,
+                  ) -> Dict:
+        """Embedding API.
+
+        Args:
+            model (str): The model to use.
+            data (Union[List[str]): The data to embedding.
+            params (Dict): Model parameters, only required for certain models.
+                returnDenseVector (bool): Specifies whether to return a dense vector. Defaults to true.
+                returnSparseVector (bool): Specifies whether to return a sparse vector.
+                                    Currently, only the bge-m3 model supports sparse vectors.
+            data_type (str): Embedding data type, currently, only passing `text` is supported for text-embedding
+
+
+        Returns:
+            Dict: Return a dict, for example:
+           {
+             "code": 0,
+             "message": "Operation success"
+             "tokenUsed": 100,
+             "denseVector": [[0.12, 0.12, 0.12], [0.72, 0.72, 0.72]],
+             "sparseVector": [{'test': 0.08362077, 'text1': 0.08146}, {'test': 0.08362077, 'text2': 0.08146}]
+           }
+        """
+        return atomic_function.embedding(conn=self._get_http(),
+                                         model=model,
+                                         data=data,
+                                         params=params,
+                                         data_type=data_type)

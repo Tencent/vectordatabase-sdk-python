@@ -1,7 +1,20 @@
 # Changelog
 
+## 1.8.4
+* feat: Support embedding interface `embedding`.
+
+## 1.8.3
+* fix: Fix split big rpc response when limit is None.
+
+## 1.8.2
+* feat: The gRPC connection pool employs a round-robin policy.
+
+## 1.8.1
+* fix: Fixed the bug where the gRPC response body exceeded 4MB.
+* feat: The stopword file supports specifying the encoding format.
+
 ## 1.8.0
-* feat: support full-text search interface `fulltext_search`
+* feat: Support full-text search interface `fulltext_search`.
 * feat: The `rebuild_index` interface now includes a `field_name` parameter to control the rebuilding of dense vector or sparse vector indexes.
 
 ## 1.7.2
