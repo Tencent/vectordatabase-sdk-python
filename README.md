@@ -24,6 +24,45 @@ Python SDK for [Tencent Cloud VectorDB](https://cloud.tencent.com/product/vdb), 
  - [Create database instance](https://cloud.tencent.com/document/product/1709/94951)
  - [API Docs](https://cloud.tencent.com/document/product/1709/96724)
 
+### Basic Usage
+
+```python
+from tcvectordb import VectorDBClient
+
+# Initialize client
+client = VectorDBClient(
+    url="your-database-url",  
+    api_key="your-api-key"     
+)
+
+# Create a database
+db = client.create_database("my_database")
+
+# Create a collection with vector index
+collection = db.create_collection(
+    name="my_collection",
+    dimension=128,  
+    metric="cosine"  
+)
+
+# Insert documents with vectors
+documents = [
+    {"id": "1", "vector": [0.1] * 128, "text": "Sample document 1"},
+    {"id": "2", "vector": [0.2] * 128, "text": "Sample document 2"}
+]
+collection.upsert(documents)
+
+# Search for similar vectors
+results = collection.search(
+    vectors=[[0.1] * 128],  
+    limit=5,                 
+    output_fields=["text"] 
+)
+
+for result in results[0]:
+    print(f"ID: {result.id}, Text: {result.text}, Score: {result.score}")
+```
+
 ## 🔍 Examples
 
 Explore more examples in the [examples](./examples/) directory:
