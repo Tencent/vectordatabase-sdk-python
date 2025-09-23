@@ -18,3 +18,5 @@ pip install tcvectordb
 
 ### Example
 [example.py](example.py)
+### Example
+[example.py](example.py)
