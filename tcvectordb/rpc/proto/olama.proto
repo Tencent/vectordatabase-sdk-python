@@ -28,6 +28,7 @@ message Field {
         double val_double       = 3;
         StringArray val_str_arr = 4;
         bytes val_json          = 5;
+        int64 val_i64           = 6;
     }
 }
 
@@ -147,6 +148,8 @@ enum FieldType {
     TYPE_ARRAY        = 1;
     TYPE_UINT64       = 2;
     TYPE_JSON         = 3;
+    TYPE_INT64        = 4;
+    TYPE_DOUBLE       = 5;
 }
 
 enum FieldElementType {
@@ -261,6 +264,7 @@ message IndexParams {
     uint32 efConstruction = 2;
     uint32 nprobe         = 3;
     uint32 nlist          = 4;
+    optional uint32 bits  = 5;
 }
 
 message IndexColumn {
@@ -272,6 +276,7 @@ message IndexColumn {
     IndexParams params      = 8;
     string fieldElementType = 9; // 当fieldType为array时, 数组元素类型
     string autoId           = 10;
+    bool diskSwapEnable     = 11;
 };
 
 message indexStatus {

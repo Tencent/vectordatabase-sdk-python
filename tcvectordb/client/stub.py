@@ -13,7 +13,7 @@ from tcvectordb.model import permission, atomic_function
 from tcvectordb.model.collection import Collection, Embedding, FilterIndexConfig
 from tcvectordb.model.collection_view import SplitterProcess, ParsingProcess, CollectionView
 from tcvectordb.model.document import Document, Filter, AnnSearch, KeywordSearch, Rerank
-from tcvectordb.model.index import FilterIndex, VectorIndex, Index, IndexField, SparseVector
+from tcvectordb.model.index import FilterIndex, VectorIndex, Index, IndexField, SparseVector, SparseIndex
 
 
 class VectorDBClient:
@@ -881,7 +881,7 @@ class VectorDBClient:
     def modify_vector_index(self,
                             database_name: str,
                             collection_name: str,
-                            vector_indexes: List[VectorIndex],
+                            vector_indexes: List[Union[VectorIndex, SparseIndex]],
                             rebuild_rules: Optional[dict] = None,
                             timeout: Optional[float] = None) -> dict:
         """Adjust vector index parameters.
@@ -889,7 +889,7 @@ class VectorDBClient:
         Args:
             database_name (str): The name of the database where the collection resides.
             collection_name (str): The name of the collection
-            vector_indexes (List[FilterIndex]): The vector fields to adjust
+            vector_indexes (List[Union[VectorIndex, SparseIndex]]): The vector fields to adjust
             rebuild_rules (dict): Specified rebuild rules.
                     This interface will trigger a rebuild after adjusting the parameters.
                     For example: {"drop_before_rebuild": True , "throttle": 1}

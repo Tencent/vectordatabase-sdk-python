@@ -11,6 +11,8 @@ class FieldType(Enum):
     String = "string"
     Array = "array"
     Json = "json"
+    Double = "double"
+    Int64 = "int64"
 
     # vector field type
     Vector = "vector"
@@ -48,6 +50,7 @@ class IndexType(Enum):
     BIN_FLAT = "BIN_FLAT"
     BIN_HNSW = "BIN_HNSW"
     DISK_FLAT = "DISK_FLAT"
+    IVF_RABITQ = "IVF_RABITQ"
 
     # scalar index type
     PRIMARY_KEY = "primaryKey"

@@ -61,6 +61,24 @@ class IVFSQ16Params(IVFSQ8Params):
     """IVF_SQ16 params"""
 
 
+class IVFRABITQParams:
+    """IVF_RABITQ params"""
+    def __init__(self,
+                 nlist: int,
+                 bits: Optional[int] = None):
+        self.nlist = nlist
+        self.bits = bits
+
+    @property
+    def __dict__(self):
+        res = {
+            'nlist': self.nlist,
+        }
+        if self.bits is not None:
+            res['bits'] = self.bits
+        return res
+
+
 class IndexField:
     def __init__(self,
                  name: str,
@@ -206,12 +224,16 @@ class SparseIndex(IndexField):
                  field_type: FieldType = FieldType.SparseVector,
                  index_type: IndexType = IndexType.SPARSE_INVERTED,
                  metric_type: MetricType = MetricType.IP,
+                 # disk_swap_enabled: Optional[bool] = None,
                  **kwargs) -> None:
         super().__init__(name=name,
                          field_type=field_type,
                          index_type=index_type)
         self.kwargs = kwargs
         self.metric_type = metric_type
+        # self.disk_swap_enabled = disk_swap_enabled
+        # if self.disk_swap_enabled is None:
+        #     self.disk_swap_enabled = True
 
     @property
     def metricType(self):
@@ -221,6 +243,8 @@ class SparseIndex(IndexField):
     def __dict__(self):
         obj = super().__dict__
         obj['metricType'] = self.metric_type.value
+        # if self.disk_swap_enabled is not None:
+        #     obj['diskSwapEnabled'] = self.disk_swap_enabled
         obj.update(self.kwargs)
         return obj
 
@@ -264,6 +288,7 @@ class Index:
                     field_type=FieldType(field_type),
                     index_type=IndexType(kwargs.pop('indexType', None)),
                     metric_type=None if metric_type is None else MetricType(metric_type),
+                    disk_swap_enabled=kwargs.pop('diskSwapEnabled', None),
                     **kwargs,
                 )
             else:

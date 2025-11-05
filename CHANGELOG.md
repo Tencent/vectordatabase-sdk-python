@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.8.5
+* feat: Support new IndexType `IVF_RABITQ`.
+* feat: Support new FieldType Double and Int64.
+
 ## 1.8.4
 * feat: Support embedding interface `embedding`.
 

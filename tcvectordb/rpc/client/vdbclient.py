@@ -681,6 +681,8 @@ class VdbClient:
                 doc[k] = v.val_u64
             elif v.HasField('val_double'):
                 doc[k] = v.val_double
+            elif v.HasField('val_i64'):
+                doc[k] = v.val_i64
             elif v.HasField('val_str_arr'):
                 arr = []
                 for a in v.val_str_arr.str_arr:
@@ -709,9 +711,13 @@ class VdbClient:
                         term_id=sp[0],
                         score=sp[1],
                     ))
+            elif isinstance(v, float):
+                if math.isnan(v):
+                    raise ParamError(message='The value NaN is not supported for float.')
+                d.fields[k].val_double = v
             elif isinstance(v, int):
                 if v < 0:
-                    d.fields[k].val_double = v
+                    d.fields[k].val_i64 = v
                 else:
                     d.fields[k].val_u64 = v
             elif isinstance(v, str):
@@ -723,8 +729,6 @@ class VdbClient:
                 d.fields[k].val_str_arr.str_arr.extend(al)
             elif isinstance(v, dict):
                 d.fields[k].val_json = bytes(ujson.dumps(v), encoding='utf-8')
-            elif isinstance(v, float):
-                d.fields[k].val_double = v
         return d
 
     def create_database(self, database_name: str, timeout: Optional[float] = None) -> RPCDatabase:
@@ -841,6 +845,8 @@ class VdbClient:
                 column.params.nlist = param.get('nlist', 0)
         if hasattr(index, 'metric_type') and index.metric_type is not None:
             column.metricType = index.metricType.value
+        if isinstance(index, SparseIndex) and index.disk_swap_enabled is not None:
+            column.diskSwapEnable = index.disk_swap_enabled
 
     def add_index(self,
                   database_name: str,
@@ -882,7 +888,7 @@ class VdbClient:
     def modify_vector_index(self,
                             database_name: str,
                             collection_name: str,
-                            vector_indexes: List[VectorIndex],
+                            vector_indexes: List[Union[VectorIndex, SparseIndex]],
                             rebuild_rules: Optional[dict] = None,
                             timeout: Optional[float] = None) -> dict:
         """Adjust vector index parameters."""
@@ -949,12 +955,15 @@ class VdbClient:
                     column.params.efConstruction = param.get('efConstruction', 0)
                     column.params.nprobe = param.get('nprobe', 0)
                     column.params.nlist = param.get('nlist', 0)
+                    column.params.bits = param.get('bits', 0)
                 if hasattr(f_item, 'metric_type') and f_item.metric_type is not None:
                     column.metricType = f_item.metricType.value
                 if f_item.field_type == FieldType.Array:
                     column.fieldElementType = 'string'
                 if hasattr(f_item, 'auto_id') and f_item.auto_id is not None:
                     column.autoId = f_item.auto_id
+                if hasattr(f_item, 'disk_swap_enabled') and f_item.disk_swap_enabled is not None:
+                    column.diskSwapEnable = f_item.disk_swap_enabled
         if embedding is not None:
             emb = vars(embedding)
             req.embeddingParams.field = emb.get('field')
@@ -1043,10 +1052,17 @@ class VdbClient:
                     params['nlist'] = f_item.params.nlist
                 if f_item.params.efConstruction:
                     params['efConstruction'] = f_item.params.efConstruction
+                if f_item.params.bits:
+                    params['bits'] = f_item.params.bits
                 if params:
                     field['params'] = params
-            if f_item.fieldType == FieldType.Vector.value or f_item.fieldType == FieldType.BinaryVector.value:
+            if f_item.fieldType == FieldType.Vector.value or \
+                    f_item.fieldType == FieldType.BinaryVector.value or \
+                    f_item.fieldType == FieldType.Float16Vector.value or \
+                    f_item.fieldType == FieldType.BFloat16Vector.value:
                 field['indexedCount'] = pb.size
+            if f_item.fieldType == FieldType.SparseVector.value:
+                field['diskSwapEnabled'] = f_item.diskSwapEnable
             index.add(**field)
         embedding = None
         if pb.embeddingParams:
