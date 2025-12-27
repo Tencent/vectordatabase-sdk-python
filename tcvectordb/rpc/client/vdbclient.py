@@ -846,7 +846,7 @@ class VdbClient:
         if hasattr(index, 'metric_type') and index.metric_type is not None:
             column.metricType = index.metricType.value
         if isinstance(index, SparseIndex) and index.disk_swap_enabled is not None:
-            column.diskSwapEnable = index.disk_swap_enabled
+            column.diskSwapEnabled = index.disk_swap_enabled
 
     def add_index(self,
                   database_name: str,
@@ -963,7 +963,7 @@ class VdbClient:
                 if hasattr(f_item, 'auto_id') and f_item.auto_id is not None:
                     column.autoId = f_item.auto_id
                 if hasattr(f_item, 'disk_swap_enabled') and f_item.disk_swap_enabled is not None:
-                    column.diskSwapEnable = f_item.disk_swap_enabled
+                    column.diskSwapEnabled = f_item.disk_swap_enabled
         if embedding is not None:
             emb = vars(embedding)
             req.embeddingParams.field = emb.get('field')
@@ -1062,7 +1062,7 @@ class VdbClient:
                     f_item.fieldType == FieldType.BFloat16Vector.value:
                 field['indexedCount'] = pb.size
             if f_item.fieldType == FieldType.SparseVector.value:
-                field['diskSwapEnabled'] = f_item.diskSwapEnable
+                field['diskSwapEnabled'] = f_item.diskSwapEnabled
             index.add(**field)
         embedding = None
         if pb.embeddingParams:

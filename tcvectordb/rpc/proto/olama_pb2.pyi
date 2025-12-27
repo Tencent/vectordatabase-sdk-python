@@ -477,7 +477,7 @@ class IndexParams(_message.Message):
     def __init__(self, M: _Optional[int] = ..., efConstruction: _Optional[int] = ..., nprobe: _Optional[int] = ..., nlist: _Optional[int] = ..., bits: _Optional[int] = ...) -> None: ...
 
 class IndexColumn(_message.Message):
-    __slots__ = ["fieldName", "fieldType", "indexType", "dimension", "metricType", "params", "fieldElementType", "autoId", "diskSwapEnable"]
+    __slots__ = ["fieldName", "fieldType", "indexType", "dimension", "metricType", "params", "fieldElementType", "autoId", "diskSwapEnabled"]
     FIELDNAME_FIELD_NUMBER: _ClassVar[int]
     FIELDTYPE_FIELD_NUMBER: _ClassVar[int]
     INDEXTYPE_FIELD_NUMBER: _ClassVar[int]
@@ -486,7 +486,7 @@ class IndexColumn(_message.Message):
     PARAMS_FIELD_NUMBER: _ClassVar[int]
     FIELDELEMENTTYPE_FIELD_NUMBER: _ClassVar[int]
     AUTOID_FIELD_NUMBER: _ClassVar[int]
-    DISKSWAPENABLE_FIELD_NUMBER: _ClassVar[int]
+    DISKSWAPENABLED_FIELD_NUMBER: _ClassVar[int]
     fieldName: str
     fieldType: str
     indexType: str
@@ -495,8 +495,8 @@ class IndexColumn(_message.Message):
     params: IndexParams
     fieldElementType: str
     autoId: str
-    diskSwapEnable: bool
-    def __init__(self, fieldName: _Optional[str] = ..., fieldType: _Optional[str] = ..., indexType: _Optional[str] = ..., dimension: _Optional[int] = ..., metricType: _Optional[str] = ..., params: _Optional[_Union[IndexParams, _Mapping]] = ..., fieldElementType: _Optional[str] = ..., autoId: _Optional[str] = ..., diskSwapEnable: bool = ...) -> None: ...
+    diskSwapEnabled: bool
+    def __init__(self, fieldName: _Optional[str] = ..., fieldType: _Optional[str] = ..., indexType: _Optional[str] = ..., dimension: _Optional[int] = ..., metricType: _Optional[str] = ..., params: _Optional[_Union[IndexParams, _Mapping]] = ..., fieldElementType: _Optional[str] = ..., autoId: _Optional[str] = ..., diskSwapEnabled: bool = ...) -> None: ...
 
 class indexStatus(_message.Message):
     __slots__ = ["status", "progress", "startTime"]
@@ -989,14 +989,6 @@ class Filter(_message.Message):
     size: int
     expose_data: ExposeData
     def __init__(self, expr: _Optional[str] = ..., radius: _Optional[float] = ..., size: _Optional[int] = ..., expose_data: _Optional[_Union[ExposeData, _Mapping]] = ...) -> None: ...
-
-class RoaringBinary(_message.Message):
-    __slots__ = ["size", "data"]
-    SIZE_FIELD_NUMBER: _ClassVar[int]
-    DATA_FIELD_NUMBER: _ClassVar[int]
-    size: int
-    data: bytes
-    def __init__(self, size: _Optional[int] = ..., data: _Optional[bytes] = ...) -> None: ...
 
 class SearchResponse(_message.Message):
     __slots__ = ["code", "msg", "redirect", "results", "warning", "embedding_extra_info"]

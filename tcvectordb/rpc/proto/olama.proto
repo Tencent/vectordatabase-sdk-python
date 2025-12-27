@@ -276,7 +276,7 @@ message IndexColumn {
     IndexParams params      = 8;
     string fieldElementType = 9; // 当fieldType为array时, 数组元素类型
     string autoId           = 10;
-    bool diskSwapEnable     = 11;
+    bool diskSwapEnabled    = 11;
 };
 
 message indexStatus {
@@ -554,11 +554,6 @@ message Filter {
     float radius           = 2; // 距离过滤
     uint32 size            = 3; // 设置分片返回的结果数量,需要小于整体返回的数量
     ExposeData expose_data = 4; // 曝光过滤
-}
-
-message RoaringBinary {
-    int64 size = 1;
-    bytes data = 2;
 }
 
 message SearchResponse {

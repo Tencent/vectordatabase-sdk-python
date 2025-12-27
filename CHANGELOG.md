@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.0.0
+* feat: Sparse vectors support disk indexing. Add a field called `diskSwapEnabled` to control whether it is enabled or not.
+
 ## 1.8.5
 * feat: Support new IndexType `IVF_RABITQ`.
 * feat: Support new FieldType Double and Int64.

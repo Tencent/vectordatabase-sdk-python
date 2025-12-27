@@ -217,6 +217,7 @@ class SparseIndex(IndexField):
         field_type(FieldType): The scalar field type of the index.
         index_type(IndexType): The scalar index type of the index.
         metric_type(MetricType): The metric type of the vector index.
+        disk_swap_enabled(bool): Control whether to enable disk indexing.
     """
 
     def __init__(self,
@@ -224,16 +225,14 @@ class SparseIndex(IndexField):
                  field_type: FieldType = FieldType.SparseVector,
                  index_type: IndexType = IndexType.SPARSE_INVERTED,
                  metric_type: MetricType = MetricType.IP,
-                 # disk_swap_enabled: Optional[bool] = None,
+                 disk_swap_enabled: Optional[bool] = None,
                  **kwargs) -> None:
         super().__init__(name=name,
                          field_type=field_type,
                          index_type=index_type)
         self.kwargs = kwargs
         self.metric_type = metric_type
-        # self.disk_swap_enabled = disk_swap_enabled
-        # if self.disk_swap_enabled is None:
-        #     self.disk_swap_enabled = True
+        self.disk_swap_enabled = disk_swap_enabled
 
     @property
     def metricType(self):
@@ -243,8 +242,8 @@ class SparseIndex(IndexField):
     def __dict__(self):
         obj = super().__dict__
         obj['metricType'] = self.metric_type.value
-        # if self.disk_swap_enabled is not None:
-        #     obj['diskSwapEnabled'] = self.disk_swap_enabled
+        if self.disk_swap_enabled is not None:
+            obj['diskSwapEnabled'] = self.disk_swap_enabled
         obj.update(self.kwargs)
         return obj
 
