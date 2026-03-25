@@ -1,12 +1,15 @@
 import random
 import threading
-from typing import Optional
+from typing import Optional, List, Tuple, Any
 from urllib.parse import urlparse
+from pathlib import Path
 
 import grpc
 from tcvectordb import debug
 from tcvectordb.exceptions import ServerInternalError, GrpcException
 from tcvectordb.rpc.proto import olama_pb2_grpc, olama_pb2
+from tcvectordb.client.tls import TLSConfig
+from tcvectordb.client.tls import _is_ip_hostname
 from google.protobuf import json_format
 
 
@@ -20,6 +23,7 @@ class RPCClient:
                  timeout: float = 10,
                  password: Optional[str] = None,
                  pool_size: int = 1,
+                 tls_config: Optional[TLSConfig] = None,
                  **kwargs):
         self.url = url
         if password is None:
@@ -28,6 +32,7 @@ class RPCClient:
         self.headers = [('authorization', authorization)]
         self.timeout = timeout
         self.pool_size = pool_size
+        self.tls_config = tls_config
         self.direct = False
         self.channels = [ self.create_stub(index=i) for i in range(pool_size)]
         self.stubs = [olama_pb2_grpc.SearchEngineStub(channel) for channel in self.channels]
@@ -35,11 +40,39 @@ class RPCClient:
         self.cursor = 0
 
     def create_stub(self, index=0):
-        options = [
+        options = self._build_grpc_options(index)
+        address = self._address(self.url)
+        return self._create_grpc_channel(address, options)
+
+    def _build_grpc_options(self, index: int) -> List[Tuple[str, Any]]:
+        options: List[Tuple[str, Any]] = [
             ('grpc.max_send_message_length', 100 * 1024 * 1024 + index),
             ('grpc.max_receive_message_length', 100 * 1024 * 1024 + index)
         ]
-        return grpc.insecure_channel(self._address(self.url), options=options)
+        return options
+
+    def _create_grpc_channel(self, address: str, options: List[Tuple[str, Any]]):
+        # NOTE: grpc Python does not provide an official way to disable certificate verification
+        # while keeping TLS. If user sets skip_verify=True, we fall back to insecure channel.
+        if not self.tls_config or self.tls_config.skip_verify:
+            return grpc.insecure_channel(address, options=options)
+
+        if _is_ip_hostname(address):
+            options.append(('grpc.ssl_target_name_override', self.tls_config.service_name))
+        credentials = self._create_grpc_ssl_credentials()
+        return grpc.secure_channel(address, credentials, options=options)
+
+    def _create_grpc_ssl_credentials(self):
+        if self.tls_config and self.tls_config.ca_cert_path:
+            ca_cert = Path(self.tls_config.ca_cert_path)
+            if not ca_cert.exists():
+                raise FileNotFoundError(f"ca cert file not exist: {self.tls_config.ca_cert_path}")
+
+            with open(self.tls_config.ca_cert_path, 'rb') as f:
+                ca_cert_bytes = f.read()
+                return grpc.ssl_channel_credentials(root_certificates=ca_cert_bytes)
+
+        return grpc.ssl_channel_credentials()
 
     def get_stub(self) -> olama_pb2_grpc.SearchEngineStub:
         index = 0
@@ -69,8 +102,11 @@ class RPCClient:
 
     def _address(self, url: str):
         _url = urlparse(url)
-        if _url.port is None:
+        if _url.scheme == 'http' and _url.port is None:
             url = '{}:80'.format(url)
+        elif _url.scheme == 'https' and _url.port is None:
+            url = '{}:443'.format(url)
+
         return url.replace('http://', '').replace('https://', '')
 
     def upsert(self,

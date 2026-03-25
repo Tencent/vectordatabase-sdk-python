@@ -6,7 +6,7 @@ from requests.adapters import HTTPAdapter
 from tcvectordb import VectorDBClient, exceptions
 from tcvectordb.asyncapi.model.ai_database import AsyncAIDatabase
 from tcvectordb.asyncapi.model.database import AsyncDatabase
-from tcvectordb.model.collection import Embedding, FilterIndexConfig, Collection
+from tcvectordb.model.collection import Embedding, FilterIndexConfig, Collection, Aggregate
 from tcvectordb.model.document import Document, Filter, AnnSearch, KeywordSearch, Rerank
 from tcvectordb.model.enum import ReadConsistency
 from tcvectordb.model.index import FilterIndex, VectorIndex, Index, IndexField, SparseVector, SparseIndex
@@ -531,6 +531,7 @@ class AsyncVectorDBClient(VectorDBClient):
                      output_fields: Optional[List[str]] = None,
                      timeout: Optional[float] = None,
                      radius: Optional[float] = None,
+                     aggregate: Optional[Union[Dict, Aggregate]] = None,
                      ) -> List[List[Dict]]:
         """Search the most similar vector by the given vectors. Batch API
 
@@ -552,6 +553,7 @@ class AsyncVectorDBClient(VectorDBClient):
                             IP: return when score >= radius, value range (-∞, +∞).
                             COSINE: return when score >= radius, value range [-1, 1].
                             L2: return when score <= radius, value range [0, +∞).
+            aggregate: (dict): aggregate parameter.
 
         Returns:
             List[List[Dict]]: Return the most similar document for each vector.
@@ -567,6 +569,7 @@ class AsyncVectorDBClient(VectorDBClient):
             output_fields=output_fields,
             timeout=timeout,
             radius=radius,
+            aggregate=aggregate,
         )
 
     async def search_by_id(self,
@@ -580,6 +583,7 @@ class AsyncVectorDBClient(VectorDBClient):
                            output_fields: Optional[List[str]] = None,
                            timeout: Optional[float] = None,
                            radius: Optional[float] = None,
+                           aggregate: Optional[Union[Dict, Aggregate]] = None,
                            ) -> List[List[Dict]]:
         """Search the most similar vector by id. Batch API
 
@@ -601,6 +605,7 @@ class AsyncVectorDBClient(VectorDBClient):
                             IP: return when score >= radius, value range (-∞, +∞).
                             COSINE: return when score >= radius, value range [-1, 1].
                             L2: return when score <= radius, value range [0, +∞).
+            aggregate: (dict): aggregate parameter.
 
         Returns:
             List[List[Dict]]: Return the most similar document for each id.
@@ -616,6 +621,7 @@ class AsyncVectorDBClient(VectorDBClient):
             output_fields=output_fields,
             timeout=timeout,
             radius=radius,
+            aggregate=aggregate,
         )
 
     async def search_by_text(self,
@@ -629,6 +635,7 @@ class AsyncVectorDBClient(VectorDBClient):
                              output_fields: Optional[List[str]] = None,
                              timeout: Optional[float] = None,
                              radius: Optional[float] = None,
+                             aggregate: Optional[Union[Dict, Aggregate]] = None,
                              ) -> Dict[str, Any]:
         """Search the most similar vector by the embeddingItem. Batch API
         The embedding_items will first be embedded into a vector by the model set by the collection on the server side.
@@ -651,6 +658,7 @@ class AsyncVectorDBClient(VectorDBClient):
                             IP: return when score >= radius, value range (-∞, +∞).
                             COSINE: return when score >= radius, value range [-1, 1].
                             L2: return when score <= radius, value range [0, +∞).
+            aggregate: (dict): aggregate parameter.
 
         Returns:
             List[List[Dict]]: Return the most similar document for each embedding_item.
@@ -666,6 +674,7 @@ class AsyncVectorDBClient(VectorDBClient):
             output_fields=output_fields,
             timeout=timeout,
             radius=radius,
+            aggregate=aggregate,
         )
 
     async def hybrid_search(self,

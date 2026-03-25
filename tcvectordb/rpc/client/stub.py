@@ -3,7 +3,7 @@ from numpy import ndarray
 from requests.adapters import HTTPAdapter
 
 from tcvectordb.model import atomic_function
-from tcvectordb.model.collection import Embedding, FilterIndexConfig
+from tcvectordb.model.collection import Embedding, FilterIndexConfig, Aggregate
 from tcvectordb.model.collection_view import CollectionView, SplitterProcess, ParsingProcess
 from tcvectordb.model.index import VectorIndex, FilterIndex, SparseVector, Index, SparseIndex, IndexField
 from tcvectordb.rpc.model.collection import RPCCollection
@@ -16,6 +16,7 @@ from tcvectordb.model.document import Document, Filter, AnnSearch, KeywordSearch
 from tcvectordb.model.enum import ReadConsistency
 from tcvectordb.rpc.client.rpcclient import RPCClient
 from tcvectordb.rpc.client.vdbclient import VdbClient
+from tcvectordb.client.tls import TLSConfig
 from tcvectordb.rpc.model.database import RPCDatabase
 
 
@@ -35,6 +36,7 @@ class RPCVectorDBClient(VectorDBClient):
                  pool_size: int = 1,
                  proxies: Optional[dict] = None,
                  password: Optional[str] = None,
+                 tls_config: Optional[TLSConfig] = None,
                  **kwargs):
         self.url = url
         self.username = username
@@ -45,12 +47,14 @@ class RPCVectorDBClient(VectorDBClient):
         self.proxies = proxies
         self.read_consistency = read_consistency
         self.password = password
+        self.tls_config = tls_config
         rpc_client = RPCClient(url=url,
                                username=username,
                                key=key,
                                timeout=timeout,
                                password=password,
                                pool_size=pool_size,
+                               tls_config=tls_config,
                                **kwargs)
         self.http: Optional[HTTPClient] = None
         self.vdb_client = VdbClient(client=rpc_client, read_consistency=read_consistency)
@@ -65,7 +69,8 @@ class RPCVectorDBClient(VectorDBClient):
                                    timeout=self.timeout,
                                    adapter=self.adapter,
                                    pool_size=pool_size,
-                                   proxies=self.proxies)
+                                   proxies=self.proxies,
+                                   tls_config=self.tls_config)
         return self.http
 
     def create_database(self, database_name: str, timeout: Optional[float] = None) -> RPCDatabase:
@@ -581,6 +586,7 @@ class RPCVectorDBClient(VectorDBClient):
                timeout: Optional[float] = None,
                return_pd_object=False,
                radius: Optional[float] = None,
+               aggregate: Optional[Union[Dict, Aggregate]] = None,
                ) -> List[List[Union[Dict, olama_pb2.Document]]]:
         """Search the most similar vector by the given vectors. Batch API
 
@@ -603,6 +609,7 @@ class RPCVectorDBClient(VectorDBClient):
                             IP: return when score >= radius, value range (-∞, +∞).
                             COSINE: return when score >= radius, value range [-1, 1].
                             L2: return when score <= radius, value range [0, +∞).
+            aggregate: (dict): aggregate parameter.
 
         Returns:
             List[List[Dict]]: Return the most similar document for each vector.
@@ -619,6 +626,7 @@ class RPCVectorDBClient(VectorDBClient):
             timeout=timeout,
             return_pd_object=return_pd_object,
             radius=radius,
+            aggregate=aggregate,
         )
 
     def search_by_id(self,
@@ -633,6 +641,7 @@ class RPCVectorDBClient(VectorDBClient):
                      timeout: Optional[float] = None,
                      return_pd_object=False,
                      radius: Optional[float] = None,
+                     aggregate: Optional[Union[Dict, Aggregate]] = None,
                      ) -> List[List[Union[Dict, olama_pb2.Document]]]:
         """Search the most similar vector by id. Batch API
 
@@ -655,6 +664,7 @@ class RPCVectorDBClient(VectorDBClient):
                             IP: return when score >= radius, value range (-∞, +∞).
                             COSINE: return when score >= radius, value range [-1, 1].
                             L2: return when score <= radius, value range [0, +∞).
+            aggregate: (dict): aggregate parameter.
 
         Returns:
             List[List[Dict]]: Return the most similar document for each id.
@@ -671,6 +681,7 @@ class RPCVectorDBClient(VectorDBClient):
             timeout=timeout,
             return_pd_object=return_pd_object,
             radius=radius,
+            aggregate=aggregate,
         )
 
     def search_by_text(self,
@@ -685,6 +696,7 @@ class RPCVectorDBClient(VectorDBClient):
                        timeout: Optional[float] = None,
                        return_pd_object=False,
                        radius: Optional[float] = None,
+                       aggregate: Optional[Union[Dict, Aggregate]] = None,
                        ) -> List[List[Union[Dict, olama_pb2.Document]]]:
         """Search the most similar vector by the embeddingItem. Batch API
         The embedding_items will first be embedded into a vector by the model set by the collection on the server side.
@@ -708,6 +720,7 @@ class RPCVectorDBClient(VectorDBClient):
                             IP: return when score >= radius, value range (-∞, +∞).
                             COSINE: return when score >= radius, value range [-1, 1].
                             L2: return when score <= radius, value range [0, +∞).
+            aggregate: (dict): aggregate parameter.
 
         Returns:
             List[List[Dict]]: Return the most similar document for each embedding_item.
@@ -724,6 +737,7 @@ class RPCVectorDBClient(VectorDBClient):
             timeout=timeout,
             return_pd_object=return_pd_object,
             radius=radius,
+            aggregate=aggregate,
         )
 
     def hybrid_search(self,

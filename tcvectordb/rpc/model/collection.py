@@ -209,6 +209,7 @@ class RPCCollection(Collection):
                timeout: Optional[float] = None,
                return_pd_object=False,
                radius: Optional[float] = None,
+               aggregate: Optional[dict] = None,
                ) -> List[List[Union[Dict, olama_pb2.Document]]]:
         """Search the most similar vector by the given vectors. Batch API
 
@@ -229,6 +230,7 @@ class RPCCollection(Collection):
                             IP: return when score >= radius, value range (-∞, +∞).
                             COSINE: return when score >= radius, value range [-1, 1].
                             L2: return when score <= radius, value range [0, +∞).
+            aggregate: (dict): aggregate parameter.
 
         Returns:
             List[List[Dict]]: Return the most similar document for each vector.
@@ -245,6 +247,7 @@ class RPCCollection(Collection):
             timeout=timeout,
             return_pd_object=return_pd_object,
             radius=radius,
+            aggregate=aggregate,
         )
 
     def searchById(self,
@@ -257,6 +260,7 @@ class RPCCollection(Collection):
                    output_fields: Optional[List[str]] = None,
                    return_pd_object=False,
                    radius: Optional[float] = None,
+                   aggregate: Optional[dict] = None,
                    ) -> List[List[Union[Dict, olama_pb2.Document]]]:
         """Search the most similar vector by id. Batch API
 
@@ -277,6 +281,7 @@ class RPCCollection(Collection):
                             IP: return when score >= radius, value range (-∞, +∞).
                             COSINE: return when score >= radius, value range [-1, 1].
                             L2: return when score <= radius, value range [0, +∞).
+            aggregate: (dict): aggregate parameter.
 
         Returns:
             List[List[Dict]]: Return the most similar document for each id.
@@ -293,6 +298,7 @@ class RPCCollection(Collection):
             output_fields=output_fields,
             return_pd_object=return_pd_object,
             radius=radius,
+            aggregate=aggregate,
         )
 
     def searchByText(self,
@@ -305,6 +311,7 @@ class RPCCollection(Collection):
                      timeout: Optional[float] = None,
                      return_pd_object=False,
                      radius: Optional[float] = None,
+                     aggregate: Optional[dict] = None,
                      ) -> Dict[str, Any]:
         """Search the most similar vector by the embeddingItem. Batch API
         The embeddingItem will first be embedded into a vector by the model set by the collection on the server side.
@@ -326,6 +333,7 @@ class RPCCollection(Collection):
                             IP: return when score >= radius, value range (-∞, +∞).
                             COSINE: return when score >= radius, value range [-1, 1].
                             L2: return when score <= radius, value range [0, +∞).
+            aggregate: (dict): aggregate parameter.
 
         Returns:
             List[List[Dict]]: Return the most similar document for each embeddingItem.
@@ -342,6 +350,7 @@ class RPCCollection(Collection):
             timeout=timeout,
             return_pd_object=return_pd_object,
             radius=radius,
+            aggregate=aggregate,
         )
 
     def hybrid_search(self,

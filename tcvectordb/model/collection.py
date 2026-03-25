@@ -231,6 +231,29 @@ class UpdateQuery(BaseQuery):
         return super().__dict__
 
 
+class Aggregate:
+
+    def __init__(self,
+                 group_by: str,
+                 candidate_limit: Optional[int] = None,
+                 metrics: Optional[List[str]] = None
+                 ):
+        self.group_by = group_by
+        self.candidate_limit = candidate_limit
+        self.metrics = metrics
+
+    @property
+    def __dict__(self):
+        res = {
+            "groupBy": self.group_by,
+        }
+        if self.metrics:
+            res['metrics'] = self.metrics
+        if self.candidate_limit:
+            res['candidateLimit'] = self.candidate_limit
+        return res
+
+
 class Search:
     def __init__(self,
                  retrieve_vector: bool = False,
@@ -242,6 +265,7 @@ class Search:
                  filter: Union[Filter, str] = None,
                  output_fields: Optional[List[str]] = None,
                  radius: Optional[float] = None,
+                 aggregate: Optional[Union[Dict, Aggregate]] = None,
                  ):
         self._retrieve_vector = retrieve_vector
         self._limit = limit
@@ -264,6 +288,7 @@ class Search:
         if output_fields is not None:
             self._output_fields = output_fields
         self.radius = radius
+        self.aggregate = aggregate
 
     @property
     def __dict__(self):
@@ -293,6 +318,11 @@ class Search:
         if self.radius is not None:
             res['radius'] = self.radius
 
+        if self.aggregate is not None:
+            if isinstance(self.aggregate, Aggregate):
+                res['aggregate'] = vars(self.aggregate)
+            else:
+                res['aggregate'] = self.aggregate
         return res
 
 
@@ -502,6 +532,7 @@ class Collection():
             output_fields: Optional[List[str]] = None,
             timeout: Optional[float] = None,
             radius: Optional[float] = None,
+            aggregate: Optional[Union[Dict, Aggregate]] = None,
     ) -> List[List[Dict]]:
         """Search the most similar vector by the given vectors. Batch API
 
@@ -521,14 +552,18 @@ class Collection():
                             IP: return when score >= radius, value range (-∞, +∞).
                             COSINE: return when score >= radius, value range [-1, 1].
                             L2: return when score <= radius, value range [0, +∞).
+            aggregate: (dict): aggregate parameter.
 
         Returns:
             List[List[Dict]]: Return the most similar document for each vector.
         """
         search_param = Search(retrieve_vector=retrieve_vector, limit=limit, vectors=vectors, filter=filter,
-                              params=params, output_fields=output_fields, radius=radius)
-        return self.__base_search(search=search_param, read_consistency=self._read_consistency, timeout=timeout).get(
-            'documents')
+                              params=params, output_fields=output_fields, radius=radius, aggregate=aggregate)
+        res = self.__base_search(search=search_param, read_consistency=self._read_consistency, timeout=timeout)
+        if 'aggregates' in res:
+            return res.get('aggregates')
+        else:
+            return res.get('documents')
 
     def searchById(
             self,
@@ -540,6 +575,7 @@ class Collection():
             timeout: Optional[float] = None,
             output_fields: Optional[List[str]] = None,
             radius: Optional[float] = None,
+            aggregate: Optional[dict] = None,
     ) -> List[List[Dict]]:
         """Search the most similar vector by id. Batch API
 
@@ -559,6 +595,7 @@ class Collection():
                             IP: return when score >= radius, value range (-∞, +∞).
                             COSINE: return when score >= radius, value range [-1, 1].
                             L2: return when score <= radius, value range [0, +∞).
+            aggregate: (dict): aggregate parameter.
 
         Returns:
             List[List[Dict]]: Return the most similar document for each id.
@@ -567,9 +604,13 @@ class Collection():
             raise exceptions.ParamError(message="database_name or collection_name is blank")
 
         search_param = Search(retrieve_vector=retrieve_vector, limit=limit, document_ids=document_ids,
-                              filter=filter, params=params, output_fields=output_fields, radius=radius)
-        return self.__base_search(search=search_param, read_consistency=self._read_consistency, timeout=timeout).get(
-            'documents')
+                              filter=filter, params=params, output_fields=output_fields, radius=radius,
+                              aggregate=aggregate)
+        res = self.__base_search(search=search_param, read_consistency=self._read_consistency, timeout=timeout)
+        if 'aggregates' in res:
+            return res.get('aggregates')
+        else:
+            return res.get('documents')
 
     def searchByText(self,
                      embeddingItems: List[str],
@@ -580,6 +621,7 @@ class Collection():
                      output_fields: Optional[List[str]] = None,
                      timeout: Optional[float] = None,
                      radius: Optional[float] = None,
+                     aggregate: Optional[dict] = None,
                      ) -> Dict[str, Any]:
         """Search the most similar vector by the embeddingItem. Batch API
         The embeddingItem will first be embedded into a vector by the model set by the collection on the server side.
@@ -600,6 +642,7 @@ class Collection():
                             IP: return when score >= radius, value range (-∞, +∞).
                             COSINE: return when score >= radius, value range [-1, 1].
                             L2: return when score <= radius, value range [0, +∞).
+            aggregate: (dict): aggregate parameter.
 
         Returns:
             List[List[Dict]]: Return the most similar document for each embeddingItem.
@@ -608,7 +651,8 @@ class Collection():
             raise exceptions.ParamError(message="database_name or collection_name is blank")
 
         search_param = Search(retrieve_vector=retrieve_vector, limit=limit, embedding_items=embeddingItems,
-                              filter=filter, params=params, output_fields=output_fields, radius=radius)
+                              filter=filter, params=params, output_fields=output_fields, radius=radius,
+                              aggregate=aggregate)
         return self.__base_search(search=search_param, read_consistency=self._read_consistency, timeout=timeout)
 
     def __base_search(
@@ -664,24 +708,21 @@ class Collection():
         if res.body.get("warning", None) is not None and len(res.body.get("warning", None)) > 0:
             warn_msg = res.body.get("warning")
 
-        documents = res.body.get('documents', None)
-
-        if not documents:
-            return {
-                'warning': warn_msg,
-                'documents': []
-            }
-
+        documents = res.body.get('documents', [])
         documents_res = []
         for arr in documents:
             tmp = []
             for elem in arr:
                 tmp.append(elem)
             documents_res.append(tmp)
-        return {
+        result = {
             'warning': warn_msg,
             'documents': documents_res
         }
+        aggregate_result = res.body.get('aggregates', None)
+        if aggregate_result is not None:
+            result['aggregates'] = aggregate_result
+        return result
 
     def hybrid_search(self,
                       ann: Optional[Union[List[AnnSearch], AnnSearch]] = None,

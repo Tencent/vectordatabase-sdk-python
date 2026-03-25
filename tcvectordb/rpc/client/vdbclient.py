@@ -1,12 +1,11 @@
 import math
-import time
 from typing import List, Union, Dict, Optional, Any
 
 import ujson
 from numpy import ndarray
 from tcvectordb.exceptions import ServerInternalError, ParamError, GrpcException
 from tcvectordb.model.ai_database import AIDatabase
-from tcvectordb.model.collection import Embedding, FilterIndexConfig
+from tcvectordb.model.collection import Embedding, FilterIndexConfig, Aggregate
 from tcvectordb.model.document import Document, Filter, AnnSearch, KeywordSearch, Rerank, WeightedRerank, RRFRerank
 from tcvectordb.model.enum import ReadConsistency, FieldType
 from tcvectordb.model.index import Index, VectorIndex, FilterIndex, SparseIndex, SparseVector, IndexField
@@ -252,8 +251,9 @@ class VdbClient:
                timeout: Optional[float] = None,
                return_pd_object=False,
                radius: Optional[float] = None,
+               aggregate: Optional[Union[Dict, Aggregate]] = None,
                ) -> List[List[Union[Dict, olama_pb2.Document]]]:
-        return self.search_with_warning(
+        result = self.search_with_warning(
             database_name=database_name,
             collection_name=collection_name,
             document_ids=document_ids,
@@ -267,7 +267,12 @@ class VdbClient:
             timeout=timeout,
             return_pd_object=return_pd_object,
             radius=radius,
-        ).get('documents')
+            aggregate=aggregate,
+        )
+        if 'aggregates' in result:
+            return result.get('aggregates')
+        else:
+            return result.get('documents')
 
     def search_with_warning(self,
                             database_name: str,
@@ -283,6 +288,7 @@ class VdbClient:
                             timeout: Optional[float] = None,
                             return_pd_object=False,
                             radius: Optional[float] = None,
+                            aggregate: Optional[Union[Dict, Aggregate]] = None,
                             ) -> Dict[str, Any]:
         search = olama_pb2.SearchCond()
         batch = 0
@@ -321,6 +327,23 @@ class VdbClient:
         if radius is not None:
             search.range = True
             search.params.radius = radius
+        group_by = None
+        if aggregate is not None:
+            if isinstance(aggregate, Aggregate):
+                aggregate = vars(aggregate)
+            search.aggregate.groupBy = aggregate.get('groupBy')
+            candidate_limit = aggregate.get('candidateLimit')
+            if candidate_limit is not None:
+                search.aggregate.candidateLimit = candidate_limit
+                search.aggregate.hasLimit = True
+            metrics = aggregate.get('metrics')
+            if metrics:
+                if not isinstance(metrics, list):
+                    raise ParamError(message='the aggregate metrics must be an ARRAY')
+                for m in metrics:
+                    search.aggregate.metrics.append(m)
+                    if group_by is None:
+                        group_by = m
         request = olama_pb2.SearchRequest(
             database=database_name,
             collection=collection_name,
@@ -354,10 +377,39 @@ class VdbClient:
                     for d in r.documents:
                         docs.append(self._pb2doc(d))
                 rtl.append(docs)
-        return {
+        result = {
             'warning': res.warning,
             'documents': rtl
         }
+        if res.aggregateResult:
+            aggregates = []
+            for agg in res.aggregateResult:
+                for k, v in agg.aggregateResult.items():
+                    aggregates.append({
+                        "groupKey": {res.groupByField: k},
+                        "metrics": {group_by: v}
+                    })
+                for k, v in agg.aggregateResultInt64.items():
+                    aggregates.append({
+                        "groupKey": {res.groupByField: k},
+                        "metrics": {group_by: v}
+                    })
+            result['aggregates'] = [aggregates]
+        if res.groupSearchResult:
+            aggregates = []
+            for agg in res.groupSearchResult:
+                for k, v in agg.groupedResults.items():
+                    aggregates.append({
+                        "groupKey": {res.groupByField: k},
+                        "topDocuments": [self._pb2doc(d) for d in v.documents]
+                    })
+                for k, v in agg.groupedResultsInt64.items():
+                    aggregates.append({
+                        "groupKey": {res.groupByField: k},
+                        "topDocuments": [self._pb2doc(d) for d in v.documents]
+                    })
+            result['aggregates'] = [aggregates]
+        return result
 
     def _search_cond(self,
                      ann: Optional[List[AnnSearch]] = None,
@@ -843,10 +895,14 @@ class VdbClient:
                     raise ServerInternalError(code=15000,
                                               message=f'The value of nlist cannot be 0.')
                 column.params.nlist = param.get('nlist', 0)
+            if param.get('bits') is not None:
+                column.params.bits = param.get('bits')
         if hasattr(index, 'metric_type') and index.metric_type is not None:
             column.metricType = index.metricType.value
         if isinstance(index, SparseIndex) and index.disk_swap_enabled is not None:
             column.diskSwapEnabled = index.disk_swap_enabled
+        if hasattr(index, 'enable_value_cache') and index.enable_value_cache is not None:
+            column.valueCacheEnabled = index.enable_value_cache
 
     def add_index(self,
                   database_name: str,
@@ -964,6 +1020,8 @@ class VdbClient:
                     column.autoId = f_item.auto_id
                 if hasattr(f_item, 'disk_swap_enabled') and f_item.disk_swap_enabled is not None:
                     column.diskSwapEnabled = f_item.disk_swap_enabled
+                if hasattr(f_item, 'enable_value_cache') and f_item.enable_value_cache is not None:
+                    column.valueCacheEnabled = f_item.enable_value_cache
         if embedding is not None:
             emb = vars(embedding)
             req.embeddingParams.field = emb.get('field')
@@ -1063,6 +1121,8 @@ class VdbClient:
                 field['indexedCount'] = pb.size
             if f_item.fieldType == FieldType.SparseVector.value:
                 field['diskSwapEnabled'] = f_item.diskSwapEnabled
+            if f_item.fieldType == FieldType.Uint64.value or f_item.fieldType == FieldType.Int64.value:
+                field['enableValueCache'] = f_item.valueCacheEnabled
             index.add(**field)
         embedding = None
         if pb.embeddingParams:

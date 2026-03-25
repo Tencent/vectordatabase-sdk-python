@@ -141,6 +141,7 @@ message CollectionConf {
 message FieldMeta {
     FieldType field_type                = 1;
     FieldElementType field_element_type = 2; // 当field_type为TYPE_ARRAY时, 数组元素类型
+    bool value_cache_enabled            = 3;
 }
 
 enum FieldType {
@@ -277,6 +278,7 @@ message IndexColumn {
     string fieldElementType = 9; // 当fieldType为array时, 数组元素类型
     string autoId           = 10;
     bool diskSwapEnabled    = 11;
+    bool valueCacheEnabled  = 12;
 };
 
 message indexStatus {
@@ -517,6 +519,23 @@ message RerankParams {
     int32 rrf_k                     = 3;  // for RRF: K参数
 }
 
+message AggregateRule {
+    string groupBy                           = 1;
+    repeated string metrics                  = 2;
+    uint64 candidateLimit                    = 3; // 分组前候选规模
+    bool hasLimit                            = 4;
+}
+
+message AggregateResult {
+    map<uint64, uint64> aggregateResult       = 1; // group count 结果（uint64）：标量值 -> 计数
+    map<int64, uint64> aggregateResultInt64   = 2; // group count 结果（int64）：标量值 -> 计数
+}
+
+message GroupSearchResult {
+    map<uint64, SearchResult> groupedResults      = 1; // group search 结果（uint64）：标量值 -> SearchResult
+    map<int64, SearchResult> groupedResultsInt64  = 2; // group search 结果（int64）：标量值 -> SearchResult
+}
+
 message SearchCond {
     repeated VectorArray vectors      = 1;  // 使用向量值检索
     repeated string documentIds       = 2;  // 使用向量id检索
@@ -531,6 +550,7 @@ message SearchCond {
     repeated SparseData sparse        = 11; // 稀疏向量检索
     RerankParams rerank_params        = 12; // rerank参数
     bool retrieveSparseVector         = 13; // 目前用户不传，仅用于内部
+    AggregateRule aggregate           = 14; // 按照字段group by
 }
 
 message SearchRequest {
@@ -563,6 +583,9 @@ message SearchResponse {
     repeated SearchResult results            = 4;
     string warning                           = 5;
     EmbeddingExtraInfo embedding_extra_info  = 6;
+    repeated AggregateResult aggregateResult = 7;     // 支持多个聚合结果 (group count)
+    repeated GroupSearchResult groupSearchResult = 8; // 支持多个分组搜索结果 (group search)
+    string groupByField = 9;
 };
 
 message SortCond {

@@ -20,10 +20,12 @@
 from .client.stub import VectorDBClient
 from .rpc.client.stub import RPCVectorDBClient
 from .exceptions import VectorDBException
+from .client.tls import TLSConfig
 
 
 __all__ = [
     "VectorDBClient",
     "VectorDBException",
     "RPCVectorDBClient",
+    "TLSConfig",
 ]

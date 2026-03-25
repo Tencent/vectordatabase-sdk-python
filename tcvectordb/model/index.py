@@ -194,11 +194,13 @@ class FilterIndex(IndexField):
                  field_type: FieldType,
                  index_type: IndexType,
                  auto_id: Optional[str] = None,
+                 enable_value_cache: Optional[bool] = None,
                  **kwargs) -> None:
         super().__init__(name=name,
                          field_type=field_type,
                          index_type=index_type)
         self.auto_id = auto_id
+        self.enable_value_cache = enable_value_cache
         self.kwargs = kwargs
 
     @property
@@ -206,6 +208,8 @@ class FilterIndex(IndexField):
         obj = super().__dict__
         if self.auto_id is not None:
             obj['autoId'] = self.auto_id
+        if self.enable_value_cache is not None:
+            obj['enableValueCache'] = self.enable_value_cache
         obj.update(self.kwargs)
         return obj
 
@@ -296,6 +300,7 @@ class Index:
                     FieldType(field_type),
                     IndexType(kwargs.pop('indexType', None)),
                     auto_id=kwargs.pop('autoId', None),
+                    enable_value_cache=kwargs.pop('enableValueCache', None),
                     **kwargs,
                 )
         if index.name in self._indexes:

@@ -272,12 +272,14 @@ class CollectionConf(_message.Message):
     def __init__(self, database: _Optional[str] = ..., collection: _Optional[str] = ..., description: _Optional[str] = ..., number_of_shards: _Optional[int] = ..., number_of_replicas: _Optional[int] = ..., dimension: _Optional[int] = ..., metric: _Optional[_Union[IndexMetricType, str]] = ..., nprobe: _Optional[int] = ..., snapshot_rules: _Optional[_Iterable[_Union[SnapshotRule, _Mapping]]] = ..., engine: _Optional[_Union[IndexEngineType, str]] = ..., model_desc: _Optional[str] = ..., field_metas: _Optional[_Mapping[str, FieldMeta]] = ..., options: _Optional[_Mapping[str, str]] = ..., nlist: _Optional[int] = ..., embedding_params: _Optional[_Union[EmbeddingParams, _Mapping]] = ..., data_type: _Optional[_Union[DataType, str]] = ..., version: _Optional[int] = ..., ttlConfig: _Optional[_Union[TTLConfig, _Mapping]] = ...) -> None: ...
 
 class FieldMeta(_message.Message):
-    __slots__ = ["field_type", "field_element_type"]
+    __slots__ = ["field_type", "field_element_type", "value_cache_enabled"]
     FIELD_TYPE_FIELD_NUMBER: _ClassVar[int]
     FIELD_ELEMENT_TYPE_FIELD_NUMBER: _ClassVar[int]
+    VALUE_CACHE_ENABLED_FIELD_NUMBER: _ClassVar[int]
     field_type: FieldType
     field_element_type: FieldElementType
-    def __init__(self, field_type: _Optional[_Union[FieldType, str]] = ..., field_element_type: _Optional[_Union[FieldElementType, str]] = ...) -> None: ...
+    value_cache_enabled: bool
+    def __init__(self, field_type: _Optional[_Union[FieldType, str]] = ..., field_element_type: _Optional[_Union[FieldElementType, str]] = ..., value_cache_enabled: bool = ...) -> None: ...
 
 class ShardConf(_message.Message):
     __slots__ = ["collection", "shard_idx", "conf", "nodes"]
@@ -477,7 +479,7 @@ class IndexParams(_message.Message):
     def __init__(self, M: _Optional[int] = ..., efConstruction: _Optional[int] = ..., nprobe: _Optional[int] = ..., nlist: _Optional[int] = ..., bits: _Optional[int] = ...) -> None: ...
 
 class IndexColumn(_message.Message):
-    __slots__ = ["fieldName", "fieldType", "indexType", "dimension", "metricType", "params", "fieldElementType", "autoId", "diskSwapEnabled"]
+    __slots__ = ["fieldName", "fieldType", "indexType", "dimension", "metricType", "params", "fieldElementType", "autoId", "diskSwapEnabled", "valueCacheEnabled"]
     FIELDNAME_FIELD_NUMBER: _ClassVar[int]
     FIELDTYPE_FIELD_NUMBER: _ClassVar[int]
     INDEXTYPE_FIELD_NUMBER: _ClassVar[int]
@@ -487,6 +489,7 @@ class IndexColumn(_message.Message):
     FIELDELEMENTTYPE_FIELD_NUMBER: _ClassVar[int]
     AUTOID_FIELD_NUMBER: _ClassVar[int]
     DISKSWAPENABLED_FIELD_NUMBER: _ClassVar[int]
+    VALUECACHEENABLED_FIELD_NUMBER: _ClassVar[int]
     fieldName: str
     fieldType: str
     indexType: str
@@ -496,7 +499,8 @@ class IndexColumn(_message.Message):
     fieldElementType: str
     autoId: str
     diskSwapEnabled: bool
-    def __init__(self, fieldName: _Optional[str] = ..., fieldType: _Optional[str] = ..., indexType: _Optional[str] = ..., dimension: _Optional[int] = ..., metricType: _Optional[str] = ..., params: _Optional[_Union[IndexParams, _Mapping]] = ..., fieldElementType: _Optional[str] = ..., autoId: _Optional[str] = ..., diskSwapEnabled: bool = ...) -> None: ...
+    valueCacheEnabled: bool
+    def __init__(self, fieldName: _Optional[str] = ..., fieldType: _Optional[str] = ..., indexType: _Optional[str] = ..., dimension: _Optional[int] = ..., metricType: _Optional[str] = ..., params: _Optional[_Union[IndexParams, _Mapping]] = ..., fieldElementType: _Optional[str] = ..., autoId: _Optional[str] = ..., diskSwapEnabled: bool = ..., valueCacheEnabled: bool = ...) -> None: ...
 
 class indexStatus(_message.Message):
     __slots__ = ["status", "progress", "startTime"]
@@ -922,8 +926,64 @@ class RerankParams(_message.Message):
     rrf_k: int
     def __init__(self, method: _Optional[str] = ..., weights: _Optional[_Mapping[str, float]] = ..., rrf_k: _Optional[int] = ...) -> None: ...
 
+class AggregateRule(_message.Message):
+    __slots__ = ["groupBy", "metrics", "candidateLimit", "hasLimit"]
+    GROUPBY_FIELD_NUMBER: _ClassVar[int]
+    METRICS_FIELD_NUMBER: _ClassVar[int]
+    CANDIDATELIMIT_FIELD_NUMBER: _ClassVar[int]
+    HASLIMIT_FIELD_NUMBER: _ClassVar[int]
+    groupBy: str
+    metrics: _containers.RepeatedScalarFieldContainer[str]
+    candidateLimit: int
+    hasLimit: bool
+    def __init__(self, groupBy: _Optional[str] = ..., metrics: _Optional[_Iterable[str]] = ..., candidateLimit: _Optional[int] = ..., hasLimit: bool = ...) -> None: ...
+
+class AggregateResult(_message.Message):
+    __slots__ = ["aggregateResult", "aggregateResultInt64"]
+    class AggregateResultEntry(_message.Message):
+        __slots__ = ["key", "value"]
+        KEY_FIELD_NUMBER: _ClassVar[int]
+        VALUE_FIELD_NUMBER: _ClassVar[int]
+        key: int
+        value: int
+        def __init__(self, key: _Optional[int] = ..., value: _Optional[int] = ...) -> None: ...
+    class AggregateResultInt64Entry(_message.Message):
+        __slots__ = ["key", "value"]
+        KEY_FIELD_NUMBER: _ClassVar[int]
+        VALUE_FIELD_NUMBER: _ClassVar[int]
+        key: int
+        value: int
+        def __init__(self, key: _Optional[int] = ..., value: _Optional[int] = ...) -> None: ...
+    AGGREGATERESULT_FIELD_NUMBER: _ClassVar[int]
+    AGGREGATERESULTINT64_FIELD_NUMBER: _ClassVar[int]
+    aggregateResult: _containers.ScalarMap[int, int]
+    aggregateResultInt64: _containers.ScalarMap[int, int]
+    def __init__(self, aggregateResult: _Optional[_Mapping[int, int]] = ..., aggregateResultInt64: _Optional[_Mapping[int, int]] = ...) -> None: ...
+
+class GroupSearchResult(_message.Message):
+    __slots__ = ["groupedResults", "groupedResultsInt64"]
+    class GroupedResultsEntry(_message.Message):
+        __slots__ = ["key", "value"]
+        KEY_FIELD_NUMBER: _ClassVar[int]
+        VALUE_FIELD_NUMBER: _ClassVar[int]
+        key: int
+        value: SearchResult
+        def __init__(self, key: _Optional[int] = ..., value: _Optional[_Union[SearchResult, _Mapping]] = ...) -> None: ...
+    class GroupedResultsInt64Entry(_message.Message):
+        __slots__ = ["key", "value"]
+        KEY_FIELD_NUMBER: _ClassVar[int]
+        VALUE_FIELD_NUMBER: _ClassVar[int]
+        key: int
+        value: SearchResult
+        def __init__(self, key: _Optional[int] = ..., value: _Optional[_Union[SearchResult, _Mapping]] = ...) -> None: ...
+    GROUPEDRESULTS_FIELD_NUMBER: _ClassVar[int]
+    GROUPEDRESULTSINT64_FIELD_NUMBER: _ClassVar[int]
+    groupedResults: _containers.MessageMap[int, SearchResult]
+    groupedResultsInt64: _containers.MessageMap[int, SearchResult]
+    def __init__(self, groupedResults: _Optional[_Mapping[int, SearchResult]] = ..., groupedResultsInt64: _Optional[_Mapping[int, SearchResult]] = ...) -> None: ...
+
 class SearchCond(_message.Message):
-    __slots__ = ["vectors", "documentIds", "params", "filter", "retrieveVector", "limit", "outputfields", "embeddingItems", "range", "ann", "sparse", "rerank_params", "retrieveSparseVector"]
+    __slots__ = ["vectors", "documentIds", "params", "filter", "retrieveVector", "limit", "outputfields", "embeddingItems", "range", "ann", "sparse", "rerank_params", "retrieveSparseVector", "aggregate"]
     VECTORS_FIELD_NUMBER: _ClassVar[int]
     DOCUMENTIDS_FIELD_NUMBER: _ClassVar[int]
     PARAMS_FIELD_NUMBER: _ClassVar[int]
@@ -937,6 +997,7 @@ class SearchCond(_message.Message):
     SPARSE_FIELD_NUMBER: _ClassVar[int]
     RERANK_PARAMS_FIELD_NUMBER: _ClassVar[int]
     RETRIEVESPARSEVECTOR_FIELD_NUMBER: _ClassVar[int]
+    AGGREGATE_FIELD_NUMBER: _ClassVar[int]
     vectors: _containers.RepeatedCompositeFieldContainer[VectorArray]
     documentIds: _containers.RepeatedScalarFieldContainer[str]
     params: SearchParams
@@ -950,7 +1011,8 @@ class SearchCond(_message.Message):
     sparse: _containers.RepeatedCompositeFieldContainer[SparseData]
     rerank_params: RerankParams
     retrieveSparseVector: bool
-    def __init__(self, vectors: _Optional[_Iterable[_Union[VectorArray, _Mapping]]] = ..., documentIds: _Optional[_Iterable[str]] = ..., params: _Optional[_Union[SearchParams, _Mapping]] = ..., filter: _Optional[str] = ..., retrieveVector: bool = ..., limit: _Optional[int] = ..., outputfields: _Optional[_Iterable[str]] = ..., embeddingItems: _Optional[_Iterable[str]] = ..., range: bool = ..., ann: _Optional[_Iterable[_Union[AnnData, _Mapping]]] = ..., sparse: _Optional[_Iterable[_Union[SparseData, _Mapping]]] = ..., rerank_params: _Optional[_Union[RerankParams, _Mapping]] = ..., retrieveSparseVector: bool = ...) -> None: ...
+    aggregate: AggregateRule
+    def __init__(self, vectors: _Optional[_Iterable[_Union[VectorArray, _Mapping]]] = ..., documentIds: _Optional[_Iterable[str]] = ..., params: _Optional[_Union[SearchParams, _Mapping]] = ..., filter: _Optional[str] = ..., retrieveVector: bool = ..., limit: _Optional[int] = ..., outputfields: _Optional[_Iterable[str]] = ..., embeddingItems: _Optional[_Iterable[str]] = ..., range: bool = ..., ann: _Optional[_Iterable[_Union[AnnData, _Mapping]]] = ..., sparse: _Optional[_Iterable[_Union[SparseData, _Mapping]]] = ..., rerank_params: _Optional[_Union[RerankParams, _Mapping]] = ..., retrieveSparseVector: bool = ..., aggregate: _Optional[_Union[AggregateRule, _Mapping]] = ...) -> None: ...
 
 class SearchRequest(_message.Message):
     __slots__ = ["database", "collection", "search", "readConsistency"]
@@ -991,20 +1053,26 @@ class Filter(_message.Message):
     def __init__(self, expr: _Optional[str] = ..., radius: _Optional[float] = ..., size: _Optional[int] = ..., expose_data: _Optional[_Union[ExposeData, _Mapping]] = ...) -> None: ...
 
 class SearchResponse(_message.Message):
-    __slots__ = ["code", "msg", "redirect", "results", "warning", "embedding_extra_info"]
+    __slots__ = ["code", "msg", "redirect", "results", "warning", "embedding_extra_info", "aggregateResult", "groupSearchResult", "groupByField"]
     CODE_FIELD_NUMBER: _ClassVar[int]
     MSG_FIELD_NUMBER: _ClassVar[int]
     REDIRECT_FIELD_NUMBER: _ClassVar[int]
     RESULTS_FIELD_NUMBER: _ClassVar[int]
     WARNING_FIELD_NUMBER: _ClassVar[int]
     EMBEDDING_EXTRA_INFO_FIELD_NUMBER: _ClassVar[int]
+    AGGREGATERESULT_FIELD_NUMBER: _ClassVar[int]
+    GROUPSEARCHRESULT_FIELD_NUMBER: _ClassVar[int]
+    GROUPBYFIELD_FIELD_NUMBER: _ClassVar[int]
     code: int
     msg: str
     redirect: str
     results: _containers.RepeatedCompositeFieldContainer[SearchResult]
     warning: str
     embedding_extra_info: EmbeddingExtraInfo
-    def __init__(self, code: _Optional[int] = ..., msg: _Optional[str] = ..., redirect: _Optional[str] = ..., results: _Optional[_Iterable[_Union[SearchResult, _Mapping]]] = ..., warning: _Optional[str] = ..., embedding_extra_info: _Optional[_Union[EmbeddingExtraInfo, _Mapping]] = ...) -> None: ...
+    aggregateResult: _containers.RepeatedCompositeFieldContainer[AggregateResult]
+    groupSearchResult: _containers.RepeatedCompositeFieldContainer[GroupSearchResult]
+    groupByField: str
+    def __init__(self, code: _Optional[int] = ..., msg: _Optional[str] = ..., redirect: _Optional[str] = ..., results: _Optional[_Iterable[_Union[SearchResult, _Mapping]]] = ..., warning: _Optional[str] = ..., embedding_extra_info: _Optional[_Union[EmbeddingExtraInfo, _Mapping]] = ..., aggregateResult: _Optional[_Iterable[_Union[AggregateResult, _Mapping]]] = ..., groupSearchResult: _Optional[_Iterable[_Union[GroupSearchResult, _Mapping]]] = ..., groupByField: _Optional[str] = ...) -> None: ...
 
 class SortCond(_message.Message):
     __slots__ = ["sort_vec", "sort_id", "ids"]

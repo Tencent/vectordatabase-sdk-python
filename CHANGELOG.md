@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.1.0
+* feat: Support group by functionality for aggregation queries.
+* feat: Add SSL/TLS support for secure connections to the vector database.
+
 ## 2.0.0
 * feat: Sparse vectors support disk indexing. Add a field called `diskSwapEnabled` to control whether it is enabled or not.
 

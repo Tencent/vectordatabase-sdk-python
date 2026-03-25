@@ -6,11 +6,12 @@ from requests.adapters import HTTPAdapter
 from tcvectordb.model.enum import ReadConsistency
 
 from .httpclient import HTTPClient
+from .tls import TLSConfig
 from tcvectordb.model.database import Database
 from tcvectordb import exceptions
 from tcvectordb.model.ai_database import AIDatabase
 from tcvectordb.model import permission, atomic_function
-from tcvectordb.model.collection import Collection, Embedding, FilterIndexConfig
+from tcvectordb.model.collection import Collection, Embedding, FilterIndexConfig, Aggregate
 from tcvectordb.model.collection_view import SplitterProcess, ParsingProcess, CollectionView
 from tcvectordb.model.document import Document, Filter, AnnSearch, KeywordSearch, Rerank
 from tcvectordb.model.index import FilterIndex, VectorIndex, Index, IndexField, SparseVector, SparseIndex
@@ -28,9 +29,10 @@ class VectorDBClient:
                  adapter: HTTPAdapter = None,
                  pool_size: int = 10,
                  proxies: Optional[dict] = None,
-                 password: Optional[str] = None):
+                 password: Optional[str] = None,
+                 tls_config: Optional[TLSConfig] = None):
         self._conn = HTTPClient(url, username, key, timeout, adapter, pool_size=pool_size,
-                                proxies=proxies, password=password)
+                                proxies=proxies, password=password, tls_config=tls_config)
         self._read_consistency = read_consistency
 
     @property
@@ -557,6 +559,7 @@ class VectorDBClient:
                output_fields: Optional[List[str]] = None,
                timeout: Optional[float] = None,
                radius: Optional[float] = None,
+               aggregate: Optional[Union[Dict, Aggregate]] = None,
                ) -> List[List[Dict]]:
         """Search the most similar vector by the given vectors. Batch API
 
@@ -578,6 +581,7 @@ class VectorDBClient:
                             IP: return when score >= radius, value range (-∞, +∞).
                             COSINE: return when score >= radius, value range [-1, 1].
                             L2: return when score <= radius, value range [0, +∞).
+            aggregate: (dict): aggregate parameter.
 
         Returns:
             List[List[Dict]]: Return the most similar document for each vector.
@@ -595,6 +599,7 @@ class VectorDBClient:
             output_fields=output_fields,
             timeout=timeout,
             radius=radius,
+            aggregate=aggregate,
         )
 
     def search_by_id(self,
@@ -608,6 +613,7 @@ class VectorDBClient:
                      output_fields: Optional[List[str]] = None,
                      timeout: Optional[float] = None,
                      radius: Optional[float] = None,
+                     aggregate: Optional[Union[Dict, Aggregate]] = None,
                      ) -> List[List[Dict]]:
         """Search the most similar vector by id. Batch API
 
@@ -629,6 +635,7 @@ class VectorDBClient:
                             IP: return when score >= radius, value range (-∞, +∞).
                             COSINE: return when score >= radius, value range [-1, 1].
                             L2: return when score <= radius, value range [0, +∞).
+            aggregate: (dict): aggregate parameter.
 
         Returns:
             List[List[Dict]]: Return the most similar document for each id.
@@ -646,6 +653,7 @@ class VectorDBClient:
             timeout=timeout,
             output_fields=output_fields,
             radius=radius,
+            aggregate=aggregate,
         )
 
     def search_by_text(self,
@@ -659,6 +667,7 @@ class VectorDBClient:
                        output_fields: Optional[List[str]] = None,
                        timeout: Optional[float] = None,
                        radius: Optional[float] = None,
+                       aggregate: Optional[Union[Dict, Aggregate]] = None,
                        ) -> Dict[str, Any]:
         """Search the most similar vector by the embeddingItem. Batch API
         The embedding_items will first be embedded into a vector by the model set by the collection on the server side.
@@ -681,6 +690,7 @@ class VectorDBClient:
                             IP: return when score >= radius, value range (-∞, +∞).
                             COSINE: return when score >= radius, value range [-1, 1].
                             L2: return when score <= radius, value range [0, +∞).
+            aggregate: (dict): aggregate parameter.
 
         Returns:
             List[List[Dict]]: Return the most similar document for each embedding_item.
@@ -698,6 +708,7 @@ class VectorDBClient:
             output_fields=output_fields,
             timeout=timeout,
             radius=radius,
+            aggregate=aggregate,
         )
 
     def hybrid_search(self,

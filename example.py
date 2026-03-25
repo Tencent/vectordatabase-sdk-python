@@ -21,7 +21,18 @@ class TestVDB:
                                                    key=key,
                                                    username=username,
                                                    read_consistency=ReadConsistency.EVENTUAL_CONSISTENCY,
-                                                   timeout=timeout)
+                                                   timeout=timeout,
+                                                   tls_config=tcvectordb.TLSConfig(ca_cert_path='./ca.crt'),
+                                                #    tls_config=tcvectordb.TLSConfig(skip_verify=True),  # 不推荐：跳过证书校验
+                                                   )
+        # self.client = tcvectordb.VectorDBClient(url=url, 
+        #                                     key=key,
+        #                                     username=username,
+        #                                     read_consistency=ReadConsistency.EVENTUAL_CONSISTENCY,
+        #                                     timeout=timeout,
+        #                                     tls_config=tcvectordb.TLSConfig(ca_cert_path='./ca.crt'),
+        #                                     # tls_config=tcvectordb.TLSConfig(skip_verify=True),  # 不推荐：跳过证书校验
+        #                                     )
         if drop:
             self.client.drop_database(database_name=self.database_name)
         self.client.create_database_if_not_exists(database_name=self.database_name)
@@ -34,7 +45,7 @@ class TestVDB:
             database_name=self.database_name,
             collection_name=self.collection_name,
             shard=1,
-            replicas=1,
+            replicas=0,
             indexes=[
                 FilterIndex(name='id', field_type=FieldType.String, index_type=IndexType.PRIMARY_KEY),
                 VectorIndex(name='vector', field_type=FieldType.Vector, index_type=IndexType.HNSW,
