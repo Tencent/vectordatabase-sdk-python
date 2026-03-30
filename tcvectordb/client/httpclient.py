@@ -244,9 +244,14 @@ class HostHeaderSSLAdapter(_SockOpsAdapter, HTTPAdapter):
         connection_pool_kwargs = self.poolmanager.connection_pool_kw
 
         if host_header:
+            # assert_hostname: 控制证书校验时使用的主机名（TLS 握手后）
             connection_pool_kwargs["assert_hostname"] = host_header
+            # server_hostname: 控制 TLS ClientHello 中的 SNI 字段（TLS 握手时）
+            # 服务端证书绑定 DNS 名称时，必须设置 SNI 才能让服务端返回正确证书
+            connection_pool_kwargs["server_hostname"] = host_header
         elif "assert_hostname" in connection_pool_kwargs:
             # an assert_hostname from a previous request may have been left
             connection_pool_kwargs.pop("assert_hostname", None)
+            connection_pool_kwargs.pop("server_hostname", None)
 
         return super(HostHeaderSSLAdapter, self).send(request, **kwargs)
